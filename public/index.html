@@ -86,6 +86,28 @@
     .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
     @media (max-width: 640px) { .results-grid { grid-template-columns: 1fr; } }
 
+    .timeline { list-style: none; padding: 0; margin: 0; }
+    .timeline li {
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.875rem;
+    }
+    .timeline li:last-child { border-bottom: none; }
+    .timeline .evt-name {
+      font-weight: 600;
+      color: #111;
+      min-width: 160px;
+      font-family: monospace;
+      font-size: 0.82rem;
+    }
+    .timeline .evt-name.failed { color: #dc2626; }
+    .timeline .evt-name.completed { color: #16a34a; }
+    .timeline .evt-time { color: #999; font-size: 0.78rem; white-space: nowrap; }
+    .timeline .evt-detail { color: #555; font-size: 0.8rem; }
+
     .triage-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -191,6 +213,11 @@
         </div>
       </div>
 
+      <div id="historyCard" class="card" style="display:none">
+        <h2>History</h2>
+        <ul class="timeline" id="timeline"></ul>
+      </div>
+
       <div id="resultsGrid" class="results-grid" style="display:none">
         <div class="card">
           <h2>Triage</h2>
@@ -239,6 +266,8 @@
     const refNum = document.getElementById('refNum');
     const resultsEl = document.getElementById('results');
     const resultsGrid = document.getElementById('resultsGrid');
+    const historyCard = document.getElementById('historyCard');
+    const timeline = document.getElementById('timeline');
     const copyBtn = document.getElementById('copyBtn');
 
     let pollTimer = null;
@@ -291,14 +320,39 @@
           const data = await res.json();
           setStatus(data.status);
 
+          if (data.events) renderTimeline(data.events);
+
           if (data.status === 'completed' && data.processing) {
             clearInterval(pollTimer);
             renderResults(data.processing);
             submitBtn.disabled = false;
             submitBtn.textContent = 'Submit Another Ticket';
           }
+
+          if (data.status === 'failed') {
+            clearInterval(pollTimer);
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Another Ticket';
+          }
         } catch (_) {}
       }, 2000);
+    }
+
+    function renderTimeline(events) {
+      if (!events.length) return;
+      historyCard.style.display = 'block';
+      timeline.innerHTML = events.map(e => {
+        const label = e.event.replace('.', ' ');
+        const cls = e.event.endsWith('.failed') ? 'failed'
+                  : e.event.endsWith('.completed') ? 'completed' : '';
+        const time = new Date(e.occurredAt).toLocaleTimeString();
+        const detail = e.detail ? `<span class="evt-detail">— ${e.detail}</span>` : '';
+        return `<li>
+          <span class="evt-name ${cls}">${label}</span>
+          <span class="evt-time">${time}</span>
+          ${detail}
+        </li>`;
+      }).join('');
     }
 
     function renderResults(p) {
