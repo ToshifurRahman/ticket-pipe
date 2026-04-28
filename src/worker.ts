@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'url';
 import Groq from 'groq-sdk';
 import { logger } from './lib/logger.js';
 import { receiveMessages, deleteMessage } from './lib/queue.js';
@@ -9,7 +10,7 @@ if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY environment variabl
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-async function triageTicket(
+export async function triageTicket(
   subject: string,
   description: string
 ): Promise<Omit<ProcessingResult, 'customerReply' | 'internalNote' | 'nextSteps'>> {
@@ -59,7 +60,7 @@ async function triageTicket(
   };
 }
 
-async function draftResponse(
+export async function draftResponse(
   subject: string,
   description: string,
   triage: Omit<ProcessingResult, 'customerReply' | 'internalNote' | 'nextSteps'>
@@ -122,7 +123,7 @@ async function draftResponse(
   };
 }
 
-async function processMessage(ticketId: string, receiptHandle: string): Promise<void> {
+export async function processMessage(ticketId: string, receiptHandle: string): Promise<void> {
   logger.info({ ticketId }, 'Processing ticket');
 
   await updateTicketStatus(ticketId, 'processing');
@@ -175,4 +176,6 @@ async function run(): Promise<void> {
   }
 }
 
-run();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  run();
+}
