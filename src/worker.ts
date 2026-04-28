@@ -3,6 +3,7 @@ import { logger } from './lib/logger.js';
 import { receiveMessages, deleteMessage } from './lib/queue.js';
 import { getTicketById, updateTicketStatus } from './repositories/tickets.js';
 import { insertProcessingResult, type ProcessingResult } from './repositories/processing.js';
+import { insertEvent } from './repositories/events.js';
 
 if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY environment variable is required');
 
@@ -127,14 +128,31 @@ async function processMessage(ticketId: string, receiptHandle: string): Promise<
   await updateTicketStatus(ticketId, 'processing');
   const ticket = await getTicketById(ticketId);
 
-  const triage = await triageTicket(ticket.subject, ticket.description);
-  logger.info({ ticketId, triage }, 'Triage complete');
+  let triage: Omit<ProcessingResult, 'customerReply' | 'internalNote' | 'nextSteps'>;
+  try {
+    triage = await triageTicket(ticket.subject, ticket.description);
+    await insertEvent(ticketId, 'triage.completed');
+    logger.info({ ticketId }, 'Triage complete');
+  } catch (err) {
+    await insertEvent(ticketId, 'triage.failed', (err as Error).message);
+    await updateTicketStatus(ticketId, 'failed');
+    throw err;
+  }
 
-  const draft = await draftResponse(ticket.subject, ticket.description, triage);
-  logger.info({ ticketId }, 'Draft complete');
+  let draft: Pick<ProcessingResult, 'customerReply' | 'internalNote' | 'nextSteps'>;
+  try {
+    draft = await draftResponse(ticket.subject, ticket.description, triage);
+    await insertEvent(ticketId, 'draft.completed');
+    logger.info({ ticketId }, 'Draft complete');
+  } catch (err) {
+    await insertEvent(ticketId, 'draft.failed', (err as Error).message);
+    await updateTicketStatus(ticketId, 'failed');
+    throw err;
+  }
 
   await insertProcessingResult(ticketId, { ...triage, ...draft });
   await updateTicketStatus(ticketId, 'completed');
+  await insertEvent(ticketId, 'ticket.completed');
   await deleteMessage(receiptHandle);
 
   logger.info({ ticketId }, 'Ticket completed');
@@ -147,9 +165,11 @@ async function run(): Promise<void> {
     const messages = await receiveMessages();
     await Promise.all(
       messages.map(({ ticketId, receiptHandle }) =>
-        processMessage(ticketId, receiptHandle).catch(err =>
-          logger.error({ err, ticketId }, 'Failed to process ticket')
-        )
+        processMessage(ticketId, receiptHandle).catch(async err => {
+          logger.error({ err, ticketId }, 'Failed to process ticket');
+          await insertEvent(ticketId, 'ticket.failed', (err as Error).message).catch(() => {});
+          await updateTicketStatus(ticketId, 'failed').catch(() => {});
+        })
       )
     );
   }
