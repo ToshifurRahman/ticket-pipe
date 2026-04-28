@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ticket Pipe</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      color: #111;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .subtitle { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
+    .container { max-width: 900px; margin: 0 auto; }
+
+    .card {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; }
+
+    label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.35rem; color: #333; }
+    input[type="text"], textarea {
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus, textarea:focus { border-color: #6366f1; }
+    textarea { resize: vertical; min-height: 100px; }
+    .field { margin-bottom: 1rem; }
+
+    button.submit {
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.65rem 1.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button.submit:hover { background: #4f46e5; }
+    button.submit:disabled { background: #a5b4fc; cursor: default; }
+
+    .status-bar { display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; }
+    .ref { color: #666; font-family: monospace; font-size: 0.8rem; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge.queued    { background: #e0e7ff; color: #3730a3; }
+    .badge.processing { background: #fef9c3; color: #92400e; }
+    .badge.completed  { background: #dcfce7; color: #166534; }
+
+    .spinner {
+      width: 10px; height: 10px;
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 640px) { .results-grid { grid-template-columns: 1fr; } }
+
+    .triage-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .triage-item label {
+      color: #888;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.2rem;
+    }
+    .triage-item .value { font-size: 0.95rem; font-weight: 500; }
+
+    .priority { padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+    .priority.low      { background: #dcfce7; color: #166534; }
+    .priority.medium   { background: #fef9c3; color: #92400e; }
+    .priority.high     { background: #ffedd5; color: #9a3412; }
+    .priority.critical { background: #fee2e2; color: #991b1b; }
+
+    .escalate-yes { color: #dc2626; font-weight: 700; }
+    .escalate-no  { color: #16a34a; }
+
+    .summary-box {
+      background: #f8f8ff;
+      border: 1px solid #e0e7ff;
+      border-radius: 6px;
+      padding: 0.75rem;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #333;
+    }
+
+    .draft-text {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 0.75rem;
+      font-size: 0.875rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      margin-bottom: 0.5rem;
+    }
+    .copy-btn {
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 5px;
+      padding: 0.3rem 0.75rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      margin-bottom: 1rem;
+    }
+    .copy-btn:hover { background: #e5e7eb; }
+
+    .note-text { color: #555; font-size: 0.875rem; line-height: 1.6; margin-bottom: 0.75rem; }
+
+    .steps-list { list-style: none; padding: 0; }
+    .steps-list li {
+      padding: 0.35rem 0 0.35rem 1.25rem;
+      position: relative;
+      font-size: 0.875rem;
+      color: #374151;
+    }
+    .steps-list li::before { content: '→'; position: absolute; left: 0; color: #6366f1; font-weight: bold; }
+
+    .section-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #6b7280;
+      margin: 1rem 0 0.5rem;
+    }
+    .section-label:first-child { margin-top: 0; }
+
+    #results { display: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Ticket Pipe</h1>
+    <p class="subtitle">Submit a support ticket and watch Claude triage it in real time.</p>
+
+    <div class="card">
+      <h2>New Ticket</h2>
+      <div class="field">
+        <label for="subject">Subject</label>
+        <input type="text" id="subject" placeholder="e.g. Cannot log in to my account" />
+      </div>
+      <div class="field">
+        <label for="description">Description</label>
+        <textarea id="description" placeholder="Describe the issue in detail..."></textarea>
+      </div>
+      <button class="submit" id="submitBtn">Submit Ticket</button>
+    </div>
+
+    <div id="results">
+      <div class="card">
+        <div class="status-bar">
+          <div id="statusBadge" class="badge queued">queued</div>
+          <span id="refNum" class="ref"></span>
+        </div>
+      </div>
+
+      <div id="resultsGrid" class="results-grid" style="display:none">
+        <div class="card">
+          <h2>Triage</h2>
+          <div class="triage-grid">
+            <div class="triage-item">
+              <label>Priority</label>
+              <div class="value" id="tPriority"></div>
+            </div>
+            <div class="triage-item">
+              <label>Category</label>
+              <div class="value" id="tCategory"></div>
+            </div>
+            <div class="triage-item">
+              <label>Sentiment</label>
+              <div class="value" id="tSentiment"></div>
+            </div>
+            <div class="triage-item">
+              <label>Escalate</label>
+              <div class="value" id="tEscalate"></div>
+            </div>
+            <div class="triage-item" style="grid-column: 1 / -1">
+              <label>Recommended Team</label>
+              <div class="value" id="tTeam"></div>
+            </div>
+          </div>
+          <div class="section-label">Summary</div>
+          <div class="summary-box" id="tSummary"></div>
+        </div>
+
+        <div class="card">
+          <h2>Draft Reply</h2>
+          <div class="draft-text" id="dReply"></div>
+          <button class="copy-btn" id="copyBtn">Copy reply</button>
+          <div class="section-label">Internal Note</div>
+          <div class="note-text" id="dNote"></div>
+          <div class="section-label">Next Steps</div>
+          <ul class="steps-list" id="dSteps"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const submitBtn = document.getElementById('submitBtn');
+    const statusBadge = document.getElementById('statusBadge');
+    const refNum = document.getElementById('refNum');
+    const resultsEl = document.getElementById('results');
+    const resultsGrid = document.getElementById('resultsGrid');
+    const copyBtn = document.getElementById('copyBtn');
+
+    let pollTimer = null;
+
+    submitBtn.addEventListener('click', async () => {
+      const subject = document.getElementById('subject').value.trim();
+      const description = document.getElementById('description').value.trim();
+      if (!subject || !description) {
+        alert('Please fill in both fields.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+      resultsGrid.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/tickets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subject, description }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Submission failed');
+        startPolling(data.ticketId, data.referenceNumber);
+      } catch (err) {
+        alert('Error: ' + err.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Ticket';
+      }
+    });
+
+    function setStatus(status) {
+      const labels = { queued: 'queued', processing: 'processing...', completed: 'completed' };
+      const spinning = status !== 'completed';
+      statusBadge.className = 'badge ' + status;
+      statusBadge.innerHTML =
+        (spinning ? '<span class="spinner"></span>' : '') + (labels[status] || status);
+    }
+
+    function startPolling(ticketId, referenceNumber) {
+      resultsEl.style.display = 'block';
+      refNum.textContent = referenceNumber;
+      setStatus('queued');
+
+      clearInterval(pollTimer);
+      pollTimer = setInterval(async () => {
+        try {
+          const res = await fetch('/api/tickets/' + ticketId);
+          const data = await res.json();
+          setStatus(data.status);
+
+          if (data.status === 'completed' && data.processing) {
+            clearInterval(pollTimer);
+            renderResults(data.processing);
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Another Ticket';
+          }
+        } catch (_) {}
+      }, 2000);
+    }
+
+    function renderResults(p) {
+      document.getElementById('tPriority').innerHTML =
+        `<span class="priority ${p.priority}">${p.priority}</span>`;
+      document.getElementById('tCategory').textContent = p.category;
+      document.getElementById('tSentiment').textContent = p.sentiment;
+      document.getElementById('tEscalate').innerHTML = p.escalate
+        ? '<span class="escalate-yes">Yes — escalate</span>'
+        : '<span class="escalate-no">No</span>';
+      document.getElementById('tTeam').textContent = p.recommendedTeam;
+      document.getElementById('tSummary').textContent = p.issueSummary;
+
+      document.getElementById('dReply').textContent = p.customerReply;
+      document.getElementById('dNote').textContent = p.internalNote;
+      document.getElementById('dSteps').innerHTML =
+        p.nextSteps.map(s => `<li>${s}</li>`).join('');
+
+      resultsGrid.style.display = 'grid';
+    }
+
+    copyBtn.addEventListener('click', () => {
+      const text = document.getElementById('dReply').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => copyBtn.textContent = 'Copy reply', 1500);
+      });
+    });
+  </script>
+</body>
+</html>
