@@ -4,6 +4,7 @@ import { createTicket } from '../services/tickets.js';
 import { logger } from '../lib/logger.js';
 import { getTicketById } from '../repositories/tickets.js';
 import { getProcessingResultByTicketId } from '../repositories/processing.js';
+import { getEventsByTicketId } from '../repositories/events.js';
 
 const TicketSchema = z.object({
   subject: z.string().min(1),
@@ -35,6 +36,7 @@ export async function getById(req: Request, res: Response): Promise<void> {
   const id = req.params['id'] as string;
   try {
     const ticket = await getTicketById(id);
+    const events = await getEventsByTicketId(id);
     let processing;
     if (ticket.status === 'completed') {
       const result = await getProcessingResultByTicketId(id);
@@ -46,6 +48,7 @@ export async function getById(req: Request, res: Response): Promise<void> {
       subject: ticket.subject,
       status: ticket.status,
       createdAt: ticket.createdAt,
+      events,
       ...(processing && { processing }),
     });
   } catch (err: unknown) {
