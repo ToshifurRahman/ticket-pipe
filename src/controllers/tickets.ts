@@ -2,9 +2,10 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { createTicket, listTickets } from '../services/tickets.js';
 import { logger } from '../lib/logger.js';
-import { getTicketById } from '../repositories/tickets.js';
+import { getTicketById, requeueTicket } from '../repositories/tickets.js';
 import { getProcessingResultByTicketId } from '../repositories/processing.js';
 import { getEventsByTicketId } from '../repositories/events.js';
+import { enqueueTicket } from '../lib/queue.js';
 
 const TicketSchema = z.object({
   subject: z.string().trim().min(1),
@@ -75,5 +76,32 @@ export async function list(req: Request, res: Response): Promise<void> {
   } catch (err) {
     logger.error({ err, context: 'listTickets' }, 'List tickets failed');
     res.status(500).json({ error: 'Failed to list tickets' });
+  }
+}
+
+export async function replay(req: Request, res: Response): Promise<void> {
+  const id = req.params['id'] as string;
+
+  try {
+    const ticket = await getTicketById(id);
+
+    if (ticket.status !== 'failed') {
+      res.status(400).json({ error: 'Ticket can only be replayed if status is failed' });
+      return;
+    }
+
+    await requeueTicket(id);
+    await enqueueTicket(id, ticket.referenceNumber).catch(err =>
+      logger.error({ err, ticketId: id }, 'Failed to enqueue ticket during replay')
+    );
+
+    res.json({ success: true, status: 'queued' });
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message.startsWith('Ticket not found')) {
+      res.status(404).json({ error: 'Ticket not found' });
+      return;
+    }
+    logger.error({ err, id, context: 'replay' }, 'Ticket replay failed');
+    res.status(500).json({ error: 'Failed to replay ticket' });
   }
 }
