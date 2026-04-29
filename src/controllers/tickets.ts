@@ -7,8 +7,8 @@ import { getProcessingResultByTicketId } from '../repositories/processing.js';
 import { getEventsByTicketId } from '../repositories/events.js';
 
 const TicketSchema = z.object({
-  subject: z.string().min(1),
-  description: z.string().min(1),
+  subject: z.string().trim().min(1),
+  description: z.string().trim().min(1),
 });
 
 export async function create(req: Request, res: Response): Promise<void> {
