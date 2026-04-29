@@ -133,6 +133,12 @@ export async function draftResponse(
 }
 
 export async function processMessage(ticketId: string, receiptHandle: string): Promise<void> {
+  if (!UUID_RE.test(ticketId)) {
+    logger.warn({ ticketId }, 'Skipping message with invalid ticketId');
+    await deleteMessage(receiptHandle);
+    return;
+  }
+
   logger.info({ ticketId }, 'Processing ticket');
 
   await updateTicketStatus(ticketId, 'processing');
@@ -160,11 +166,17 @@ export async function processMessage(ticketId: string, receiptHandle: string): P
     throw err;
   }
 
-  await insertProcessingResult(ticketId, { ...triage, ...draft });
-  await updateTicketStatus(ticketId, 'completed');
-  await insertEvent(ticketId, 'ticket.completed');
-  await deleteMessage(receiptHandle);
+  try {
+    await insertProcessingResult(ticketId, { ...triage, ...draft });
+    await updateTicketStatus(ticketId, 'completed');
+    await insertEvent(ticketId, 'ticket.completed');
+  } catch (err) {
+    await insertEvent(ticketId, 'ticket.failed', (err as Error).message);
+    await updateTicketStatus(ticketId, 'failed');
+    throw err;
+  }
 
+  await deleteMessage(receiptHandle);
   logger.info({ ticketId }, 'Ticket completed');
 }
 
@@ -175,10 +187,8 @@ async function run(): Promise<void> {
     const messages = await receiveMessages();
     await Promise.all(
       messages.map(({ ticketId, receiptHandle }) =>
-        processMessage(ticketId, receiptHandle).catch(async err => {
+        processMessage(ticketId, receiptHandle).catch(err => {
           logger.error({ err, ticketId }, 'Failed to process ticket');
-          await insertEvent(ticketId, 'ticket.failed', (err as Error).message).catch(() => {});
-          await updateTicketStatus(ticketId, 'failed').catch(() => {});
         })
       )
     );
