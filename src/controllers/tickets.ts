@@ -38,11 +38,48 @@ export async function getById(req: Request, res: Response): Promise<void> {
   try {
     const ticket = await getTicketById(id);
     const events = await getEventsByTicketId(id);
-    let processing;
-    if (ticket.status === 'completed') {
-      const result = await getProcessingResultByTicketId(id);
-      processing = result ?? undefined;
+    const processing = await getProcessingResultByTicketId(id);
+    let phases: { triage?: { status: string; output: object }; draft?: { status: string; output: object } } | undefined;
+
+    if (processing) {
+      phases = {
+        triage: {
+          status: 'completed',
+          output: {
+            category: processing.category,
+            priority: processing.priority,
+            sentiment: processing.sentiment,
+            escalate: processing.escalate,
+            recommendedTeam: processing.recommendedTeam,
+            issueSummary: processing.issueSummary,
+          },
+        },
+        draft: {
+          status: 'completed',
+          output: {
+            customerReply: processing.customerReply,
+            internalNote: processing.internalNote,
+            nextActions: processing.nextSteps,
+          },
+        },
+      };
+    } else if (ticket.status === 'failed') {
+      phases = {
+        triage: { status: 'failed', output: {} },
+        draft: { status: 'failed', output: {} },
+      };
+    } else if (ticket.status === 'processing') {
+      phases = {
+        triage: { status: 'processing', output: {} },
+        draft: { status: 'pending', output: {} },
+      };
+    } else if (ticket.status === 'queued') {
+      phases = {
+        triage: { status: 'pending', output: {} },
+        draft: { status: 'pending', output: {} },
+      };
     }
+
     res.json({
       id: ticket.id,
       referenceNumber: ticket.referenceNumber,
@@ -50,7 +87,7 @@ export async function getById(req: Request, res: Response): Promise<void> {
       status: ticket.status,
       createdAt: ticket.createdAt,
       events,
-      ...(processing && { processing }),
+      ...(phases && { phases }),
     });
   } catch (err: unknown) {
     if (err instanceof Error && err.message.startsWith('Ticket not found')) {
