@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'url';
-import Groq from 'groq-sdk';
+import { Portkey } from 'portkey-ai';
 import { logger } from './lib/logger.js';
 import { receiveMessages, deleteMessage } from './lib/queue.js';
 import { getTicketById, updateTicketStatus } from './repositories/tickets.js';
@@ -7,14 +7,22 @@ import { insertProcessingResult, type ProcessingResult } from './repositories/pr
 import { insertEvent } from './repositories/events.js';
 
 if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY environment variable is required');
+if (!process.env.PORTKEY_API_KEY) throw new Error('PORTKEY_API_KEY environment variable is required');
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const portkey = new Portkey({
+  apiKey: process.env.PORTKEY_API_KEY,
+  provider: 'groq',
+  Authorization: process.env.GROQ_API_KEY,
+});
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function triageTicket(
+  ticketId: string,
   subject: string,
   description: string
 ): Promise<Omit<ProcessingResult, 'customerReply' | 'internalNote' | 'nextSteps'>> {
-  const completion = await groq.chat.completions.create({
+  const completion = await portkey.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     tools: [
       {
@@ -44,7 +52,7 @@ export async function triageTicket(
         content: `Triage this support ticket:\n\nSubject: ${subject}\nDescription: ${description}`,
       },
     ],
-  });
+  }, { headers: { 'x-portkey-metadata': JSON.stringify({ ticketId }) } });
 
   const toolCall = completion.choices[0]?.message?.tool_calls?.[0];
   if (!toolCall) throw new Error('Triage: no tool call in response');
@@ -61,11 +69,12 @@ export async function triageTicket(
 }
 
 export async function draftResponse(
+  ticketId: string,
   subject: string,
   description: string,
   triage: Omit<ProcessingResult, 'customerReply' | 'internalNote' | 'nextSteps'>
 ): Promise<Pick<ProcessingResult, 'customerReply' | 'internalNote' | 'nextSteps'>> {
-  const completion = await groq.chat.completions.create({
+  const completion = await portkey.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     tools: [
       {
@@ -110,7 +119,7 @@ export async function draftResponse(
         ].join('\n'),
       },
     ],
-  });
+  }, { headers: { 'x-portkey-metadata': JSON.stringify({ ticketId }) } });
 
   const toolCall = completion.choices[0]?.message?.tool_calls?.[0];
   if (!toolCall) throw new Error('Draft: no tool call in response');
@@ -131,7 +140,7 @@ export async function processMessage(ticketId: string, receiptHandle: string): P
 
   let triage: Omit<ProcessingResult, 'customerReply' | 'internalNote' | 'nextSteps'>;
   try {
-    triage = await triageTicket(ticket.subject, ticket.description);
+    triage = await triageTicket(ticketId, ticket.subject, ticket.description);
     await insertEvent(ticketId, 'triage.completed');
     logger.info({ ticketId }, 'Triage complete');
   } catch (err) {
@@ -142,7 +151,7 @@ export async function processMessage(ticketId: string, receiptHandle: string): P
 
   let draft: Pick<ProcessingResult, 'customerReply' | 'internalNote' | 'nextSteps'>;
   try {
-    draft = await draftResponse(ticket.subject, ticket.description, triage);
+    draft = await draftResponse(ticketId, ticket.subject, ticket.description, triage);
     await insertEvent(ticketId, 'draft.completed');
     logger.info({ ticketId }, 'Draft complete');
   } catch (err) {
