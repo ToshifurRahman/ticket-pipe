@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { createTicket } from '../services/tickets.js';
+import { createTicket, listTickets } from '../services/tickets.js';
 import { logger } from '../lib/logger.js';
 import { getTicketById } from '../repositories/tickets.js';
 import { getProcessingResultByTicketId } from '../repositories/processing.js';
@@ -58,5 +58,22 @@ export async function getById(req: Request, res: Response): Promise<void> {
     }
     logger.error({ err, id, context: 'getTicketById' }, 'Ticket fetch failed');
     res.status(500).json({ error: 'Failed to fetch ticket' });
+  }
+}
+
+export async function list(req: Request, res: Response): Promise<void> {
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+  const statusParam = req.query.status as string | undefined;
+  const status = statusParam ? statusParam.split(',').filter(s => s) : undefined;
+  const sort = (req.query.sort as string) === 'status' ? 'status' : 'createdAt';
+  const order = req.query.order === 'asc' ? 'asc' : 'desc';
+
+  try {
+    const result = await listTickets({ page, limit, status, sort, order });
+    res.json(result);
+  } catch (err) {
+    logger.error({ err, context: 'listTickets' }, 'List tickets failed');
+    res.status(500).json({ error: 'Failed to list tickets' });
   }
 }

@@ -1,9 +1,10 @@
 import { generateReferenceNumber } from '../lib/reference.js';
-import { insertTicket, type Ticket } from '../repositories/tickets.js';
+import { insertTicket, listTickets, type Ticket } from '../repositories/tickets.js';
 import { enqueueTicket } from '../lib/queue.js';
 import { insertEvent } from '../repositories/events.js';
 import { logger } from '../lib/logger.js';
 
+export { listTickets };
 export async function createTicket(subject: string, description: string): Promise<Ticket> {
   const referenceNumber = generateReferenceNumber();
   const ticket = await insertTicket(referenceNumber, subject, description);
