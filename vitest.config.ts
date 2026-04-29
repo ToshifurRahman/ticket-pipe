@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config';
 import { readFileSync } from 'fs';
+import { defineConfig } from 'vitest/config';
 
 function parseEnvFile(path: string): Record<string, string> {
   try {
@@ -20,6 +20,7 @@ function parseEnvFile(path: string): Record<string, string> {
 export default defineConfig({
   test: {
     environment: 'node',
-    env: { NODE_ENV: 'test', ...parseEnvFile('.env') },
+    env: { NODE_ENV: 'test', PORTKEY_API_KEY: 'test-portkey-key', ...parseEnvFile('.env'), SQS_QUEUE_NAME: 'ticket-processing-test' },
+    testTimeout: 30000,
   },
 });
