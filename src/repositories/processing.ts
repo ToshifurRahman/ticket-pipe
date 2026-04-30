@@ -1,4 +1,5 @@
 import { pool } from '../lib/db.js';
+import type { TriageOutput } from '../lib/ticket-phases.js';
 
 export interface ProcessingResult {
   category: string;
@@ -7,9 +8,9 @@ export interface ProcessingResult {
   escalate: boolean;
   recommendedTeam: string;
   issueSummary: string;
-  customerReply: string;
-  internalNote: string;
-  nextSteps: string[];
+  customerReply: string | null;
+  internalNote: string | null;
+  nextSteps: string[] | null;
 }
 
 export async function getProcessingResultByTicketId(
@@ -34,15 +35,70 @@ export async function getProcessingResultByTicketId(
   };
 }
 
-export async function insertProcessingResult(
-  ticketId: string,
-  result: ProcessingResult
-): Promise<void> {
+export async function getTriageOutputByTicketId(ticketId: string): Promise<TriageOutput | null> {
+  const result = await pool.query(
+    `SELECT category, priority, sentiment, escalate, recommended_team, issue_summary
+     FROM ticket_processing WHERE ticket_id = $1`,
+    [ticketId]
+  );
+  if (!result.rows[0]) return null;
+  const row = result.rows[0];
+  return {
+    category: row.category,
+    priority: row.priority,
+    sentiment: row.sentiment,
+    escalate: row.escalate,
+    recommendedTeam: row.recommended_team,
+    issueSummary: row.issue_summary,
+  };
+}
+
+export async function upsertTriageOutput(ticketId: string, result: TriageOutput): Promise<void> {
   await pool.query(
     `INSERT INTO ticket_processing
+       (ticket_id, category, priority, sentiment, escalate, recommended_team, issue_summary)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     ON CONFLICT (ticket_id) DO UPDATE SET
+       category = EXCLUDED.category,
+       priority = EXCLUDED.priority,
+       sentiment = EXCLUDED.sentiment,
+       escalate = EXCLUDED.escalate,
+       recommended_team = EXCLUDED.recommended_team,
+       issue_summary = EXCLUDED.issue_summary`,
+    [
+      ticketId,
+      result.category,
+      result.priority,
+      result.sentiment,
+      result.escalate,
+      result.recommendedTeam,
+      result.issueSummary,
+    ]
+  );
+}
+
+export async function completeDraftOutput(
+  ticketId: string,
+  result: { customerReply: string; internalNote: string; nextSteps: string[] }
+): Promise<void> {
+  await pool.query(
+    `UPDATE ticket_processing
+     SET customer_reply = $1, internal_note = $2, next_steps = $3
+     WHERE ticket_id = $4`,
+    [result.customerReply, result.internalNote, result.nextSteps, ticketId]
+  );
+}
+
+export async function insertProcessingResult(
+  ticketId: string,
+  result: { category: string; priority: string; sentiment: string; escalate: boolean; recommendedTeam: string; issueSummary: string; customerReply: string; internalNote: string; nextSteps: string[] }
+): Promise<boolean> {
+  const insertResult = await pool.query(
+    `INSERT INTO ticket_processing
        (ticket_id, category, priority, sentiment, escalate,
-        recommended_team, issue_summary, customer_reply, internal_note, next_steps)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+         recommended_team, issue_summary, customer_reply, internal_note, next_steps)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       ON CONFLICT (ticket_id) DO NOTHING`,
     [
       ticketId,
       result.category,
@@ -56,4 +112,5 @@ export async function insertProcessingResult(
       result.nextSteps,
     ]
   );
+  return insertResult.rowCount === 1;
 }

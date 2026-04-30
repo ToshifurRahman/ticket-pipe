@@ -17,9 +17,23 @@ export async function insertEvent(
   );
 }
 
+interface TicketEventRow {
+  event: string;
+  detail: string | null;
+  occurred_at: Date;
+}
+
 export async function getEventsByTicketId(ticketId: string): Promise<TicketEvent[]> {
-  const result = await pool.query<{ event: string; detail: string | null; occurred_at: Date }>(
-    'SELECT event, detail, occurred_at FROM ticket_events WHERE ticket_id = $1 ORDER BY occurred_at ASC',
+  const result = await pool.query<TicketEventRow>(
+    `SELECT event, detail, occurred_at
+     FROM (
+       SELECT event, detail, occurred_at
+       FROM ticket_events
+       WHERE ticket_id = $1
+       ORDER BY occurred_at DESC
+       LIMIT 20
+     ) t
+     ORDER BY occurred_at ASC`,
     [ticketId]
   );
   return result.rows.map(row => ({

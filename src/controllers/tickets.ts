@@ -1,21 +1,58 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { createTicket, listTickets } from '../services/tickets.js';
 import { logger } from '../lib/logger.js';
-import { getTicketById, requeueTicket } from '../repositories/tickets.js';
+import { getTicketById, requeueTicket, getTicketByReferenceNumber } from '../repositories/tickets.js';
 import { getProcessingResultByTicketId } from '../repositories/processing.js';
 import { getEventsByTicketId } from '../repositories/events.js';
 import { enqueueTicket } from '../lib/queue.js';
+import { resolveTicketPhases, type TicketPhases, type TriageOutput, type DraftOutput } from '../lib/ticket-phases.js';
 
 const TicketSchema = z.object({
-  subject: z.string().trim().min(1),
-  description: z.string().trim().min(1),
+  subject: z.string({ required_error: 'Subject is required' }).trim().min(1, 'Subject is required'),
+  description: z.string({ required_error: 'Description is required' }).trim().min(1, 'Description is required'),
 });
 
-export async function create(req: Request, res: Response): Promise<void> {
+function buildTicketPhases(
+  events: Awaited<ReturnType<typeof getEventsByTicketId>>,
+  processing: Awaited<ReturnType<typeof getProcessingResultByTicketId>>
+): TicketPhases {
+  const phases = resolveTicketPhases(events);
+
+  if (!processing) return phases;
+
+  if (phases.triage.status === 'completed') {
+    const triageOutput: TriageOutput = {
+      category: processing.category,
+      priority: processing.priority,
+      sentiment: processing.sentiment,
+      escalate: processing.escalate,
+      recommendedTeam: processing.recommendedTeam,
+      issueSummary: processing.issueSummary,
+    };
+    phases.triage.output = triageOutput;
+  }
+
+  if (phases.draft.status === 'completed' && processing.customerReply != null) {
+    const draftOutput: DraftOutput = {
+      customerReply: processing.customerReply,
+      internalNote: processing.internalNote!,
+      nextActions: processing.nextSteps!,
+    };
+    phases.draft.output = draftOutput;
+  }
+
+  return phases;
+}
+
+export async function create(req: Request, res: Response, next: NextFunction): Promise<void> {
   const parsed = TicketSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: 'Invalid request body' });
+    const fieldErrors = parsed.error.flatten().fieldErrors;
+    const errors = Object.fromEntries(
+      Object.entries(fieldErrors).map(([k, v]) => [k, v![0]])
+    );
+    res.status(400).json({ errors });
     return;
   }
 
@@ -29,56 +66,17 @@ export async function create(req: Request, res: Response): Promise<void> {
     });
   } catch (err) {
     logger.error({ err, context: 'createTicket' }, 'Ticket creation failed');
-    res.status(500).json({ error: 'Failed to create ticket' });
+    next(err);
   }
 }
 
-export async function getById(req: Request, res: Response): Promise<void> {
+export async function getById(req: Request, res: Response, next: NextFunction): Promise<void> {
   const id = req.params['id'] as string;
   try {
     const ticket = await getTicketById(id);
     const events = await getEventsByTicketId(id);
     const processing = await getProcessingResultByTicketId(id);
-    let phases: { triage?: { status: string; output: object }; draft?: { status: string; output: object } } | undefined;
-
-    if (processing) {
-      phases = {
-        triage: {
-          status: 'completed',
-          output: {
-            category: processing.category,
-            priority: processing.priority,
-            sentiment: processing.sentiment,
-            escalate: processing.escalate,
-            recommendedTeam: processing.recommendedTeam,
-            issueSummary: processing.issueSummary,
-          },
-        },
-        draft: {
-          status: 'completed',
-          output: {
-            customerReply: processing.customerReply,
-            internalNote: processing.internalNote,
-            nextActions: processing.nextSteps,
-          },
-        },
-      };
-    } else if (ticket.status === 'failed') {
-      phases = {
-        triage: { status: 'failed', output: {} },
-        draft: { status: 'failed', output: {} },
-      };
-    } else if (ticket.status === 'processing') {
-      phases = {
-        triage: { status: 'processing', output: {} },
-        draft: { status: 'pending', output: {} },
-      };
-    } else if (ticket.status === 'queued') {
-      phases = {
-        triage: { status: 'pending', output: {} },
-        draft: { status: 'pending', output: {} },
-      };
-    }
+    const phases = buildTicketPhases(events, processing);
 
     res.json({
       id: ticket.id,
@@ -87,19 +85,36 @@ export async function getById(req: Request, res: Response): Promise<void> {
       status: ticket.status,
       createdAt: ticket.createdAt,
       events,
-      ...(phases && { phases }),
+      phases,
     });
-  } catch (err: unknown) {
-    if (err instanceof Error && err.message.startsWith('Ticket not found')) {
-      res.status(404).json({ error: 'Ticket not found' });
-      return;
-    }
-    logger.error({ err, id, context: 'getTicketById' }, 'Ticket fetch failed');
-    res.status(500).json({ error: 'Failed to fetch ticket' });
+  } catch (err) {
+    next(err);
   }
 }
 
-export async function list(req: Request, res: Response): Promise<void> {
+export async function getByRef(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const ref = req.params['referenceNumber'] as string;
+  try {
+    const ticket = await getTicketByReferenceNumber(ref);
+    const events = await getEventsByTicketId(ticket.id);
+    const processing = await getProcessingResultByTicketId(ticket.id);
+    const phases = buildTicketPhases(events, processing);
+
+    res.json({
+      id: ticket.id,
+      referenceNumber: ticket.referenceNumber,
+      subject: ticket.subject,
+      status: ticket.status,
+      createdAt: ticket.createdAt,
+      events,
+      phases,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function list(req: Request, res: Response, next: NextFunction): Promise<void> {
   const page = Math.max(1, Number(req.query.page) || 1);
   const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
   const statusParam = req.query.status as string | undefined;
@@ -112,11 +127,11 @@ export async function list(req: Request, res: Response): Promise<void> {
     res.json(result);
   } catch (err) {
     logger.error({ err, context: 'listTickets' }, 'List tickets failed');
-    res.status(500).json({ error: 'Failed to list tickets' });
+    next(err);
   }
 }
 
-export async function replay(req: Request, res: Response): Promise<void> {
+export async function replay(req: Request, res: Response, next: NextFunction): Promise<void> {
   const id = req.params['id'] as string;
 
   try {
@@ -133,12 +148,7 @@ export async function replay(req: Request, res: Response): Promise<void> {
     );
 
     res.json({ success: true, status: 'queued' });
-  } catch (err: unknown) {
-    if (err instanceof Error && err.message.startsWith('Ticket not found')) {
-      res.status(404).json({ error: 'Ticket not found' });
-      return;
-    }
-    logger.error({ err, id, context: 'replay' }, 'Ticket replay failed');
-    res.status(500).json({ error: 'Failed to replay ticket' });
+  } catch (err) {
+    next(err);
   }
 }

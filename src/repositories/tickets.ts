@@ -1,4 +1,5 @@
 import { pool } from '../lib/db.js';
+import { TicketNotFoundError } from '../lib/errors.js';
 
 export interface Ticket {
   id: string;
@@ -35,12 +36,50 @@ export async function insertTicket(
 
 export async function getTicketById(id: string): Promise<Ticket> {
   const result = await pool.query<TicketRow>('SELECT * FROM tickets WHERE id = $1', [id]);
-  if (!result.rows[0]) throw new Error(`Ticket not found: ${id}`);
+  if (!result.rows[0]) throw new TicketNotFoundError(id);
+  return mapRow(result.rows[0]);
+}
+
+export async function getTicketByReferenceNumber(referenceNumber: string): Promise<Ticket> {
+  const result = await pool.query<TicketRow>('SELECT * FROM tickets WHERE reference_number = $1', [referenceNumber]);
+  if (!result.rows[0]) throw new TicketNotFoundError(referenceNumber);
   return mapRow(result.rows[0]);
 }
 
 export async function updateTicketStatus(id: string, status: string): Promise<void> {
   await pool.query('UPDATE tickets SET status = $1 WHERE id = $2', [status, id]);
+}
+
+export async function claimTicketForProcessing(id: string): Promise<boolean> {
+  const result = await pool.query(
+    "UPDATE tickets SET status = 'processing' WHERE id = $1 AND status = 'queued'",
+    [id]
+  );
+  return result.rowCount === 1;
+}
+
+export async function markTicketCompleted(id: string): Promise<boolean> {
+  const result = await pool.query(
+    "UPDATE tickets SET status = 'completed' WHERE id = $1 AND status = 'processing'",
+    [id]
+  );
+  return result.rowCount === 1;
+}
+
+export async function markTicketFailed(id: string): Promise<boolean> {
+  const result = await pool.query(
+    "UPDATE tickets SET status = 'failed' WHERE id = $1 AND status = 'processing'",
+    [id]
+  );
+  return result.rowCount === 1;
+}
+
+export async function markTicketNeedsAttention(id: string): Promise<boolean> {
+  const result = await pool.query(
+    "UPDATE tickets SET status = 'needs_attention' WHERE id = $1 AND status = 'processing'",
+    [id]
+  );
+  return result.rowCount === 1;
 }
 
 export async function requeueTicket(id: string): Promise<void> {

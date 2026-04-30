@@ -76,4 +76,24 @@ describe('insertEvent', () => {
     const events = await getEventsByTicketId(ticket.id);
     expect(events[0].detail).toBe('TICK-EVT-005');
   });
+
+  it('returns at most 20 events ordered oldest-first when more exist', async () => {
+    const ticket = await insertTicket('TICK-EVT-006', 'Limit test', 'Desc');
+
+    for (let i = 1; i <= 25; i++) {
+      await insertEvent(ticket.id, `event-${String(i).padStart(2, '0')}`);
+    }
+
+    const events = await getEventsByTicketId(ticket.id);
+
+    expect(events).toHaveLength(20);
+    for (let i = 1; i < events.length; i++) {
+      expect(events[i].occurredAt.getTime()).toBeGreaterThanOrEqual(
+        events[i - 1].occurredAt.getTime()
+      );
+    }
+
+    await pool.query('DELETE FROM ticket_events WHERE ticket_id = $1', [ticket.id]);
+    await pool.query('DELETE FROM tickets WHERE id = $1', [ticket.id]);
+  });
 });

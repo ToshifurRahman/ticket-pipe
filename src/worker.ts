@@ -1,178 +1,184 @@
+import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'url';
-import { Portkey } from 'portkey-ai';
 import { logger } from './lib/logger.js';
 import { receiveMessages, deleteMessage } from './lib/queue.js';
-import { getTicketById, updateTicketStatus } from './repositories/tickets.js';
-import { insertProcessingResult, type ProcessingResult } from './repositories/processing.js';
-import { insertEvent } from './repositories/events.js';
+import {
+  getTicketById,
+  claimTicketForProcessing,
+  markTicketCompleted,
+  markTicketFailed,
+  markTicketNeedsAttention,
+} from './repositories/tickets.js';
+import {
+  upsertTriageOutput,
+  completeDraftOutput,
+  getTriageOutputByTicketId,
+  insertProcessingResult,
+} from './repositories/processing.js';
+import { insertEvent, getEventsByTicketId } from './repositories/events.js';
+import { getIo } from './lib/socket.js';
+import { AIService } from './lib/ai-service.js';
+import { resolveTicketPhases, resolveTicketFailureCounts } from './lib/ticket-phases.js';
 
 if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY environment variable is required');
 if (!process.env.PORTKEY_API_KEY) throw new Error('PORTKEY_API_KEY environment variable is required');
+if (!process.env.LANGCHAIN_API_KEY) throw new Error('LANGCHAIN_API_KEY environment variable is required');
 
-const portkey = new Portkey({
-  apiKey: process.env.PORTKEY_API_KEY,
-  provider: 'groq',
-  Authorization: process.env.GROQ_API_KEY,
-});
+const aiService = new AIService();
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_SQS_BATCH_SIZE = 10;
+const DEFAULT_WORKER_CONCURRENCY = 10;
+const RECEIVE_ERROR_BACKOFF_MS = 1000;
+const MAX_ATTEMPTS = 3;
 
-export async function triageTicket(
-  ticketId: string,
-  subject: string,
-  description: string
-): Promise<Omit<ProcessingResult, 'customerReply' | 'internalNote' | 'nextSteps'>> {
-  const completion = await portkey.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    tools: [
-      {
-        type: 'function',
-        function: {
-          name: 'save_triage',
-          description: 'Save the triage result for a support ticket',
-          parameters: {
-            type: 'object',
-            properties: {
-              category: { type: 'string', description: 'Type of issue (e.g. billing, technical, account access)' },
-              priority: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
-              sentiment: { type: 'string', enum: ['neutral', 'frustrated', 'angry'] },
-              escalate: { type: 'boolean', description: 'Whether this ticket should go to a senior agent' },
-              recommended_team: { type: 'string', description: 'Team best placed to handle this ticket' },
-              issue_summary: { type: 'string', description: 'Short plain-English description of what the customer needs' },
-            },
-            required: ['category', 'priority', 'sentiment', 'escalate', 'recommended_team', 'issue_summary'],
-          },
-        },
-      },
-    ],
-    tool_choice: { type: 'function', function: { name: 'save_triage' } },
-    messages: [
-      {
-        role: 'user',
-        content: `Triage this support ticket:\n\nSubject: ${subject}\nDescription: ${description}`,
-      },
-    ],
-  }, { headers: { 'x-portkey-metadata': JSON.stringify({ ticketId }) } });
-
-  const toolCall = completion.choices[0]?.message?.tool_calls?.[0];
-  if (!toolCall) throw new Error('Triage: no tool call in response');
-
-  const input = JSON.parse(toolCall.function.arguments) as Record<string, unknown>;
-  return {
-    category: input.category as string,
-    priority: input.priority as string,
-    sentiment: input.sentiment as string,
-    escalate: input.escalate as boolean,
-    recommendedTeam: input.recommended_team as string,
-    issueSummary: input.issue_summary as string,
-  };
+function emitTicketUpdate(ticketId: string, event: string): void {
+  getIo()?.to(ticketId).emit('ticket:update', { event, ticketId, occurredAt: new Date() });
 }
 
-export async function draftResponse(
-  ticketId: string,
-  subject: string,
-  description: string,
-  triage: Omit<ProcessingResult, 'customerReply' | 'internalNote' | 'nextSteps'>
-): Promise<Pick<ProcessingResult, 'customerReply' | 'internalNote' | 'nextSteps'>> {
-  const completion = await portkey.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    tools: [
-      {
-        type: 'function',
-        function: {
-          name: 'save_draft',
-          description: 'Save the response draft for a support ticket',
-          parameters: {
-            type: 'object',
-            properties: {
-              customer_reply: { type: 'string', description: 'Complete ready-to-send reply to the customer' },
-              internal_note: { type: 'string', description: 'Context and recommendations for the agent' },
-              next_steps: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'Short list of actions the agent should consider',
-              },
-            },
-            required: ['customer_reply', 'internal_note', 'next_steps'],
-          },
-        },
-      },
-    ],
-    tool_choice: { type: 'function', function: { name: 'save_draft' } },
-    messages: [
-      {
-        role: 'user',
-        content: [
-          `Write a response draft for this support ticket.`,
-          ``,
-          `Ticket:`,
-          `Subject: ${subject}`,
-          `Description: ${description}`,
-          ``,
-          `Triage findings:`,
-          `- Category: ${triage.category}`,
-          `- Priority: ${triage.priority}`,
-          `- Customer sentiment: ${triage.sentiment}`,
-          `- Escalate: ${triage.escalate}`,
-          `- Recommended team: ${triage.recommendedTeam}`,
-          `- Issue summary: ${triage.issueSummary}`,
-        ].join('\n'),
-      },
-    ],
-  }, { headers: { 'x-portkey-metadata': JSON.stringify({ ticketId }) } });
-
-  const toolCall = completion.choices[0]?.message?.tool_calls?.[0];
-  if (!toolCall) throw new Error('Draft: no tool call in response');
-
-  const input = JSON.parse(toolCall.function.arguments) as Record<string, unknown>;
-  return {
-    customerReply: input.customer_reply as string,
-    internalNote: input.internal_note as string,
-    nextSteps: input.next_steps as string[],
-  };
+function emitOpsAlert(ticketId: string, detail?: string): void {
+  getIo()?.to('ops').emit('ticket:needs_attention', { ticketId, detail, occurredAt: new Date() });
 }
 
-export async function processMessage(ticketId: string, receiptHandle: string): Promise<void> {
+function resolveWorkerConcurrency(envValue: string | undefined, override?: number): number {
+  if (typeof override === 'number' && Number.isInteger(override) && override > 0) {
+    return override;
+  }
+  if (!envValue) return DEFAULT_WORKER_CONCURRENCY;
+
+  const parsed = Number(envValue);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    logger.warn(
+      { workerConcurrency: envValue, fallback: DEFAULT_WORKER_CONCURRENCY },
+      'Invalid WORKER_CONCURRENCY, using default'
+    );
+    return DEFAULT_WORKER_CONCURRENCY;
+  }
+
+  return parsed;
+}
+
+async function setFailed(ticketId: string, event: string, detail: string): Promise<void> {
+  await insertEvent(ticketId, event, detail);
+  emitTicketUpdate(ticketId, event);
+  const markedFailed = await markTicketFailed(ticketId);
+  if (!markedFailed) {
+    logger.warn({ ticketId }, 'Ticket was not in processing state when marking failed');
+  }
+}
+
+async function setNeedsAttention(ticketId: string, detail: string): Promise<void> {
+  await insertEvent(ticketId, 'ticket.needs_attention', detail);
+  const marked = await markTicketNeedsAttention(ticketId);
+  if (!marked) {
+    logger.warn({ ticketId }, 'Ticket was not in processing state when marking needs_attention');
+  }
+  emitTicketUpdate(ticketId, 'ticket.needs_attention');
+  emitOpsAlert(ticketId, detail);
+}
+
+export async function processMessage(
+  ticketId: string,
+  receiptHandle: string,
+  attemptNumber: number,
+  ai: AIService = aiService
+): Promise<void> {
   if (!UUID_RE.test(ticketId)) {
     logger.warn({ ticketId }, 'Skipping message with invalid ticketId');
     await deleteMessage(receiptHandle);
     return;
   }
 
-  logger.info({ ticketId }, 'Processing ticket');
+  const events = await getEventsByTicketId(ticketId);
+  const phases = resolveTicketPhases(events);
+  const failureCounts = resolveTicketFailureCounts(events);
 
-  await updateTicketStatus(ticketId, 'processing');
   const ticket = await getTicketById(ticketId);
 
-  let triage: Omit<ProcessingResult, 'customerReply' | 'internalNote' | 'nextSteps'>;
-  try {
-    triage = await triageTicket(ticketId, ticket.subject, ticket.description);
-    await insertEvent(ticketId, 'triage.completed');
-    logger.info({ ticketId }, 'Triage complete');
-  } catch (err) {
-    await insertEvent(ticketId, 'triage.failed', (err as Error).message);
-    await updateTicketStatus(ticketId, 'failed');
-    throw err;
+  if (ticket.status === 'completed' || ticket.status === 'needs_attention') {
+    logger.info({ ticketId, status: ticket.status }, 'Skipping terminal-state ticket');
+    await deleteMessage(receiptHandle);
+    return;
   }
 
-  let draft: Pick<ProcessingResult, 'customerReply' | 'internalNote' | 'nextSteps'>;
+  const claimed = await claimTicketForProcessing(ticketId);
+  if (!claimed && attemptNumber === 1) {
+    logger.info({ ticketId }, 'Skipping duplicate or non-queued ticket message');
+    await deleteMessage(receiptHandle);
+    return;
+  }
+
+  logger.info({ ticketId }, 'Processing ticket');
+
+  // TRIAGE STAGE
+  let triageOutput: Awaited<ReturnType<typeof getTriageOutputByTicketId>>;
+
+  if (phases.triage.status === 'completed') {
+    triageOutput = await getTriageOutputByTicketId(ticketId);
+    logger.info({ ticketId }, 'Triage already completed, resuming from draft');
+  } else {
+    if (failureCounts.triage >= MAX_ATTEMPTS) {
+      await setNeedsAttention(ticketId, 'Max triage attempts reached');
+      return;
+    }
+
+    try {
+      await insertEvent(ticketId, 'triage.started');
+      emitTicketUpdate(ticketId, 'triage.started');
+      triageOutput = await ai.triage(ticketId, ticket.subject, ticket.description);
+      await upsertTriageOutput(ticketId, triageOutput!);
+      await insertEvent(ticketId, 'triage.completed');
+      emitTicketUpdate(ticketId, 'triage.completed');
+      logger.info({ ticketId }, 'Triage complete');
+    } catch (err) {
+      const message = (err as Error).message;
+      await insertEvent(ticketId, 'triage.failed', message);
+      emitTicketUpdate(ticketId, 'triage.failed');
+      if (failureCounts.triage + 1 >= MAX_ATTEMPTS) {
+        await setNeedsAttention(ticketId, message);
+        return;
+      }
+      throw err;
+    }
+  }
+
+  // DRAFT STAGE
+  if (failureCounts.draft >= MAX_ATTEMPTS) {
+    await setNeedsAttention(ticketId, 'Max draft attempts reached');
+    return;
+  }
+
   try {
-    draft = await draftResponse(ticketId, ticket.subject, ticket.description, triage);
+    await insertEvent(ticketId, 'draft.started');
+    emitTicketUpdate(ticketId, 'draft.started');
+    const draft = await ai.draft(ticketId, ticket.subject, ticket.description, triageOutput!);
+    await completeDraftOutput(ticketId, draft);
     await insertEvent(ticketId, 'draft.completed');
+    emitTicketUpdate(ticketId, 'draft.completed');
     logger.info({ ticketId }, 'Draft complete');
   } catch (err) {
-    await insertEvent(ticketId, 'draft.failed', (err as Error).message);
-    await updateTicketStatus(ticketId, 'failed');
+    const message = (err as Error).message;
+    await insertEvent(ticketId, 'draft.failed', message);
+    emitTicketUpdate(ticketId, 'draft.failed');
+    if (failureCounts.draft + 1 >= MAX_ATTEMPTS) {
+      await setNeedsAttention(ticketId, message);
+      return;
+    }
     throw err;
   }
 
+  // FINALIZE
   try {
-    await insertProcessingResult(ticketId, { ...triage, ...draft });
-    await updateTicketStatus(ticketId, 'completed');
+    const markedCompleted = await markTicketCompleted(ticketId);
+    if (!markedCompleted) {
+      throw new Error(`Unable to mark ticket ${ticketId} as completed`);
+    }
+
     await insertEvent(ticketId, 'ticket.completed');
+    emitTicketUpdate(ticketId, 'ticket.completed');
   } catch (err) {
-    await insertEvent(ticketId, 'ticket.failed', (err as Error).message);
-    await updateTicketStatus(ticketId, 'failed');
+    const message = (err as Error).message;
+    await setFailed(ticketId, 'ticket.failed', message);
     throw err;
   }
 
@@ -180,21 +186,62 @@ export async function processMessage(ticketId: string, receiptHandle: string): P
   logger.info({ ticketId }, 'Ticket completed');
 }
 
-async function run(): Promise<void> {
-  logger.info('Worker started, polling...');
+export interface RunOptions {
+  concurrency?: number;
+  stopWhenIdle?: boolean;
+  receiveWaitTimeSeconds?: number;
+}
+
+export async function run(options: RunOptions = {}): Promise<void> {
+  const concurrency = resolveWorkerConcurrency(process.env.WORKER_CONCURRENCY, options.concurrency);
+  const waitTimeSeconds = options.receiveWaitTimeSeconds;
+  const inFlight = new Set<Promise<void>>();
+
+  logger.info({ concurrency }, 'Worker started, polling...');
 
   while (true) {
-    const messages = await receiveMessages();
-    await Promise.all(
-      messages.map(({ ticketId, receiptHandle }) =>
-        processMessage(ticketId, receiptHandle).catch(err => {
+    if (inFlight.size >= concurrency) {
+      await Promise.race(inFlight);
+      continue;
+    }
+
+    const availableSlots = Math.min(concurrency - inFlight.size, MAX_SQS_BATCH_SIZE);
+
+    let messages;
+    try {
+      messages = await receiveMessages({ maxMessages: availableSlots, waitTimeSeconds });
+    } catch (err) {
+      logger.error({ err }, 'Failed to receive queue messages');
+      await sleep(RECEIVE_ERROR_BACKOFF_MS);
+      continue;
+    }
+
+    if (messages.length === 0) {
+      if (options.stopWhenIdle && inFlight.size === 0) {
+        return;
+      }
+      if (inFlight.size > 0) {
+        await Promise.race(inFlight);
+      }
+      continue;
+    }
+
+    for (const { ticketId, receiptHandle, attemptNumber } of messages) {
+      const task = processMessage(ticketId, receiptHandle, attemptNumber)
+        .catch(err => {
           logger.error({ err, ticketId }, 'Failed to process ticket');
         })
-      )
-    );
+        .finally(() => {
+          inFlight.delete(task);
+        });
+      inFlight.add(task);
+    }
   }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  run();
+  run().catch(err => {
+    logger.error({ err }, 'Worker exited unexpectedly');
+    process.exitCode = 1;
+  });
 }

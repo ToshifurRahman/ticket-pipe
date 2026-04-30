@@ -69,9 +69,10 @@
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
-    .badge.queued    { background: #e0e7ff; color: #3730a3; }
+    .badge.queued     { background: #e0e7ff; color: #3730a3; }
     .badge.processing { background: #fef9c3; color: #92400e; }
     .badge.completed  { background: #dcfce7; color: #166534; }
+    .badge.failed     { background: #fee2e2; color: #991b1b; }
 
     .spinner {
       width: 10px; height: 10px;
@@ -184,6 +185,9 @@
     }
     .section-label:first-child { margin-top: 0; }
 
+    .field-error { color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem; min-height: 1rem; }
+    .timeline-cap { font-size: 0.78rem; color: #9ca3af; font-style: italic; padding: 0.45rem 0; border-top: 1px solid #f0f0f0; }
+
     #results { display: none; }
   </style>
 </head>
@@ -197,12 +201,24 @@
       <div class="field">
         <label for="subject">Subject</label>
         <input type="text" id="subject" placeholder="e.g. Cannot log in to my account" />
+        <div class="field-error" id="subjectError"></div>
       </div>
       <div class="field">
         <label for="description">Description</label>
         <textarea id="description" placeholder="Describe the issue in detail..."></textarea>
+        <div class="field-error" id="descError"></div>
       </div>
       <button class="submit" id="submitBtn">Submit Ticket</button>
+    </div>
+
+    <div class="card">
+      <h2>Check Ticket Status</h2>
+      <div class="field">
+        <label for="refLookup">Reference Number</label>
+        <input type="text" id="refLookup" placeholder="e.g. TICK-1745000000000-A1B2C3D4" />
+        <div class="field-error" id="refLookupError"></div>
+      </div>
+      <button class="submit" id="lookupBtn">Check Status</button>
     </div>
 
     <div id="results">
@@ -260,6 +276,7 @@
     </div>
   </div>
 
+  <script src="/socket.io/socket.io.js"></script>
   <script>
     const submitBtn = document.getElementById('submitBtn');
     const statusBadge = document.getElementById('statusBadge');
@@ -270,13 +287,60 @@
     const timeline = document.getElementById('timeline');
     const copyBtn = document.getElementById('copyBtn');
 
-    let pollTimer = null;
+    let socket = null;
+
+    const lookupBtn = document.getElementById('lookupBtn');
+
+    lookupBtn.addEventListener('click', async () => {
+      const ref = document.getElementById('refLookup').value.trim();
+      document.getElementById('refLookupError').textContent = '';
+
+      if (!ref) {
+        document.getElementById('refLookupError').textContent = 'Reference number is required';
+        return;
+      }
+
+      lookupBtn.disabled = true;
+      lookupBtn.textContent = 'Looking up...';
+
+      try {
+        const res = await fetch('/api/tickets/ref/' + encodeURIComponent(ref));
+        const data = await res.json();
+
+        if (!res.ok) {
+          document.getElementById('refLookupError').textContent = data.error || 'Ticket not found';
+          lookupBtn.disabled = false;
+          lookupBtn.textContent = 'Check Status';
+          return;
+        }
+
+        startSocketUpdates(data.id, data.referenceNumber, () => {
+          lookupBtn.disabled = false;
+          lookupBtn.textContent = 'Check Status';
+        });
+      } catch (err) {
+        document.getElementById('refLookupError').textContent = 'Failed to look up ticket';
+        lookupBtn.disabled = false;
+        lookupBtn.textContent = 'Check Status';
+      }
+    });
+
+    function showFieldErrors(errors) {
+      document.getElementById('subjectError').textContent = errors.subject || '';
+      document.getElementById('descError').textContent = errors.description || '';
+    }
 
     submitBtn.addEventListener('click', async () => {
       const subject = document.getElementById('subject').value.trim();
       const description = document.getElementById('description').value.trim();
-      if (!subject || !description) {
-        alert('Please fill in both fields.');
+
+      showFieldErrors({});
+
+      const clientErrors = {};
+      if (!subject) clientErrors.subject = 'Subject is required';
+      if (!description) clientErrors.description = 'Description is required';
+      if (Object.keys(clientErrors).length > 0) {
+        showFieldErrors(clientErrors);
         return;
       }
 
@@ -291,8 +355,17 @@
           body: JSON.stringify({ subject, description }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Submission failed');
-        startPolling(data.ticketId, data.referenceNumber);
+        if (!res.ok) {
+          if (data.errors) {
+            showFieldErrors(data.errors);
+          } else {
+            alert('Error: ' + (data.error || 'Submission failed'));
+          }
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit Ticket';
+          return;
+        }
+        startSocketUpdates(data.ticketId, data.referenceNumber);
       } catch (err) {
         alert('Error: ' + err.message);
         submitBtn.disabled = false;
@@ -301,47 +374,60 @@
     });
 
     function setStatus(status) {
-      const labels = { queued: 'queued', processing: 'processing...', completed: 'completed' };
-      const spinning = status !== 'completed';
+      const labels = { queued: 'queued', processing: 'processing...', completed: 'completed', failed: 'failed' };
+      const spinning = status === 'queued' || status === 'processing';
       statusBadge.className = 'badge ' + status;
       statusBadge.innerHTML =
         (spinning ? '<span class="spinner"></span>' : '') + (labels[status] || status);
     }
 
-    function startPolling(ticketId, referenceNumber) {
+    async function fetchAndRender(ticketId) {
+      const res = await fetch('/api/tickets/' + ticketId);
+      const data = await res.json();
+      setStatus(data.status);
+      if (data.events && data.events.length) renderTimeline(data.events);
+      if (data.status === 'completed' && data.phases) {
+        renderResults(data.phases);
+        return true;
+      }
+      if (data.status === 'failed') return true;
+      return false;
+    }
+
+    async function startSocketUpdates(ticketId, referenceNumber, onDone) {
+      const handleDone = onDone ?? (() => {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Another Ticket';
+      });
+
       resultsEl.style.display = 'block';
       refNum.textContent = referenceNumber;
       setStatus('queued');
 
-      clearInterval(pollTimer);
-      pollTimer = setInterval(async () => {
-        try {
-          const res = await fetch('/api/tickets/' + ticketId);
-          const data = await res.json();
-          setStatus(data.status);
+      if (socket) socket.disconnect();
+      socket = io();
+      socket.emit('join', ticketId);
 
-          if (data.events) renderTimeline(data.events);
+      const done = await fetchAndRender(ticketId);
+      if (done) {
+        socket.disconnect();
+        handleDone();
+        return;
+      }
 
-          if (data.status === 'completed' && data.processing) {
-            clearInterval(pollTimer);
-            renderResults(data.processing);
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit Another Ticket';
-          }
-
-          if (data.status === 'failed') {
-            clearInterval(pollTimer);
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit Another Ticket';
-          }
-        } catch (_) {}
-      }, 2000);
+      socket.on('ticket:update', async () => {
+        const done = await fetchAndRender(ticketId);
+        if (done) {
+          socket.disconnect();
+          handleDone();
+        }
+      });
     }
 
     function renderTimeline(events) {
       if (!events.length) return;
       historyCard.style.display = 'block';
-      timeline.innerHTML = events.map(e => {
+      const rows = events.map(e => {
         const label = e.event.replace('.', ' ');
         const cls = e.event.endsWith('.failed') ? 'failed'
                   : e.event.endsWith('.completed') ? 'completed' : '';
@@ -353,23 +439,29 @@
           ${detail}
         </li>`;
       }).join('');
+      const cap = events.length === 20
+        ? '<li class="timeline-cap">Showing the 20 most recent events</li>'
+        : '';
+      timeline.innerHTML = rows + cap;
     }
 
-    function renderResults(p) {
+    function renderResults(phases) {
+      const t = phases.triage.output;
+      const d = phases.draft.output;
       document.getElementById('tPriority').innerHTML =
-        `<span class="priority ${p.priority}">${p.priority}</span>`;
-      document.getElementById('tCategory').textContent = p.category;
-      document.getElementById('tSentiment').textContent = p.sentiment;
-      document.getElementById('tEscalate').innerHTML = p.escalate
+        `<span class="priority ${t.priority}">${t.priority}</span>`;
+      document.getElementById('tCategory').textContent = t.category;
+      document.getElementById('tSentiment').textContent = t.sentiment;
+      document.getElementById('tEscalate').innerHTML = t.escalate
         ? '<span class="escalate-yes">Yes — escalate</span>'
         : '<span class="escalate-no">No</span>';
-      document.getElementById('tTeam').textContent = p.recommendedTeam;
-      document.getElementById('tSummary').textContent = p.issueSummary;
+      document.getElementById('tTeam').textContent = t.recommendedTeam;
+      document.getElementById('tSummary').textContent = t.issueSummary;
 
-      document.getElementById('dReply').textContent = p.customerReply;
-      document.getElementById('dNote').textContent = p.internalNote;
+      document.getElementById('dReply').textContent = d.customerReply;
+      document.getElementById('dNote').textContent = d.internalNote;
       document.getElementById('dSteps').innerHTML =
-        p.nextSteps.map(s => `<li>${s}</li>`).join('');
+        d.nextActions.map(s => `<li>${s}</li>`).join('');
 
       resultsGrid.style.display = 'grid';
     }

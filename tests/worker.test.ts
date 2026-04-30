@@ -1,27 +1,25 @@
-import { describe, it, expect, vi, afterEach, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
+import type { AIService } from '../src/lib/ai-service.js';
 
-// vi.mock is hoisted above imports, so mockCreate must be hoisted too
-const mockCreate = vi.hoisted(() => vi.fn());
+const mockEmit = vi.hoisted(() => vi.fn());
+const mockTo = vi.hoisted(() => vi.fn(() => ({ emit: mockEmit })));
 
-vi.mock('portkey-ai', () => ({
-  Portkey: class {
-    chat = { completions: { create: mockCreate } };
-  },
-}));
-
-// --- Queue mock: skip real SQS for deleteMessage in worker tests ---
 vi.mock('../src/lib/queue.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../src/lib/queue.js')>();
   return { ...real, deleteMessage: vi.fn().mockResolvedValue(undefined) };
 });
 
+vi.mock('../src/lib/socket.js', () => ({
+  getIo: vi.fn(() => ({ to: mockTo })),
+}));
+
 import { pool } from '../src/lib/db.js';
 import { insertTicket, getTicketById } from '../src/repositories/tickets.js';
-import { getEventsByTicketId } from '../src/repositories/events.js';
-import { getProcessingResultByTicketId } from '../src/repositories/processing.js';
+import { getEventsByTicketId, insertEvent } from '../src/repositories/events.js';
+import { getProcessingResultByTicketId, upsertTriageOutput } from '../src/repositories/processing.js';
 import { processMessage } from '../src/worker.js';
 
-// ---- Groq fixture helpers -------------------------------------------
+// ---- AIService mock helpers -------------------------------------------
 
 const TRIAGE_ARGS = {
   category: 'technical',
@@ -38,24 +36,42 @@ const DRAFT_ARGS = {
   next_steps: ['Check auth logs', 'Reset session'],
 };
 
-function toolCallResponse(args: object) {
-  return {
-    choices: [{ message: { tool_calls: [{ function: { arguments: JSON.stringify(args) } }] } }],
-  };
+const TRIAGE_RESULT = {
+  category: TRIAGE_ARGS.category,
+  priority: TRIAGE_ARGS.priority,
+  sentiment: TRIAGE_ARGS.sentiment,
+  escalate: TRIAGE_ARGS.escalate,
+  recommendedTeam: TRIAGE_ARGS.recommended_team,
+  issueSummary: TRIAGE_ARGS.issue_summary,
+};
+
+const DRAFT_RESULT = {
+  customerReply: DRAFT_ARGS.customer_reply,
+  internalNote: DRAFT_ARGS.internal_note,
+  nextSteps: DRAFT_ARGS.next_steps,
+};
+
+const mockTriage = vi.fn();
+const mockDraft = vi.fn();
+
+function mockAi(): AIService {
+  return { triage: mockTriage, draft: mockDraft } as unknown as AIService;
 }
 
-function mockGroqSuccess() {
-  mockCreate
-    .mockResolvedValueOnce(toolCallResponse(TRIAGE_ARGS))
-    .mockResolvedValueOnce(toolCallResponse(DRAFT_ARGS));
+function mockAiSuccess(): void {
+  mockTriage.mockResolvedValueOnce(TRIAGE_RESULT);
+  mockDraft.mockResolvedValueOnce(DRAFT_RESULT);
 }
 
 // ---- DB cleanup -------------------------------------------------------
 
 const createdIds: string[] = [];
 
-afterEach(async () => {
+beforeEach(() => {
   vi.clearAllMocks();
+});
+
+afterEach(async () => {
   if (createdIds.length) {
     await pool.query('DELETE FROM ticket_events WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
     await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
@@ -72,38 +88,58 @@ afterAll(async () => {
 
 describe('processMessage — happy path', () => {
   it('sets ticket status to completed', async () => {
-    mockGroqSuccess();
+    mockAiSuccess();
     const ticket = await insertTicket('TICK-WKR-001', 'Login broken', 'Cannot sign in');
     createdIds.push(ticket.id);
 
-    await processMessage(ticket.id, 'fake-receipt');
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
 
     const updated = await getTicketById(ticket.id);
     expect(updated.status).toBe('completed');
   });
 
-  it('writes triage.completed, draft.completed, ticket.completed events in order', async () => {
-    mockGroqSuccess();
+  it('writes started and completed events in order', async () => {
+    mockAiSuccess();
     const ticket = await insertTicket('TICK-WKR-002', 'Billing', 'Charged twice');
     createdIds.push(ticket.id);
 
-    await processMessage(ticket.id, 'fake-receipt');
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
 
     const events = await getEventsByTicketId(ticket.id);
     expect(events.map(e => e.event)).toEqual([
+      'triage.started',
       'triage.completed',
+      'draft.started',
       'draft.completed',
       'ticket.completed',
     ]);
     events.forEach(e => expect(e.detail).toBeNull());
   });
 
+  it('emits ticket:update via socket for each processing stage', async () => {
+    mockAiSuccess();
+    const ticket = await insertTicket('TICK-WKR-002B', 'Socket', 'Test');
+    createdIds.push(ticket.id);
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+
+    expect(mockTo).toHaveBeenCalledWith(ticket.id);
+    const emittedEvents = mockEmit.mock.calls.map(([, payload]) => payload.event as string);
+    expect(emittedEvents).toEqual([
+      'triage.started',
+      'triage.completed',
+      'draft.started',
+      'draft.completed',
+      'ticket.completed',
+    ]);
+  });
+
   it('persists all six triage fields to ticket_processing', async () => {
-    mockGroqSuccess();
+    mockAiSuccess();
     const ticket = await insertTicket('TICK-WKR-003', 'Sub', 'Desc');
     createdIds.push(ticket.id);
 
-    await processMessage(ticket.id, 'fake-receipt');
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
 
     const result = await getProcessingResultByTicketId(ticket.id);
     expect(result).not.toBeNull();
@@ -116,11 +152,11 @@ describe('processMessage — happy path', () => {
   });
 
   it('persists all three draft fields to ticket_processing', async () => {
-    mockGroqSuccess();
+    mockAiSuccess();
     const ticket = await insertTicket('TICK-WKR-004', 'Sub', 'Desc');
     createdIds.push(ticket.id);
 
-    await processMessage(ticket.id, 'fake-receipt');
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
 
     const result = await getProcessingResultByTicketId(ticket.id);
     expect(result!.customerReply).toBe(DRAFT_ARGS.customer_reply);
@@ -130,23 +166,23 @@ describe('processMessage — happy path', () => {
 });
 
 describe('processMessage — triage failure', () => {
-  it('sets status to failed when Groq triage throws', async () => {
-    mockCreate.mockRejectedValueOnce(new Error('Groq API unavailable'));
+  it('stays in processing state on first triage failure', async () => {
+    mockTriage.mockRejectedValueOnce(new Error('Groq API unavailable'));
     const ticket = await insertTicket('TICK-WKR-005', 'Sub', 'Desc');
     createdIds.push(ticket.id);
 
-    await expect(processMessage(ticket.id, 'fake-receipt')).rejects.toThrow('Groq API unavailable');
+    await expect(processMessage(ticket.id, 'fake-receipt', 1, mockAi())).rejects.toThrow('Groq API unavailable');
 
     const updated = await getTicketById(ticket.id);
-    expect(updated.status).toBe('failed');
+    expect(updated.status).toBe('processing');
   });
 
   it('writes triage.failed event with the error message', async () => {
-    mockCreate.mockRejectedValueOnce(new Error('Groq API unavailable'));
+    mockTriage.mockRejectedValueOnce(new Error('Groq API unavailable'));
     const ticket = await insertTicket('TICK-WKR-006', 'Sub', 'Desc');
     createdIds.push(ticket.id);
 
-    await processMessage(ticket.id, 'fake-receipt').catch(() => {});
+    await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
 
     const events = await getEventsByTicketId(ticket.id);
     const failure = events.find(e => e.event === 'triage.failed');
@@ -155,11 +191,11 @@ describe('processMessage — triage failure', () => {
   });
 
   it('does not write draft or completion events on triage failure', async () => {
-    mockCreate.mockRejectedValueOnce(new Error('Groq timeout'));
+    mockTriage.mockRejectedValueOnce(new Error('Groq timeout'));
     const ticket = await insertTicket('TICK-WKR-007', 'Sub', 'Desc');
     createdIds.push(ticket.id);
 
-    await processMessage(ticket.id, 'fake-receipt').catch(() => {});
+    await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
 
     const events = await getEventsByTicketId(ticket.id);
     const eventNames = events.map(e => e.event);
@@ -169,32 +205,164 @@ describe('processMessage — triage failure', () => {
 });
 
 describe('processMessage — draft failure', () => {
-  it('sets status to failed when Groq draft throws', async () => {
-    mockCreate
-      .mockResolvedValueOnce(toolCallResponse(TRIAGE_ARGS))
-      .mockRejectedValueOnce(new Error('Draft service down'));
+  it('stays in processing state on first draft failure', async () => {
+    mockTriage.mockResolvedValueOnce(TRIAGE_RESULT);
+    mockDraft.mockRejectedValueOnce(new Error('Draft service down'));
     const ticket = await insertTicket('TICK-WKR-008', 'Sub', 'Desc');
     createdIds.push(ticket.id);
 
-    await expect(processMessage(ticket.id, 'fake-receipt')).rejects.toThrow('Draft service down');
+    await expect(processMessage(ticket.id, 'fake-receipt', 1, mockAi())).rejects.toThrow('Draft service down');
 
     const updated = await getTicketById(ticket.id);
-    expect(updated.status).toBe('failed');
+    expect(updated.status).toBe('processing');
   });
 
   it('writes triage.completed then draft.failed on draft failure', async () => {
-    mockCreate
-      .mockResolvedValueOnce(toolCallResponse(TRIAGE_ARGS))
-      .mockRejectedValueOnce(new Error('Draft service down'));
+    mockTriage.mockResolvedValueOnce(TRIAGE_RESULT);
+    mockDraft.mockRejectedValueOnce(new Error('Draft service down'));
     const ticket = await insertTicket('TICK-WKR-009', 'Sub', 'Desc');
     createdIds.push(ticket.id);
 
-    await processMessage(ticket.id, 'fake-receipt').catch(() => {});
+    await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
 
     const events = await getEventsByTicketId(ticket.id);
     const names = events.map(e => e.event);
     expect(names).toContain('triage.completed');
     expect(names).toContain('draft.failed');
     expect(names).not.toContain('ticket.completed');
+  });
+});
+
+describe('processMessage — retry behaviour', () => {
+  it('writes triage.failed event on every triage failure', async () => {
+    mockTriage.mockRejectedValueOnce(new Error('Transient error'));
+    const ticket = await insertTicket('TICK-WKR-010', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi()).catch(() => {});
+
+    const events = await getEventsByTicketId(ticket.id);
+    const failed = events.find(e => e.event === 'triage.failed');
+    expect(failed).toBeDefined();
+    expect(failed!.detail).toBe('Transient error');
+    expect(events.find(e => e.event === 'ticket.retry')).toBeUndefined();
+  });
+
+  it('writes draft.failed event on every draft failure', async () => {
+    mockTriage.mockResolvedValueOnce(TRIAGE_RESULT);
+    mockDraft.mockRejectedValueOnce(new Error('Transient draft error'));
+    const ticket = await insertTicket('TICK-WKR-011', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi()).catch(() => {});
+
+    const events = await getEventsByTicketId(ticket.id);
+    expect(events.find(e => e.event === 'draft.failed')).toBeDefined();
+    expect(events.find(e => e.event === 'ticket.retry')).toBeUndefined();
+  });
+
+  it('stays in processing state on triage failure with retries remaining', async () => {
+    mockTriage.mockRejectedValueOnce(new Error('Transient error'));
+    const ticket = await insertTicket('TICK-WKR-012', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi()).catch(() => {});
+
+    const updated = await getTicketById(ticket.id);
+    expect(updated.status).toBe('processing');
+  });
+
+  it('marks ticket needs_attention after 3 triage failures', async () => {
+    const ticket = await insertTicket('TICK-WKR-013', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
+    await insertEvent(ticket.id, 'triage.failed', 'Error 1');
+    await insertEvent(ticket.id, 'triage.failed', 'Error 2');
+
+    mockTriage.mockRejectedValueOnce(new Error('Final triage error'));
+
+    await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
+
+    const updated = await getTicketById(ticket.id);
+    expect(updated.status).toBe('needs_attention');
+    const events = await getEventsByTicketId(ticket.id);
+    expect(events.find(e => e.event === 'ticket.needs_attention')).toBeDefined();
+  });
+
+  it('marks ticket needs_attention after 3 draft failures', async () => {
+    const ticket = await insertTicket('TICK-WKR-014', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
+    await insertEvent(ticket.id, 'triage.started');
+    await insertEvent(ticket.id, 'triage.completed');
+    await upsertTriageOutput(ticket.id, TRIAGE_RESULT);
+    await insertEvent(ticket.id, 'draft.failed', 'Error 1');
+    await insertEvent(ticket.id, 'draft.failed', 'Error 2');
+
+    mockDraft.mockRejectedValueOnce(new Error('Final draft error'));
+
+    await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
+
+    const updated = await getTicketById(ticket.id);
+    expect(updated.status).toBe('needs_attention');
+  });
+
+  it('emits ticket:needs_attention to ops room on exhaustion', async () => {
+    const ticket = await insertTicket('TICK-WKR-015', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
+    await insertEvent(ticket.id, 'triage.failed', 'Error 1');
+    await insertEvent(ticket.id, 'triage.failed', 'Error 2');
+
+    mockTriage.mockRejectedValueOnce(new Error('Final error'));
+
+    await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
+
+    expect(mockTo).toHaveBeenCalledWith('ops');
+    const opsEmitCall = mockEmit.mock.calls.find(([event]) => event === 'ticket:needs_attention');
+    expect(opsEmitCall).toBeDefined();
+    expect(opsEmitCall![1]).toMatchObject({ ticketId: ticket.id });
+  });
+
+  it('skips processing and deletes message for a completed ticket', async () => {
+    const { deleteMessage } = await import('../src/lib/queue.js');
+    const ticket = await insertTicket('TICK-WKR-016', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'completed' WHERE id = $1", [ticket.id]);
+
+    await processMessage(ticket.id, 'fake-receipt', 2, mockAi());
+
+    expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
+    expect(mockTriage).not.toHaveBeenCalled();
+  });
+
+  it('skips processing and deletes message for a needs_attention ticket', async () => {
+    const { deleteMessage } = await import('../src/lib/queue.js');
+    const ticket = await insertTicket('TICK-WKR-017', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'needs_attention' WHERE id = $1", [ticket.id]);
+
+    await processMessage(ticket.id, 'fake-receipt', 4, mockAi());
+
+    expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
+    expect(mockTriage).not.toHaveBeenCalled();
+  });
+
+  it('resumes from draft when triage already completed', async () => {
+    const ticket = await insertTicket('TICK-WKR-018', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
+    await insertEvent(ticket.id, 'triage.started');
+    await insertEvent(ticket.id, 'triage.completed');
+    await upsertTriageOutput(ticket.id, TRIAGE_RESULT);
+
+    mockDraft.mockResolvedValueOnce(DRAFT_RESULT);
+
+    await processMessage(ticket.id, 'fake-receipt', 2, mockAi());
+
+    expect(mockTriage).not.toHaveBeenCalled();
+    expect(mockDraft).toHaveBeenCalledOnce();
+    const updated = await getTicketById(ticket.id);
+    expect(updated.status).toBe('completed');
   });
 });
