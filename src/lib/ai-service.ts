@@ -1,4 +1,4 @@
-import { triageGraph, draftGraph, type TriageOutput } from './ticket-graph.js';
+import { triage as triageGraph, draft as draftGraph, type TriageOutput } from './ticket-graph.js';
 import type { ProcessingResult } from '../repositories/processing.js';
 
 export class AIService {
@@ -7,18 +7,14 @@ export class AIService {
     subject: string,
     description: string
   ): Promise<Omit<ProcessingResult, 'customerReply' | 'internalNote' | 'nextSteps'>> {
-    const state = await triageGraph.invoke(
-      { ticketId, subject, description },
-      { metadata: { ticketId } }
-    );
-    const input = state.triageOutput!;
+    const triageOutput = await triageGraph(subject, description);
     return {
-      category: input.category,
-      priority: input.priority,
-      sentiment: input.sentiment,
-      escalate: input.escalate,
-      recommendedTeam: input.recommended_team,
-      issueSummary: input.issue_summary,
+      category: triageOutput.category,
+      priority: triageOutput.priority,
+      sentiment: triageOutput.sentiment,
+      escalate: triageOutput.escalate,
+      recommendedTeam: triageOutput.recommended_team,
+      issueSummary: triageOutput.issue_summary,
     };
   }
 
@@ -36,15 +32,11 @@ export class AIService {
       recommended_team: triage.recommendedTeam,
       issue_summary: triage.issueSummary,
     };
-    const state = await draftGraph.invoke(
-      { ticketId, subject, description, triageOutput },
-      { metadata: { ticketId } }
-    );
-    const input = state.draftOutput!;
+    const draftOutput = await draftGraph(subject, description, triageOutput);
     return {
-      customerReply: input.customer_reply,
-      internalNote: input.internal_note,
-      nextSteps: input.next_steps,
+      customerReply: draftOutput.customer_reply,
+      internalNote: draftOutput.internal_note,
+      nextSteps: draftOutput.next_steps,
     };
   }
 }

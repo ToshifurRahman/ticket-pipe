@@ -1,7 +1,4 @@
 import { z } from 'zod';
-import { ChatOpenAI } from '@langchain/openai';
-import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { Annotation, StateGraph, START, END } from '@langchain/langgraph';
 import { createHeaders, PORTKEY_GATEWAY_URL } from 'portkey-ai';
 
 export const TriageOutputSchema = z.object({
@@ -22,98 +19,124 @@ export const DraftOutputSchema = z.object({
 export type TriageOutput = z.infer<typeof TriageOutputSchema>;
 export type DraftOutput = z.infer<typeof DraftOutputSchema>;
 
-export function buildLlm(): ChatOpenAI {
-  return new ChatOpenAI({
-    apiKey: 'X',
-    model: 'llama-3.3-70b-versatile',
-    configuration: {
-      baseURL: PORTKEY_GATEWAY_URL,
-      defaultHeaders: createHeaders({
-        provider: 'groq',
-        apiKey: process.env.PORTKEY_API_KEY!,
-        Authorization: process.env.GROQ_API_KEY!,
-      }),
-    },
-  });
-}
-
-export const llm = buildLlm();
-
-export const triagePrompt = ChatPromptTemplate.fromMessages([
-  ['system', 'You are a support ticket triage agent. Analyze the ticket and classify it accurately.'],
-  [
-    'human',
-    'Triage this support ticket:\n\nSubject: {subject}\nDescription: {description}',
-  ],
-]);
-
-export const draftPrompt = ChatPromptTemplate.fromMessages([
-  ['system', 'You are a support agent. Write a helpful, empathetic response draft based on the ticket and triage findings.'],
-  [
-    'human',
-    `Write a response draft for this support ticket.
-
-Subject: {subject}
-Description: {description}
-
-Triage findings:
-- Category: {category}
-- Priority: {priority}
-- Customer sentiment: {sentiment}
-- Escalate: {escalate}
-- Recommended team: {recommended_team}
-- Issue summary: {issue_summary}`,
-  ],
-]);
-
-const TicketStateAnnotation = Annotation.Root({
-  ticketId: Annotation<string>(),
-  subject: Annotation<string>(),
-  description: Annotation<string>(),
-  triageOutput: Annotation<TriageOutput | undefined>(),
-  draftOutput: Annotation<DraftOutput | undefined>(),
+const headers = createHeaders({
+  provider: 'groq',
+  apiKey: process.env.PORTKEY_API_KEY!,
+  Authorization: process.env.GROQ_API_KEY!,
 });
 
-type TicketState = typeof TicketStateAnnotation.State;
-
-async function triageNode(state: TicketState): Promise<Partial<TicketState>> {
-  const chain = triagePrompt.pipe(llm.withStructuredOutput(TriageOutputSchema, { method: 'functionCalling' }));
-  const triageOutput = await chain.invoke(
-    { subject: state.subject, description: state.description },
-    { metadata: { ticketId: state.ticketId } }
-  );
-  return { triageOutput };
-}
-
-async function draftNode(state: TicketState): Promise<Partial<TicketState>> {
-  const chain = draftPrompt.pipe(llm.withStructuredOutput(DraftOutputSchema, { method: 'functionCalling' }));
-  const draftOutput = await chain.invoke(
-    {
-      subject: state.subject,
-      description: state.description,
-      ...state.triageOutput,
+async function callLlmWithFunction<T>(
+  messages: Array<{ role: 'system' | 'user'; content: string }>,
+  schema: z.ZodSchema<T>,
+  schemaName: string,
+  properties: Record<string, { type: string; description: string }>,
+  required: string[]
+): Promise<T> {
+  const response = await fetch(`${PORTKEY_GATEWAY_URL}/openai/v1/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
     },
-    { metadata: { ticketId: state.ticketId } }
-  );
-  return { draftOutput };
+    body: JSON.stringify({
+      model: 'llama-3.3-70b-versatile',
+      messages,
+      functions: [
+        {
+          name: schemaName,
+          description: `Return the ${schemaName} as a JSON object`,
+          parameters: {
+            type: 'object',
+            properties,
+            required,
+          },
+        },
+      ],
+      function_call: { name: schemaName },
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`LLM call failed: ${response.status} ${error}`);
+  }
+
+  const data = (await response.json()) as {
+    choices: Array<{
+      message: {
+        function_call?: {
+          arguments: string;
+        };
+      };
+    }>;
+  };
+
+  const functionCall = data.choices[0]?.message.function_call;
+  if (!functionCall) {
+    throw new Error('No function call in LLM response');
+  }
+
+  const parsed = JSON.parse(functionCall.arguments);
+  return schema.parse(parsed);
 }
 
-export const ticketGraph = new StateGraph(TicketStateAnnotation)
-  .addNode('triage', triageNode)
-  .addNode('draft', draftNode)
-  .addEdge(START, 'triage')
-  .addEdge('triage', 'draft')
-  .addEdge('draft', END)
-  .compile();
+export async function triage(
+  subject: string,
+  description: string
+): Promise<TriageOutput> {
+  const systemPrompt = 'You are a support ticket triage agent. Analyze the ticket and classify it accurately.';
+  const userPrompt = `Triage this support ticket:\n\nSubject: ${subject}\nDescription: ${description}`;
 
-export const triageGraph = new StateGraph(TicketStateAnnotation)
-  .addNode('triage', triageNode)
-  .addEdge(START, 'triage')
-  .addEdge('triage', END)
-  .compile();
+  return callLlmWithFunction(
+    [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    TriageOutputSchema,
+    'triage_output',
+    {
+      category: { type: 'string', description: 'Ticket category' },
+      priority: { type: 'string', description: 'Priority level (low, medium, high, critical)' },
+      sentiment: { type: 'string', description: 'Customer sentiment (neutral, frustrated, angry)' },
+      escalate: { type: 'boolean', description: 'Whether to escalate' },
+      recommended_team: { type: 'string', description: 'Recommended team' },
+      issue_summary: { type: 'string', description: 'Summary of the issue' },
+    },
+    ['category', 'priority', 'sentiment', 'escalate', 'recommended_team', 'issue_summary']
+  );
+}
 
-export const draftGraph = new StateGraph(TicketStateAnnotation)
-  .addNode('draft', draftNode)
-  .addEdge(START, 'draft')
-  .addEdge('draft', END)
-  .compile();
+export async function draft(
+  subject: string,
+  description: string,
+  triageOutput: TriageOutput
+): Promise<DraftOutput> {
+  const systemPrompt = 'You are a support agent. Write a helpful, empathetic response draft based on the ticket and triage findings.';
+  const userPrompt = `Write a response draft for this support ticket.
+
+Subject: ${subject}
+Description: ${description}
+
+Triage findings:
+- Category: ${triageOutput.category}
+- Priority: ${triageOutput.priority}
+- Customer sentiment: ${triageOutput.sentiment}
+- Escalate: ${triageOutput.escalate}
+- Recommended team: ${triageOutput.recommended_team}
+- Issue summary: ${triageOutput.issue_summary}`;
+
+  return callLlmWithFunction(
+    [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    DraftOutputSchema,
+    'draft_output',
+    {
+      customer_reply: { type: 'string', description: 'Response to customer' },
+      internal_note: { type: 'string', description: 'Internal note' },
+      next_steps: { type: 'array', description: 'Next steps' },
+    },
+    ['customer_reply', 'internal_note', 'next_steps']
+  );
+}

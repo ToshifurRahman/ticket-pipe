@@ -13,7 +13,6 @@ import {
   upsertTriageOutput,
   completeDraftOutput,
   getTriageOutputByTicketId,
-  insertProcessingResult,
 } from './repositories/processing.js';
 import { insertEvent, getEventsByTicketId } from './repositories/events.js';
 import { getIo } from './lib/socket.js';
@@ -22,7 +21,6 @@ import { resolveTicketPhases, resolveTicketFailureCounts } from './lib/ticket-ph
 
 if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY environment variable is required');
 if (!process.env.PORTKEY_API_KEY) throw new Error('PORTKEY_API_KEY environment variable is required');
-if (!process.env.LANGCHAIN_API_KEY) throw new Error('LANGCHAIN_API_KEY environment variable is required');
 
 const aiService = new AIService();
 

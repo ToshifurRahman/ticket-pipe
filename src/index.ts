@@ -18,7 +18,8 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use('/health', healthRouter);
 app.use('/api/tickets', ticketsRouter);
 
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: Error, _req: Request, res: Response, next: NextFunction) => {
   if (err instanceof TicketNotFoundError) {
     res.status(404).json({ error: 'Ticket not found' });
     return;
