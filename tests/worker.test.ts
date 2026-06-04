@@ -366,3 +366,67 @@ describe('processMessage — retry behaviour', () => {
     expect(updated.status).toBe('completed');
   });
 });
+
+describe('processMessage — output validation', () => {
+  it('marks ticket needs_attention when triage output has empty category', async () => {
+    const incompleteTriageResult = { ...TRIAGE_RESULT, category: '' };
+    mockTriage.mockResolvedValueOnce(incompleteTriageResult);
+    mockDraft.mockResolvedValueOnce(DRAFT_RESULT);
+    const ticket = await insertTicket('TICK-WKR-019', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+
+    const updated = await getTicketById(ticket.id);
+    expect(updated.status).toBe('needs_attention');
+    const events = await getEventsByTicketId(ticket.id);
+    const needsAttention = events.find(e => e.event === 'ticket.needs_attention');
+    expect(needsAttention).toBeDefined();
+    expect(needsAttention!.detail).toContain('category');
+  });
+
+  it('marks ticket needs_attention when draft output has empty nextSteps', async () => {
+    const incompleteDraftResult = { ...DRAFT_RESULT, nextSteps: [] };
+    mockTriage.mockResolvedValueOnce(TRIAGE_RESULT);
+    mockDraft.mockResolvedValueOnce(incompleteDraftResult);
+    const ticket = await insertTicket('TICK-WKR-020', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+
+    const updated = await getTicketById(ticket.id);
+    expect(updated.status).toBe('needs_attention');
+    const events = await getEventsByTicketId(ticket.id);
+    const needsAttention = events.find(e => e.event === 'ticket.needs_attention');
+    expect(needsAttention).toBeDefined();
+    expect(needsAttention!.detail).toContain('nextSteps');
+  });
+
+  it('does not write ticket.completed event on validation failure', async () => {
+    const incompleteTriageResult = { ...TRIAGE_RESULT, sentiment: '' };
+    mockTriage.mockResolvedValueOnce(incompleteTriageResult);
+    mockDraft.mockResolvedValueOnce(DRAFT_RESULT);
+    const ticket = await insertTicket('TICK-WKR-021', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+
+    const events = await getEventsByTicketId(ticket.id);
+    expect(events.find(e => e.event === 'ticket.completed')).toBeUndefined();
+  });
+
+  it('emits ticket:needs_attention to ops room on validation failure', async () => {
+    const incompleteTriageResult = { ...TRIAGE_RESULT, category: '   ' };
+    mockTriage.mockResolvedValueOnce(incompleteTriageResult);
+    mockDraft.mockResolvedValueOnce(DRAFT_RESULT);
+    const ticket = await insertTicket('TICK-WKR-022', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+
+    expect(mockTo).toHaveBeenCalledWith('ops');
+    const opsEmitCall = mockEmit.mock.calls.find(([event]) => event === 'ticket:needs_attention');
+    expect(opsEmitCall).toBeDefined();
+    expect(opsEmitCall![1]).toMatchObject({ ticketId: ticket.id });
+  });
+});

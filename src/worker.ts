@@ -13,11 +13,13 @@ import {
   upsertTriageOutput,
   completeDraftOutput,
   getTriageOutputByTicketId,
+  getProcessingResultByTicketId,
 } from './repositories/processing.js';
 import { insertEvent, getEventsByTicketId } from './repositories/events.js';
 import { getIo } from './lib/socket.js';
 import { AIService } from './lib/ai-service.js';
 import { resolveTicketPhases, resolveTicketFailureCounts } from './lib/ticket-phases.js';
+import { validateProcessingOutput } from './lib/validate-output.js';
 
 if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY environment variable is required');
 if (!process.env.PORTKEY_API_KEY) throw new Error('PORTKEY_API_KEY environment variable is required');
@@ -163,6 +165,20 @@ export async function processMessage(
       return;
     }
     throw err;
+  }
+
+  // VALIDATE OUTPUTS
+  const processingResult = await getProcessingResultByTicketId(ticketId);
+  if (!processingResult) {
+    await setNeedsAttention(ticketId, 'Processing result not found');
+    return;
+  }
+
+  const validation = validateProcessingOutput(processingResult);
+  if (!validation.valid) {
+    const detail = `Incomplete output: missing fields [${validation.missingFields.join(', ')}]`;
+    await setNeedsAttention(ticketId, detail);
+    return;
   }
 
   // FINALIZE
