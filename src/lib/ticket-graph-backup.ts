@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import { createHeaders, PORTKEY_GATEWAY_URL } from 'portkey-ai';
+import { z } from 'zod';
 
 export const TriageOutputSchema = z.object({
   category: z.string(),
@@ -80,11 +80,9 @@ async function callLlmWithFunction<T>(
   return schema.parse(parsed);
 }
 
-export async function triage(
-  subject: string,
-  description: string
-): Promise<TriageOutput> {
-  const systemPrompt = 'You are a support ticket triage agent. Analyze the ticket and classify it accurately.';
+export async function triage(subject: string, description: string): Promise<TriageOutput> {
+  const systemPrompt =
+    'You are a support ticket triage agent. Analyze the ticket and classify it accurately.';
   const userPrompt = `Triage this support ticket:\n\nSubject: ${subject}\nDescription: ${description}`;
 
   return callLlmWithFunction(
@@ -111,7 +109,8 @@ export async function draft(
   description: string,
   triageOutput: TriageOutput
 ): Promise<DraftOutput> {
-  const systemPrompt = 'You are a support agent. Write a helpful, empathetic response draft based on the ticket and triage findings.';
+  const systemPrompt =
+    'You are a support agent. Write a helpful, empathetic response draft based on the ticket and triage findings.';
   const userPrompt = `Write a response draft for this support ticket.
 
 Subject: ${subject}
