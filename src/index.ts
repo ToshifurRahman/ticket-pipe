@@ -1,12 +1,12 @@
+import express, { type Request, type Response } from 'express';
 import { createServer } from 'http';
-import express, { type Request, type Response, type NextFunction } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { logger } from './lib/logger.js';
-import { ticketsRouter } from './routes/tickets.js';
-import { healthRouter } from './routes/health.js';
-import { init as initSocket } from './lib/socket.js';
 import { TicketNotFoundError } from './lib/errors.js';
+import { logger } from './lib/logger.js';
+import { init as initSocket } from './lib/socket.js';
+import { healthRouter } from './routes/health.js';
+import { ticketsRouter } from './routes/tickets.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,8 +18,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use('/health', healthRouter);
 app.use('/api/tickets', ticketsRouter);
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-app.use((err: Error, _req: Request, res: Response, next: NextFunction) => {
+app.use((err: Error, _req: Request, res: Response) => {
   if (err instanceof TicketNotFoundError) {
     res.status(404).json({ error: 'Ticket not found' });
     return;
