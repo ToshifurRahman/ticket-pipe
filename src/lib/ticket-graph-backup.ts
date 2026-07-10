@@ -32,7 +32,7 @@ async function callLlmWithFunction<T>(
   properties: Record<string, { type: string; description: string }>,
   required: string[]
 ): Promise<T> {
-  const response = await fetch(`${PORTKEY_GATEWAY_URL}/openai/v1/chat/completions`, {
+  const response = await fetch(`${PORTKEY_GATEWAY_URL}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
