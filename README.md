@@ -9,6 +9,7 @@ An AI-powered ticket processing system that automatically analyzes support ticke
 - [Quick Start](#quick-start)
 - [Architecture Overview](#architecture-overview)
 - [Features](#features)
+- [AI Observability](#ai-observability)
 - [Project Structure](#project-structure)
 - [Development Guide](#development-guide)
 
@@ -125,12 +126,12 @@ User/Portal
 - Three main tables: `tickets`, `ticket_processing`, `ticket_events`
 - Optimized indexes for fast lookups by ticket ID
 
-#### 4. **AI Service** (`src/lib/ai-service.ts` & `src/lib/ticket-graph.ts`)
+#### 4. **AI Service** (`src/lib/ai-service.ts` & `src/lib/llm-client.ts`)
 - **Triage Phase**: Analyzes ticket to determine category, priority, sentiment, escalation needs, and recommended team
 - **Draft Phase**: Generates customer-facing reply, internal notes, and next action steps
-- Uses LangGraph for orchestration across multiple LLM calls
-- Integrates with Portkey for fallback routing and observability
-- Traces all AI operations to LangSmith for debugging and optimization
+- Falls back from the primary LLM provider to a backup provider on failure
+- Integrates with Portkey for request routing
+- Records every provider call (outcome, duration, tokens) to `ai_interactions` for ops review — see [AI Observability](#ai-observability)
 
 #### 5. **Queue System** (`src/lib/queue.ts`)
 - AWS SQS integration for reliable message passing
@@ -169,8 +170,39 @@ User/Portal
 ### Developer Features
 - **Local Development Support**: Works with LocalStack for SQS, Portkey for routing, and local PostgreSQL
 - **Comprehensive Logging**: Structured logging with Pino for debugging and monitoring
-- **LangSmith Integration**: Full tracing of all LLM operations for observability and prompt optimization
 - **Socket.io Integration**: Real-time bi-directional communication for ops alerts
+
+## AI Observability
+
+Every call to an LLM provider (primary or backup, per triage/draft attempt) is recorded in the
+`ai_interactions` table with its outcome, duration, and token usage. The AI call itself is never
+blocked or failed by a recording error — a failed write is logged and the ticket keeps processing.
+
+**Outcome values**: `success`, `http_error` (non-2xx response, with `http_status`), `network_error`
+(the request itself failed), `timeout` (exceeded `AI_TIMEOUT_MS`, default 30s), `invalid_response`
+(malformed or schema-invalid model output).
+
+**Ops endpoints**:
+- `GET /api/ops/ai-interactions` — paginated list, filterable by `provider`, `operation`, `outcome`,
+  `ticketId`, `since`/`until`
+- `GET /api/ops/ai-interactions/summary` — per `operation`+`provider` counts, success rate, average/p50/p95
+  duration, and total token usage, over a `since`/`until` window (defaults to the last 24h)
+
+**Example queries** (via `psql`):
+```sql
+-- Recent failures, most recent first
+SELECT ticket_id, operation, provider, outcome, http_status, error_message, created_at
+FROM ai_interactions
+WHERE outcome != 'success'
+ORDER BY created_at DESC
+LIMIT 20;
+
+-- Primary provider health over the last hour
+SELECT outcome, COUNT(*), AVG(duration_ms)
+FROM ai_interactions
+WHERE provider = 'primary' AND created_at > NOW() - INTERVAL '1 hour'
+GROUP BY outcome;
+```
 
 ## Project Structure
 
