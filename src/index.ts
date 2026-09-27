@@ -6,6 +6,7 @@ import { TicketNotFoundError } from './lib/errors.js';
 import { logger } from './lib/logger.js';
 import { init as initSocket } from './lib/socket.js';
 import { healthRouter } from './routes/health.js';
+import { opsRouter } from './routes/ops.js';
 import { ticketsRouter } from './routes/tickets.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,6 +18,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 app.use('/health', healthRouter);
 app.use('/api/tickets', ticketsRouter);
+app.use('/api/ops', opsRouter);
 
 app.use((err: Error, _req: Request, res: Response) => {
   if (err instanceof TicketNotFoundError) {
