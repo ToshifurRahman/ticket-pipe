@@ -1,4 +1,4 @@
-import express, { type Request, type Response } from 'express';
+import express, { type NextFunction, type Request, type Response } from 'express';
 import { createServer } from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -20,7 +20,7 @@ app.use('/health', healthRouter);
 app.use('/api/tickets', ticketsRouter);
 app.use('/api/ops', opsRouter);
 
-app.use((err: Error, _req: Request, res: Response) => {
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof TicketNotFoundError) {
     res.status(404).json({ error: 'Ticket not found' });
     return;
