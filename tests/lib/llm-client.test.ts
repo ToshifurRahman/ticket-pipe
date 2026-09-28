@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { triage, LlmCallError, type LlmProvider } from '../../src/lib/llm-client.js';
 
-const PROVIDER: LlmProvider = { name: 'primary', apiKey: 'test-key', model: 'test-model' };
+const PROVIDER: LlmProvider = { name: 'primary', gateway: 'groq', apiKey: 'test-key', model: 'test-model' };
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {

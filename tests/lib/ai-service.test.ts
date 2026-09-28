@@ -11,8 +11,8 @@ vi.mock('../../src/lib/llm-client.js', async importOriginal => {
     triage: mockTriage,
     draft: mockDraft,
     isBackupConfigured: mockIsBackupConfigured,
-    getPrimaryProvider: () => ({ name: 'primary', apiKey: 'primary-key', model: 'primary-model' }),
-    getBackupProvider: () => ({ name: 'backup', apiKey: 'backup-key', model: 'backup-model' }),
+    getPrimaryProvider: () => ({ name: 'primary', gateway: 'groq', apiKey: 'primary-key', model: 'primary-model' }),
+    getBackupProvider: () => ({ name: 'backup', gateway: 'groq', apiKey: 'backup-key', model: 'backup-model' }),
   };
 });
 

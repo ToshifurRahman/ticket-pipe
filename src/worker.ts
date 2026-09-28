@@ -21,7 +21,7 @@ import { AIService } from './lib/ai-service.js';
 import { resolveTicketPhases, resolveTicketFailureCounts } from './lib/ticket-phases.js';
 import { validateProcessingOutput } from './lib/validate-output.js';
 
-if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY environment variable is required');
+if (!process.env.GOOGLE_API_KEY) throw new Error('GOOGLE_API_KEY environment variable is required');
 if (!process.env.PORTKEY_API_KEY) throw new Error('PORTKEY_API_KEY environment variable is required');
 
 const aiService = new AIService();

@@ -21,8 +21,9 @@ An AI-powered ticket processing system that automatically analyzes support ticke
 - **PostgreSQL** 13 or higher
 - **AWS Account** (for SQS)
 - **API Keys**:
-  - GROQ API Key (for LLM inference)
+  - Google AI Studio API Key (Gemini, free tier — primary LLM provider)
   - Portkey API Key (for AI gateway & fallback routing)
+  - GROQ API Key (optional, used as the backup LLM provider)
   - LangSmith API Key (for LangChain tracing)
 
 ### Installation

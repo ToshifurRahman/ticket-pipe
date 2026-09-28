@@ -33,8 +33,11 @@ export class LlmCallError extends Error {
   }
 }
 
+export type LlmGateway = 'groq' | 'google';
+
 export interface LlmProvider {
   name: 'primary' | 'backup';
+  gateway: LlmGateway;
   apiKey: string;
   model: string;
 }
@@ -50,24 +53,46 @@ export interface LlmCallResult<T> {
   httpStatus: number;
 }
 
-const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+const DEFAULT_GATEWAY: LlmGateway = 'groq';
+const DEFAULT_MODEL = 'openai/gpt-oss-20b';
+
+function resolveGateway(envValue: string | undefined): LlmGateway {
+  return envValue === 'google' || envValue === 'groq' ? envValue : DEFAULT_GATEWAY;
+}
+
+function apiKeyForGateway(gateway: LlmGateway, envValue: string | undefined): string {
+  if (envValue) return envValue;
+  throw new Error(
+    gateway === 'google'
+      ? 'GOOGLE_API_KEY is required when PRIMARY_GATEWAY/BACKUP_GATEWAY is "google"'
+      : 'GROQ_API_KEY is required when PRIMARY_GATEWAY/BACKUP_GATEWAY is "groq"'
+  );
+}
 
 export function getPrimaryProvider(): LlmProvider {
+  const gateway = resolveGateway(process.env.PRIMARY_GATEWAY);
+  const apiKey = gateway === 'google' ? process.env.GOOGLE_API_KEY : process.env.GROQ_API_KEY;
   return {
     name: 'primary',
-    apiKey: process.env.GROQ_API_KEY!,
+    gateway,
+    apiKey: apiKeyForGateway(gateway, apiKey),
     model: process.env.PRIMARY_MODEL || DEFAULT_MODEL,
   };
 }
 
 export function isBackupConfigured(): boolean {
-  return !!process.env.BACKUP_API_KEY;
+  const gateway = resolveGateway(process.env.BACKUP_GATEWAY);
+  const apiKey = gateway === 'google' ? process.env.GOOGLE_API_KEY : process.env.BACKUP_API_KEY;
+  return !!apiKey;
 }
 
 export function getBackupProvider(): LlmProvider {
+  const gateway = resolveGateway(process.env.BACKUP_GATEWAY);
+  const apiKey = gateway === 'google' ? process.env.GOOGLE_API_KEY : process.env.BACKUP_API_KEY;
   return {
     name: 'backup',
-    apiKey: process.env.BACKUP_API_KEY!,
+    gateway,
+    apiKey: apiKeyForGateway(gateway, apiKey),
     model: process.env.BACKUP_MODEL || DEFAULT_MODEL,
   };
 }
@@ -82,11 +107,11 @@ async function callLlmWithFunction<T>(
   messages: Array<{ role: 'system' | 'user'; content: string }>,
   schema: z.ZodSchema<T>,
   schemaName: string,
-  properties: Record<string, { type: string; description: string }>,
+  properties: Record<string, { type: string; description: string; items?: { type: string } }>,
   required: string[]
 ): Promise<LlmCallResult<T>> {
   const headers = createHeaders({
-    provider: 'groq',
+    provider: provider.gateway,
     apiKey: process.env.PORTKEY_API_KEY!,
     Authorization: provider.apiKey,
   });
@@ -239,7 +264,7 @@ Triage findings:
     {
       customer_reply: { type: 'string', description: 'Response to customer' },
       internal_note: { type: 'string', description: 'Internal note' },
-      next_steps: { type: 'array', description: 'Next steps' },
+      next_steps: { type: 'array', description: 'Next steps', items: { type: 'string' } },
     },
     ['customer_reply', 'internal_note', 'next_steps']
   );
