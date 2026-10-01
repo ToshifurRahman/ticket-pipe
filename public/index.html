@@ -73,6 +73,7 @@
     .badge.processing { background: #fef9c3; color: #92400e; }
     .badge.completed  { background: #dcfce7; color: #166534; }
     .badge.failed     { background: #fee2e2; color: #991b1b; }
+    .badge.live       { background: #ede9fe; color: #5b21b6; margin-left: 0.5rem; vertical-align: middle; }
 
     .spinner {
       width: 10px; height: 10px;
@@ -236,7 +237,7 @@
 
       <div id="resultsGrid" class="results-grid" style="display:none">
         <div class="card">
-          <h2>Triage</h2>
+          <h2>Triage <span id="liveBadge" class="badge live" style="display:none">⚡ live via notification</span></h2>
           <div class="triage-grid">
             <div class="triage-item">
               <label>Priority</label>
@@ -286,6 +287,7 @@
     const historyCard = document.getElementById('historyCard');
     const timeline = document.getElementById('timeline');
     const copyBtn = document.getElementById('copyBtn');
+    const liveBadge = document.getElementById('liveBadge');
 
     let socket = null;
 
@@ -387,7 +389,7 @@
       setStatus(data.status);
       if (data.events && data.events.length) renderTimeline(data.events);
       if (data.status === 'completed' && data.phases) {
-        renderResults(data.phases);
+        renderResults(data.phases.triage.output, data.phases.draft.output);
         return true;
       }
       if (data.status === 'failed') return true;
@@ -403,6 +405,7 @@
       resultsEl.style.display = 'block';
       refNum.textContent = referenceNumber;
       setStatus('queued');
+      liveBadge.style.display = 'none';
 
       if (socket) socket.disconnect();
       socket = io();
@@ -415,7 +418,13 @@
         return;
       }
 
-      socket.on('ticket:update', async () => {
+      socket.on('ticket:update', async (payload) => {
+        if (payload.event === 'ticket.completed') {
+          setStatus('completed');
+          renderResults(payload.triage, payload.draft);
+          liveBadge.style.display = 'inline-flex';
+        }
+
         const done = await fetchAndRender(ticketId);
         if (done) {
           socket.disconnect();
@@ -445,9 +454,7 @@
       timeline.innerHTML = rows + cap;
     }
 
-    function renderResults(phases) {
-      const t = phases.triage.output;
-      const d = phases.draft.output;
+    function renderResults(t, d) {
       document.getElementById('tPriority').innerHTML =
         `<span class="priority ${t.priority}">${t.priority}</span>`;
       document.getElementById('tCategory').textContent = t.category;
