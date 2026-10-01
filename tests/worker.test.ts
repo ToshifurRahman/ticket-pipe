@@ -11,13 +11,14 @@ vi.mock('../src/lib/queue.js', async (importOriginal) => {
 
 vi.mock('../src/lib/socket.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../src/lib/socket.js')>();
-  return { ...real, getIo: vi.fn(() => ({ to: mockTo })) };
+  return { ...real, getEmitter: vi.fn(() => ({ to: mockTo })) };
 });
 
 import { pool } from '../src/lib/db.js';
 import { insertTicket, getTicketById } from '../src/repositories/tickets.js';
 import { getEventsByTicketId, insertEvent } from '../src/repositories/events.js';
 import { getProcessingResultByTicketId, upsertTriageOutput } from '../src/repositories/processing.js';
+import { deleteMessage } from '../src/lib/queue.js';
 import { processMessage } from '../src/worker.js';
 
 // ---- AIService mock helpers -------------------------------------------
@@ -146,6 +147,36 @@ describe('processMessage — happy path', () => {
       internalNote: DRAFT_ARGS.internal_note,
       nextActions: DRAFT_ARGS.next_steps,
     });
+  });
+
+  it('completes processing normally even when notification delivery fails (disconnected customer)', async () => {
+    mockAiSuccess();
+    const ticket = await insertTicket('TICK-WKR-002C', 'Disconnected', 'Test');
+    createdIds.push(ticket.id);
+
+    mockEmit
+      .mockImplementationOnce(() => {})
+      .mockImplementationOnce(() => {})
+      .mockImplementationOnce(() => {})
+      .mockImplementationOnce(() => {})
+      .mockImplementationOnce(() => {
+        throw new Error('no subscribers for room (customer disconnected)');
+      });
+
+    await expect(processMessage(ticket.id, 'fake-receipt', 1, mockAi())).resolves.toBeUndefined();
+
+    const updated = await getTicketById(ticket.id);
+    expect(updated.status).toBe('completed');
+    expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
+
+    const events = await getEventsByTicketId(ticket.id);
+    expect(events.map((e) => e.event)).toEqual([
+      'triage.started',
+      'triage.completed',
+      'draft.started',
+      'draft.completed',
+      'ticket.completed',
+    ]);
   });
 
   it('persists all six triage fields to ticket_processing', async () => {

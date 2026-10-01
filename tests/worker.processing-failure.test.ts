@@ -12,9 +12,10 @@ vi.mock('../src/lib/queue.js', async (importOriginal) => {
   return { ...real, deleteMessage: vi.fn().mockResolvedValue(undefined) };
 });
 
-vi.mock('../src/lib/socket.js', () => ({
-  getIo: vi.fn(() => null),
-}));
+vi.mock('../src/lib/socket.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../src/lib/socket.js')>();
+  return { ...real, getEmitter: vi.fn(() => ({ to: () => ({ emit: () => {} }) })) };
+});
 
 vi.mock('../src/repositories/tickets.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../src/repositories/tickets.js')>();

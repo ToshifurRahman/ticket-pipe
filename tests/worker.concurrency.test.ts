@@ -34,9 +34,10 @@ vi.mock('../src/lib/ai-service.js', () => ({
   },
 }));
 
-vi.mock('../src/lib/socket.js', () => ({
-  getIo: vi.fn(() => null),
-}));
+vi.mock('../src/lib/socket.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../src/lib/socket.js')>();
+  return { ...real, getEmitter: vi.fn(() => ({ to: () => ({ emit: () => {} }) })) };
+});
 
 vi.mock('../src/lib/queue.js', () => ({
   enqueueTicket: vi.fn(async (ticketId: string, referenceNumber: string) => {
