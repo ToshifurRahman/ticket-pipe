@@ -9,9 +9,10 @@ vi.mock('../src/lib/queue.js', async (importOriginal) => {
   return { ...real, deleteMessage: vi.fn().mockResolvedValue(undefined) };
 });
 
-vi.mock('../src/lib/socket.js', () => ({
-  getIo: vi.fn(() => ({ to: mockTo })),
-}));
+vi.mock('../src/lib/socket.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../src/lib/socket.js')>();
+  return { ...real, getIo: vi.fn(() => ({ to: mockTo })) };
+});
 
 import { pool } from '../src/lib/db.js';
 import { insertTicket, getTicketById } from '../src/repositories/tickets.js';
@@ -124,14 +125,27 @@ describe('processMessage — happy path', () => {
     await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
 
     expect(mockTo).toHaveBeenCalledWith(ticket.id);
-    const emittedEvents = mockEmit.mock.calls.map(([, payload]) => payload.event as string);
-    expect(emittedEvents).toEqual([
+    const payloads = mockEmit.mock.calls.map(([, payload]) => payload);
+    expect(payloads.map((p) => p.event as string)).toEqual([
       'triage.started',
       'triage.completed',
       'draft.started',
       'draft.completed',
       'ticket.completed',
     ]);
+
+    const lightweightPayloads = payloads.slice(0, 4);
+    lightweightPayloads.forEach((payload) => {
+      expect(Object.keys(payload).sort()).toEqual(['event', 'occurredAt', 'ticketId']);
+    });
+
+    const completedPayload = payloads[4];
+    expect(completedPayload.triage).toEqual(TRIAGE_RESULT);
+    expect(completedPayload.draft).toEqual({
+      customerReply: DRAFT_ARGS.customer_reply,
+      internalNote: DRAFT_ARGS.internal_note,
+      nextActions: DRAFT_ARGS.next_steps,
+    });
   });
 
   it('persists all six triage fields to ticket_processing', async () => {
