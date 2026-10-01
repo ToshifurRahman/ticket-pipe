@@ -16,9 +16,14 @@ import {
   getProcessingResultByTicketId,
 } from './repositories/processing.js';
 import { insertEvent, getEventsByTicketId } from './repositories/events.js';
-import { getIo } from './lib/socket.js';
+import { getEmitter, buildTicketCompletedPayload, type TicketCompletedPayload } from './lib/socket.js';
 import { AIService } from './lib/ai-service.js';
-import { resolveTicketPhases, resolveTicketFailureCounts } from './lib/ticket-phases.js';
+import {
+  resolveTicketPhases,
+  resolveTicketFailureCounts,
+  type TriageOutput,
+  type DraftOutput,
+} from './lib/ticket-phases.js';
 import { validateProcessingOutput } from './lib/validate-output.js';
 
 if (!process.env.GOOGLE_API_KEY) throw new Error('GOOGLE_API_KEY environment variable is required');
@@ -32,12 +37,32 @@ const DEFAULT_WORKER_CONCURRENCY = 10;
 const RECEIVE_ERROR_BACKOFF_MS = 1000;
 const MAX_ATTEMPTS = 3;
 
+// Notification delivery must never affect ticket processing: each of these is
+// wrapped so a synchronous throw from the emitter can't propagate into processMessage
+// and be mistaken for a processing failure (see getEmitter() in socket.ts for how the
+// underlying async publish failures are also contained).
 function emitTicketUpdate(ticketId: string, event: string): void {
-  getIo()?.to(ticketId).emit('ticket:update', { event, ticketId, occurredAt: new Date() });
+  try {
+    getEmitter().to(ticketId).emit('ticket:update', { event, ticketId, occurredAt: new Date() });
+  } catch (err) {
+    logger.error({ err, ticketId }, 'Failed to emit ticket:update');
+  }
+}
+
+function emitTicketCompleted(payload: TicketCompletedPayload): void {
+  try {
+    getEmitter().to(payload.ticketId).emit('ticket:update', payload);
+  } catch (err) {
+    logger.error({ err, ticketId: payload.ticketId }, 'Failed to emit ticket:update');
+  }
 }
 
 function emitOpsAlert(ticketId: string, detail?: string): void {
-  getIo()?.to('ops').emit('ticket:needs_attention', { ticketId, detail, occurredAt: new Date() });
+  try {
+    getEmitter().to('ops').emit('ticket:needs_attention', { ticketId, detail, occurredAt: new Date() });
+  } catch (err) {
+    logger.error({ err, ticketId }, 'Failed to emit ticket:needs_attention');
+  }
 }
 
 function resolveWorkerConcurrency(envValue: string | undefined, override?: number): number {
@@ -189,7 +214,20 @@ export async function processMessage(
     }
 
     await insertEvent(ticketId, 'ticket.completed');
-    emitTicketUpdate(ticketId, 'ticket.completed');
+    const triage: TriageOutput = {
+      category: processingResult.category,
+      priority: processingResult.priority,
+      sentiment: processingResult.sentiment,
+      escalate: processingResult.escalate,
+      recommendedTeam: processingResult.recommendedTeam,
+      issueSummary: processingResult.issueSummary,
+    };
+    const draft: DraftOutput = {
+      customerReply: processingResult.customerReply!,
+      internalNote: processingResult.internalNote!,
+      nextActions: processingResult.nextSteps!,
+    };
+    emitTicketCompleted(buildTicketCompletedPayload(ticketId, triage, draft));
   } catch (err) {
     const message = (err as Error).message;
     await setFailed(ticketId, 'ticket.failed', message);

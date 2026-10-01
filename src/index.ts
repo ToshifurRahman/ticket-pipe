@@ -32,10 +32,16 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 if (process.argv[1] === __filename) {
   const port = Number(process.env.PORT ?? 3000);
   const httpServer = createServer(app);
-  initSocket(httpServer);
-  httpServer.listen(port, () => {
-    logger.info({ port }, 'Server started');
-  });
+  initSocket(httpServer)
+    .then(() => {
+      httpServer.listen(port, () => {
+        logger.info({ port }, 'Server started');
+      });
+    })
+    .catch((err) => {
+      logger.error({ err }, 'Failed to initialize socket.io / Redis adapter');
+      process.exitCode = 1;
+    });
 }
 
 export { app, logger };
