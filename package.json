@@ -8,7 +8,8 @@
     "setup": "tsx --env-file=.env scripts/setup-infra.ts",
     "migrate": "tsx --env-file=.env scripts/migrate.ts",
     "test": "vitest run",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.758.0",
@@ -29,6 +30,7 @@
     "@types/pg": "^8.11.11",
     "@types/supertest": "^6.0.2",
     "eslint": "^9.22.0",
+    "husky": "^9.1.7",
     "prettier": "^3.5.3",
     "supertest": "^7.0.0",
     "tsx": "^4.19.2",
