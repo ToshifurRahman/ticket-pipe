@@ -8,8 +8,18 @@ import { logger } from './logger.js';
 
 if (!process.env.REDIS_URL) throw new Error('REDIS_URL environment variable is required');
 
+// Only what shutdown() needs. The two createClient() call sites below infer
+// incompatible node-redis generics, so tracking them structurally keeps this list
+// honest without dragging those generics through the module.
+interface ClosableClient {
+  quit(): Promise<unknown>;
+}
+
 let io: Server | null = null;
 let emitter: Emitter | null = null;
+
+// Every Redis client this module opens, registered so shutdown() can close it.
+let openClients: ClosableClient[] = [];
 
 // Both the adapter (here) and the emitter (worker.ts, a separate process) rely on
 // the default `socket.io` Redis key prefix to agree with each other. Don't pass a
@@ -17,6 +27,7 @@ let emitter: Emitter | null = null;
 export async function init(server: HttpServer): Promise<Server> {
   const pubClient = createClient({ url: process.env.REDIS_URL });
   const subClient = pubClient.duplicate();
+  openClients.push(pubClient, subClient);
   pubClient.on('error', (err) => logger.error({ err }, 'Redis pub client error'));
   subClient.on('error', (err) => logger.error({ err }, 'Redis sub client error'));
   await Promise.all([pubClient.connect(), subClient.connect()]);
@@ -41,7 +52,12 @@ export function getIo(): Server | null {
 // API process.
 export function getEmitter(): Emitter {
   if (!emitter) {
-    const client = createClient({ url: process.env.REDIS_URL });
+    // `disableOfflineQueue` keeps a Redis outage from turning into unbounded memory
+    // growth: node-redis would otherwise buffer every undelivered publish forever.
+    // Failing fast is the right trade here — a notification nobody can receive is
+    // meant to be dropped, and dropping it must never slow ticket processing down.
+    const client = createClient({ url: process.env.REDIS_URL, disableOfflineQueue: true });
+    openClients.push(client);
     client.on('error', (err) => logger.error({ err }, 'Redis emitter client error'));
     client.connect().catch((err) => logger.error({ err }, 'Redis emitter client failed to connect'));
 
@@ -61,6 +77,36 @@ export function getEmitter(): Emitter {
     emitter = new Emitter(client);
   }
   return emitter;
+}
+
+let shuttingDown: Promise<void> | null = null;
+
+// Closes the Socket.IO server and every Redis client this module owns. Safe to call
+// concurrently (a second caller joins the in-flight shutdown) and safe to call when
+// parts were never initialized — a worker process has no `io`, an API process may
+// have no emitter. Resetting the singletons afterwards lets init() run again.
+export function shutdown(): Promise<void> {
+  if (!shuttingDown) {
+    shuttingDown = doShutdown().finally(() => {
+      shuttingDown = null;
+    });
+  }
+  return shuttingDown;
+}
+
+async function doShutdown(): Promise<void> {
+  const server = io;
+  const clients = openClients;
+  io = null;
+  emitter = null;
+  openClients = [];
+
+  if (server) {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+  // allSettled: a client that never connected rejects on quit(), and that must not
+  // turn a graceful shutdown into a crash.
+  await Promise.allSettled(clients.map((client) => client.quit()));
 }
 
 export interface TicketCompletedPayload {

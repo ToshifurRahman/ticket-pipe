@@ -16,7 +16,12 @@ import {
   getProcessingResultByTicketId,
 } from './repositories/processing.js';
 import { insertEvent, getEventsByTicketId } from './repositories/events.js';
-import { getEmitter, buildTicketCompletedPayload, type TicketCompletedPayload } from './lib/socket.js';
+import {
+  getEmitter,
+  shutdown as shutdownSocket,
+  buildTicketCompletedPayload,
+  type TicketCompletedPayload,
+} from './lib/socket.js';
 import { AIService } from './lib/ai-service.js';
 import {
   resolveTicketPhases,
@@ -292,6 +297,20 @@ export async function run(options: RunOptions = {}): Promise<void> {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  // The worker has no Socket.IO server, but it does own the emitter's Redis client —
+  // without this it never gets closed. Guarded so a repeated signal is a no-op.
+  let closing = false;
+  for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+    process.on(signal, () => {
+      if (closing) return;
+      closing = true;
+      logger.info({ signal }, 'Worker shutting down');
+      void shutdownSocket()
+        .catch(err => logger.error({ err }, 'Error shutting down Redis emitter'))
+        .finally(() => process.exit(0));
+    });
+  }
+
   run().catch(err => {
     logger.error({ err }, 'Worker exited unexpectedly');
     process.exitCode = 1;

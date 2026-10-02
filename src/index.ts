@@ -1,10 +1,10 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
-import { createServer } from 'http';
+import { createServer, type Server } from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { TicketNotFoundError } from './lib/errors.js';
 import { logger } from './lib/logger.js';
-import { init as initSocket } from './lib/socket.js';
+import { init as initSocket, shutdown as shutdownSocket } from './lib/socket.js';
 import { healthRouter } from './routes/health.js';
 import { opsRouter } from './routes/ops.js';
 import { ticketsRouter } from './routes/tickets.js';
@@ -29,6 +29,23 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// Without this the Redis pub/sub clients are never closed and the process has to be
+// killed rather than asked to stop. Guarded by `closing` so a second Ctrl-C while the
+// first shutdown is still draining doesn't start a second one.
+function installShutdownHandlers(httpServer: Server): void {
+  let closing = false;
+  for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+    process.on(signal, () => {
+      if (closing) return;
+      closing = true;
+      logger.info({ signal }, 'Shutting down');
+      void shutdownSocket()
+        .catch((err) => logger.error({ err }, 'Error shutting down socket.io / Redis'))
+        .finally(() => httpServer.close(() => process.exit(0)));
+    });
+  }
+}
+
 if (process.argv[1] === __filename) {
   const port = Number(process.env.PORT ?? 3000);
   const httpServer = createServer(app);
@@ -37,6 +54,7 @@ if (process.argv[1] === __filename) {
       httpServer.listen(port, () => {
         logger.info({ port }, 'Server started');
       });
+      installShutdownHandlers(httpServer);
     })
     .catch((err) => {
       logger.error({ err }, 'Failed to initialize socket.io / Redis adapter');
