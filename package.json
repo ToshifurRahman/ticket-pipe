@@ -11,6 +11,9 @@
     "lint": "eslint src",
     "prepare": "husky install"
   },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": "eslint --fix"
+  },
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.758.0",
     "@socket.io/redis-adapter": "^8.3.0",
@@ -31,6 +34,7 @@
     "@types/supertest": "^6.0.2",
     "eslint": "^9.22.0",
     "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
     "prettier": "^3.5.3",
     "supertest": "^7.0.0",
     "tsx": "^4.19.2",
