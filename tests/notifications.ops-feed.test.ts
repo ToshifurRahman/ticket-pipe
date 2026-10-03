@@ -22,7 +22,7 @@ import { app } from '../src/index.js';
 import { pool } from '../src/lib/db.js';
 import { init as initSocket, shutdown as shutdownSocket, getIo } from '../src/lib/socket.js';
 import { insertTicket } from '../src/repositories/tickets.js';
-import { getEventsByTicketId } from '../src/repositories/events.js';
+import { getEventsByTicketId, insertEvent } from '../src/repositories/events.js';
 import { processMessage } from '../src/worker.js';
 
 const TRIAGE_RESULT = {
@@ -117,8 +117,11 @@ function eventsFor(received: OpsEvent[], ticketId: string): OpsEvent[] {
   return received.filter((e) => e.ticketId === ticketId);
 }
 
+// Rooms are inspected with `.local`: the Redis adapter's cluster-wide fetchSockets() waits on
+// every Socket.IO server sharing this Redis (other test files start their own, in parallel)
+// and times out when one shuts down mid-request.
 async function opsRoomSize(): Promise<number> {
-  return (await getIo()!.in('ops').fetchSockets()).length;
+  return (await getIo()!.local.in('ops').fetchSockets()).length;
 }
 
 async function waitFor(check: () => boolean | Promise<boolean>, message: string): Promise<void> {
@@ -181,7 +184,7 @@ describe('ops organization feed', () => {
     const decoy = await newTicket();
     attacker.emit('join', decoy.id);
     await waitFor(
-      async () => (await getIo()!.in(decoy.id).fetchSockets()).length === 1,
+      async () => (await getIo()!.local.in(decoy.id).fetchSockets()).length === 1,
       'attacker never joined its ticket room'
     );
 
@@ -203,14 +206,77 @@ describe('ops organization feed', () => {
     const decoy = await newTicket();
     client.emit('join', decoy.id);
     await waitFor(
-      async () => (await getIo()!.in(decoy.id).fetchSockets()).length === 1,
+      async () => (await getIo()!.local.in(decoy.id).fetchSockets()).length === 1,
       'client never joined its ticket room'
     );
 
-    const server = (await getIo()!.fetchSockets()).find((s) => s.id === client.id)!;
+    const server = (await getIo()!.local.fetchSockets()).find((s) => s.id === client.id)!;
     const rooms = [...server.rooms];
     expect(rooms).toContain(decoy.id);
     expect(rooms).not.toContain('ops');
     expect(await opsRoomSize()).toBe(0);
+  });
+
+  // Story 4.5: ops hears that a ticket needs attention and why, but never the error text,
+  // which can quote AI output or customer content.
+  it('sends ops a reason code, never the error text, when retries are exhausted', async () => {
+    const SENTINEL = 'SENTINEL-4F9A';
+    const ticket = await newTicket();
+    await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
+    await insertEvent(ticket.id, 'triage.failed', 'Error 1');
+    await insertEvent(ticket.id, 'triage.failed', 'Error 2');
+    const ai = {
+      triage: vi.fn().mockRejectedValue(new Error(`LLM output failed schema validation: received '${SENTINEL}'`)),
+      draft: vi.fn(),
+    } as unknown as AIService;
+
+    const ops = await connect();
+    await subscribeToOps(ops);
+    const alerts: Record<string, unknown>[] = [];
+    ops.on('ticket:needs_attention', (p) => alerts.push(p));
+
+    await processMessage(ticket.id, 'fake-receipt', 3, ai).catch(() => {});
+    await waitFor(() => alerts.some((a) => a.ticketId === ticket.id), 'ops never received the alert');
+
+    const mine = alerts.find((a) => a.ticketId === ticket.id)!;
+    expect(Object.keys(mine).sort()).toEqual(['occurredAt', 'reason', 'referenceNumber', 'ticketId']);
+    expect(mine.reason).toBe('triage_retries_exhausted');
+    expect(JSON.stringify(mine)).not.toContain(SENTINEL);
+  });
+
+  // The other half of the story: the customer's own channel still gets the full output,
+  // and ops, subscribed at the same time, gets none of it.
+  it('delivers full AI output to the customer only, never to ops', async () => {
+    const ticket = await newTicket();
+    const ops = await connect();
+    const opsGot: unknown[] = [];
+    ops.onAny((_name, payload) => opsGot.push(payload));
+    await subscribeToOps(ops);
+
+    const customer = await connect();
+    const completed = new Promise<Record<string, any>>((resolve) => {
+      customer.on('ticket:update', (p: Record<string, any>) => {
+        if (p.event === 'ticket.completed') resolve(p);
+      });
+    });
+    customer.emit('join', ticket.id);
+    await waitFor(
+      async () => (await getIo()!.local.in(ticket.id).fetchSockets()).length === 1,
+      'customer never joined its ticket room'
+    );
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+    const payload = await completed;
+    expect(payload.draft.customerReply).toBe(DRAFT_RESULT.customerReply);
+    expect(payload.triage.issueSummary).toBe(TRIAGE_RESULT.issueSummary);
+
+    await waitFor(
+      () => opsGot.filter((p) => (p as OpsEvent).ticketId === ticket.id).length >= 5,
+      'ops never received the status events'
+    );
+    const opsWire = JSON.stringify(opsGot.filter((p) => (p as OpsEvent).ticketId === ticket.id));
+    expect(opsWire).not.toContain(DRAFT_RESULT.customerReply);
+    expect(opsWire).not.toContain(TRIAGE_RESULT.issueSummary);
+    expect(opsWire).not.toContain(DRAFT_RESULT.internalNote);
   });
 });

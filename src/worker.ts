@@ -17,11 +17,11 @@ import {
 } from './repositories/processing.js';
 import { getEventsByTicketId } from './repositories/events.js';
 import { recordTicketEvent, type TicketRef } from './services/ticket-events.js';
+import { publishNeedsAttention, type NeedsAttentionReason } from './services/ops-feed.js';
 import { UUID_RE } from './lib/ids.js';
 import {
   getEmitter,
   warmEmitter,
-  OPS_ROOM,
   shutdown as shutdownSocket,
   buildTicketCompletedPayload,
   type TicketCompletedPayload,
@@ -65,14 +65,6 @@ function emitTicketCompleted(payload: TicketCompletedPayload): void {
   }
 }
 
-function emitOpsAlert(ticketId: string, detail?: string): void {
-  try {
-    getEmitter().to(OPS_ROOM).emit('ticket:needs_attention', { ticketId, detail, occurredAt: new Date() });
-  } catch (err) {
-    logger.error({ err, ticketId }, 'Failed to emit ticket:needs_attention');
-  }
-}
-
 function resolveWorkerConcurrency(envValue: string | undefined, override?: number): number {
   if (typeof override === 'number' && Number.isInteger(override) && override > 0) {
     return override;
@@ -101,7 +93,10 @@ async function setFailed(ticket: TicketRef, event: string, detail: string): Prom
   }
 }
 
-async function setNeedsAttention(ticket: TicketRef, detail: string): Promise<void> {
+// `detail` (the raw error text) goes into the ticket's event history only. Ops is told
+// *that* a ticket needs attention and a fixed `reason`, never the text itself: it can
+// quote AI output or customer content (story 4.5).
+async function setNeedsAttention(ticket: TicketRef, reason: NeedsAttentionReason, detail: string): Promise<void> {
   const ticketId = ticket.id;
   await recordTicketEvent(ticket, 'ticket.needs_attention', detail);
   const marked = await markTicketNeedsAttention(ticketId);
@@ -109,7 +104,7 @@ async function setNeedsAttention(ticket: TicketRef, detail: string): Promise<voi
     logger.warn({ ticketId }, 'Ticket was not in processing state when marking needs_attention');
   }
   emitTicketUpdate(ticketId, 'ticket.needs_attention');
-  emitOpsAlert(ticketId, detail);
+  publishNeedsAttention(ticket, reason);
 }
 
 export async function processMessage(
@@ -153,7 +148,7 @@ export async function processMessage(
     logger.info({ ticketId }, 'Triage already completed, resuming from draft');
   } else {
     if (failureCounts.triage >= MAX_ATTEMPTS) {
-      await setNeedsAttention(ticket, 'Max triage attempts reached');
+      await setNeedsAttention(ticket, 'triage_retries_exhausted', 'Max triage attempts reached');
       return;
     }
 
@@ -170,7 +165,7 @@ export async function processMessage(
       await recordTicketEvent(ticket, 'triage.failed', message);
       emitTicketUpdate(ticketId, 'triage.failed');
       if (failureCounts.triage + 1 >= MAX_ATTEMPTS) {
-        await setNeedsAttention(ticket, message);
+        await setNeedsAttention(ticket, 'triage_retries_exhausted', message);
         return;
       }
       throw err;
@@ -179,7 +174,7 @@ export async function processMessage(
 
   // DRAFT STAGE
   if (failureCounts.draft >= MAX_ATTEMPTS) {
-    await setNeedsAttention(ticket, 'Max draft attempts reached');
+    await setNeedsAttention(ticket, 'draft_retries_exhausted', 'Max draft attempts reached');
     return;
   }
 
@@ -196,7 +191,7 @@ export async function processMessage(
     await recordTicketEvent(ticket, 'draft.failed', message);
     emitTicketUpdate(ticketId, 'draft.failed');
     if (failureCounts.draft + 1 >= MAX_ATTEMPTS) {
-      await setNeedsAttention(ticket, message);
+      await setNeedsAttention(ticket, 'draft_retries_exhausted', message);
       return;
     }
     throw err;
@@ -205,14 +200,14 @@ export async function processMessage(
   // VALIDATE OUTPUTS
   const processingResult = await getProcessingResultByTicketId(ticketId);
   if (!processingResult) {
-    await setNeedsAttention(ticket, 'Processing result not found');
+    await setNeedsAttention(ticket, 'processing_result_missing', 'Processing result not found');
     return;
   }
 
   const validation = validateProcessingOutput(processingResult);
   if (!validation.valid) {
     const detail = `Incomplete output: missing fields [${validation.missingFields.join(', ')}]`;
-    await setNeedsAttention(ticket, detail);
+    await setNeedsAttention(ticket, 'incomplete_output', detail);
     return;
   }
 

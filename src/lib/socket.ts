@@ -6,6 +6,7 @@ import type { Server as HttpServer } from 'http';
 import type { TriageOutput, DraftOutput } from './ticket-phases.js';
 import { logger } from './logger.js';
 import { isUuid } from './ids.js';
+import { OPS_ROOM } from './rooms.js';
 
 if (!process.env.REDIS_URL) throw new Error('REDIS_URL environment variable is required');
 
@@ -15,10 +16,6 @@ if (!process.env.REDIS_URL) throw new Error('REDIS_URL environment variable is r
 interface ClosableClient {
   quit(): Promise<unknown>;
 }
-
-// The organization-wide ops feed. This deployment is a single tenant, so there is one room;
-// a multi-tenant version would use `ops:<orgId>` here and at the emit site.
-export const OPS_ROOM = 'ops';
 
 let io: Server | null = null;
 let emitter: Emitter | null = null;
