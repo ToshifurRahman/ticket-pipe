@@ -173,6 +173,26 @@ User/Portal
 - **Comprehensive Logging**: Structured logging with Pino for debugging and monitoring
 - **Socket.io Integration**: Real-time bi-directional communication for ops alerts
 
+## Ops Live Feed
+
+Ops staff can watch every ticket event across the organization over Socket.io. The feed carries
+status information only. It never includes the subject, description, AI output or an event's error text.
+
+```js
+const socket = io('http://localhost:3000');
+socket.on('ops:ticket_event', (e) => console.log(e));
+await socket.emitWithAck('ops:subscribe'); // resolves to { ok: true } once subscribed
+```
+
+Each `ops:ticket_event` payload is `{ ticketId, referenceNumber, event, occurredAt }`, where `event`
+is one of `ticket.submitted`, `triage.started`, `triage.completed`, `triage.failed`, `draft.started`,
+`draft.completed`, `draft.failed`, `ticket.completed`, `ticket.failed` or `ticket.needs_attention`.
+
+Every event goes through `recordTicketEvent()` (`src/services/ticket-events.ts`), which writes the
+`ticket_events` row and publishes to the feed, so the two cannot drift apart. Publishing is best-effort
+and never affects ticket processing. Customers join only their own ticket room (`join` accepts a
+ticket UUID and nothing else), so they cannot subscribe to the feed.
+
 ## AI Observability
 
 Every call to an LLM provider (primary or backup, per triage/draft attempt) is recorded in the
