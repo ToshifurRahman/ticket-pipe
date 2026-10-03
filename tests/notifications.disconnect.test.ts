@@ -88,9 +88,13 @@ async function newTicket(): Promise<string> {
   return ticket.id;
 }
 
-/** How many sockets the server currently has in a ticket's room. */
+/**
+ * How many sockets this test's server currently has in a ticket's room. `.local` matters:
+ * without it the Redis adapter asks every Socket.IO server on this Redis, including the ones
+ * other test files start in parallel, and times out if one of them shuts down mid-request.
+ */
 async function roomSize(ticketId: string): Promise<number> {
-  const sockets = await getIo()!.in(ticketId).fetchSockets();
+  const sockets = await getIo()!.local.in(ticketId).fetchSockets();
   return sockets.length;
 }
 
