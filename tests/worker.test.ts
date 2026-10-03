@@ -2,7 +2,15 @@ import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vites
 import type { AIService } from '../src/lib/ai-service.js';
 
 const mockEmit = vi.hoisted(() => vi.fn());
-const mockTo = vi.hoisted(() => vi.fn(() => ({ emit: mockEmit })));
+// The ops feed (`ops:ticket_event`) gets its own spy so the per-ticket assertions below
+// keep seeing only ticket-room traffic, in the same order they always have.
+const mockOpsEmit = vi.hoisted(() => vi.fn());
+const mockTo = vi.hoisted(() =>
+  vi.fn(() => ({
+    emit: (event: string, payload: unknown) =>
+      event === 'ops:ticket_event' ? mockOpsEmit(event, payload) : mockEmit(event, payload),
+  }))
+);
 
 vi.mock('../src/lib/queue.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../src/lib/queue.js')>();
@@ -87,6 +95,100 @@ afterAll(async () => {
 });
 
 // ---- Tests ------------------------------------------------------------
+
+describe('processMessage — ops feed (story 4.4)', () => {
+  const opsEvents = () => mockOpsEmit.mock.calls.map(([, payload]) => payload as Record<string, unknown>);
+
+  // clearAllMocks() keeps implementations, so undo the throwing spy from the last test.
+  afterEach(() => mockOpsEmit.mockReset());
+
+  it('publishes one ops:ticket_event per ticket_events row, in order', async () => {
+    mockAiSuccess();
+    const ticket = await insertTicket('TICK-OPS-FEED-001', 'Login broken', 'Cannot sign in');
+    createdIds.push(ticket.id);
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+
+    const rows = await getEventsByTicketId(ticket.id);
+    expect(mockTo).toHaveBeenCalledWith('ops');
+    expect(opsEvents().map((p) => p.event)).toEqual(rows.map((r) => r.event));
+    expect(opsEvents().map((p) => p.event)).toEqual([
+      'triage.started',
+      'triage.completed',
+      'draft.started',
+      'draft.completed',
+      'ticket.completed',
+    ]);
+  });
+
+  it('carries status information only: exact keys, no AI output', async () => {
+    mockAiSuccess();
+    const ticket = await insertTicket('TICK-OPS-FEED-002', 'Login broken', 'Cannot sign in');
+    createdIds.push(ticket.id);
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+
+    expect(opsEvents().length).toBeGreaterThan(0);
+    for (const payload of opsEvents()) {
+      expect(Object.keys(payload).sort()).toEqual(['event', 'occurredAt', 'referenceNumber', 'ticketId']);
+      expect(payload.ticketId).toBe(ticket.id);
+      expect(payload.referenceNumber).toBe('TICK-OPS-FEED-002');
+    }
+    const wire = JSON.stringify(opsEvents());
+    for (const secret of [
+      ...Object.values(TRIAGE_RESULT).map(String),
+      DRAFT_RESULT.customerReply,
+      DRAFT_RESULT.internalNote,
+      ...DRAFT_RESULT.nextSteps,
+      'Login broken',
+      'Cannot sign in',
+    ]) {
+      expect(wire).not.toContain(secret);
+    }
+  });
+
+  it('publishes failure events without leaking the error message', async () => {
+    const ticket = await insertTicket('TICK-OPS-FEED-003', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    mockTriage.mockRejectedValueOnce(new Error('provider said: SECRET-ERROR-TEXT'));
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi()).catch(() => {});
+
+    expect(opsEvents().map((p) => p.event)).toEqual(['triage.started', 'triage.failed']);
+    expect(JSON.stringify(opsEvents())).not.toContain('SECRET-ERROR-TEXT');
+  });
+
+  it('publishes ticket.needs_attention to the feed when retries are exhausted', async () => {
+    const ticket = await insertTicket('TICK-OPS-FEED-004', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
+    await insertEvent(ticket.id, 'triage.failed', 'Error 1');
+    await insertEvent(ticket.id, 'triage.failed', 'Error 2');
+    mockTriage.mockRejectedValueOnce(new Error('Final error'));
+
+    await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
+
+    expect(opsEvents().map((p) => p.event)).toEqual([
+      'triage.started',
+      'triage.failed',
+      'ticket.needs_attention',
+    ]);
+  });
+
+  it('keeps processing when the ops feed cannot be published to', async () => {
+    mockAiSuccess();
+    const ticket = await insertTicket('TICK-OPS-FEED-005', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    mockOpsEmit.mockImplementation(() => {
+      throw new Error('redis is down');
+    });
+
+    await expect(processMessage(ticket.id, 'fake-receipt', 1, mockAi())).resolves.toBeUndefined();
+
+    expect((await getTicketById(ticket.id)).status).toBe('completed');
+    expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
+  });
+});
 
 describe('processMessage — happy path', () => {
   it('sets ticket status to completed', async () => {
