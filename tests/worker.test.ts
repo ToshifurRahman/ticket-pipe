@@ -2,13 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vites
 import type { AIService } from '../src/lib/ai-service.js';
 
 const mockEmit = vi.hoisted(() => vi.fn());
-// The ops feed (`ops:ticket_event`) gets its own spy so the per-ticket assertions below
-// keep seeing only ticket-room traffic, in the same order they always have.
+// Everything sent to the ops room gets its own spy, whatever the event name, so the
+// per-ticket assertions keep seeing only ticket-room traffic, and the ops assertions
+// see everything an ops client could receive.
 const mockOpsEmit = vi.hoisted(() => vi.fn());
 const mockTo = vi.hoisted(() =>
-  vi.fn(() => ({
+  vi.fn((room: string) => ({
     emit: (event: string, payload: unknown) =>
-      event === 'ops:ticket_event' ? mockOpsEmit(event, payload) : mockEmit(event, payload),
+      room === 'ops' ? mockOpsEmit(event, payload) : mockEmit(event, payload),
   }))
 );
 
@@ -97,7 +98,10 @@ afterAll(async () => {
 // ---- Tests ------------------------------------------------------------
 
 describe('processMessage — ops feed (story 4.4)', () => {
-  const opsEvents = () => mockOpsEmit.mock.calls.map(([, payload]) => payload as Record<string, unknown>);
+  const opsEvents = () =>
+    mockOpsEmit.mock.calls
+      .filter(([name]) => name === 'ops:ticket_event')
+      .map(([, payload]) => payload as Record<string, unknown>);
 
   // clearAllMocks() keeps implementations, so undo the throwing spy from the last test.
   afterEach(() => mockOpsEmit.mockReset());
@@ -187,6 +191,105 @@ describe('processMessage — ops feed (story 4.4)', () => {
 
     expect((await getTicketById(ticket.id)).status).toBe('completed');
     expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
+  });
+});
+
+describe('processMessage — ops feed privacy (story 4.5)', () => {
+  // A string that must never reach the ops room, planted everywhere customer or AI
+  // content can live: the ticket, the AI output, and the error messages.
+  const SENTINEL = 'SENTINEL-4F9A';
+
+  // Error text in the same shapes src/lib/llm-client.ts produces, each quoting content.
+  const LEAKY_ERRORS = {
+    schema: `LLM output failed schema validation: Invalid enum value, received '${SENTINEL}'`,
+    json: `Failed to parse function call arguments: Unexpected token '${SENTINEL}' in JSON`,
+    http: `LLM call failed: 400 {"error":"prompt was: ${SENTINEL} Cannot sign in"}`,
+  };
+
+  afterEach(() => mockOpsEmit.mockReset());
+
+  const everythingOpsReceived = () => JSON.stringify(mockOpsEmit.mock.calls);
+  const alerts = () =>
+    mockOpsEmit.mock.calls
+      .filter(([name]) => name === 'ticket:needs_attention')
+      .map(([, payload]) => payload as Record<string, unknown>);
+
+  it('sends nothing containing AI output or ticket content to ops on success, but still delivers it to the ticket room', async () => {
+    mockTriage.mockResolvedValueOnce({ ...TRIAGE_RESULT, issueSummary: `summary ${SENTINEL}` });
+    mockDraft.mockResolvedValueOnce({ ...DRAFT_RESULT, customerReply: `reply ${SENTINEL}` });
+    const ticket = await insertTicket('TICK-PRIV-001', `Subject ${SENTINEL}`, `Description ${SENTINEL}`);
+    createdIds.push(ticket.id);
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+
+    expect(mockOpsEmit).toHaveBeenCalled();
+    expect(everythingOpsReceived()).not.toContain(SENTINEL);
+
+    // The customer's own channel is unchanged: it still gets the full output.
+    const completed = mockEmit.mock.calls
+      .map(([, payload]) => payload as Record<string, any>)
+      .find((p) => p.event === 'ticket.completed');
+    expect(completed?.draft.customerReply).toBe(`reply ${SENTINEL}`);
+    expect(completed?.triage.issueSummary).toBe(`summary ${SENTINEL}`);
+  });
+
+  it.each([
+    ['a schema validation error', LEAKY_ERRORS.schema],
+    ['a JSON parse error', LEAKY_ERRORS.json],
+    ['a provider HTTP error body', LEAKY_ERRORS.http],
+  ])('keeps %s out of the ops alert when triage retries are exhausted', async (_label, message) => {
+    const ticket = await insertTicket('TICK-PRIV-002', `Subject ${SENTINEL}`, `Description ${SENTINEL}`);
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
+    await insertEvent(ticket.id, 'triage.failed', 'Error 1');
+    await insertEvent(ticket.id, 'triage.failed', 'Error 2');
+    mockTriage.mockRejectedValueOnce(new Error(message));
+
+    await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
+
+    expect(alerts()).toHaveLength(1);
+    expect(Object.keys(alerts()[0]!).sort()).toEqual(['occurredAt', 'reason', 'referenceNumber', 'ticketId']);
+    expect(alerts()[0]).toMatchObject({
+      ticketId: ticket.id,
+      referenceNumber: 'TICK-PRIV-002',
+      reason: 'triage_retries_exhausted',
+    });
+    expect(everythingOpsReceived()).not.toContain(SENTINEL);
+
+    // Ops can still investigate: the full text stays in the event history.
+    const stored = (await getEventsByTicketId(ticket.id)).find((e) => e.event === 'ticket.needs_attention');
+    expect(stored?.detail).toBe(message);
+  });
+
+  it('keeps the error text out of the ops alert when draft retries are exhausted', async () => {
+    const ticket = await insertTicket('TICK-PRIV-003', `Subject ${SENTINEL}`, 'Desc');
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
+    await insertEvent(ticket.id, 'triage.started');
+    await insertEvent(ticket.id, 'triage.completed');
+    await upsertTriageOutput(ticket.id, { ...TRIAGE_RESULT, issueSummary: `summary ${SENTINEL}` });
+    await insertEvent(ticket.id, 'draft.failed', 'Error 1');
+    await insertEvent(ticket.id, 'draft.failed', 'Error 2');
+    mockDraft.mockRejectedValueOnce(new Error(LEAKY_ERRORS.http));
+
+    await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
+
+    expect(alerts()).toHaveLength(1);
+    expect(alerts()[0]).toMatchObject({ ticketId: ticket.id, reason: 'draft_retries_exhausted' });
+    expect(everythingOpsReceived()).not.toContain(SENTINEL);
+  });
+
+  it('keeps AI output out of the ops alert when the output is incomplete', async () => {
+    mockTriage.mockResolvedValueOnce({ ...TRIAGE_RESULT, category: '   ', issueSummary: `summary ${SENTINEL}` });
+    mockDraft.mockResolvedValueOnce({ ...DRAFT_RESULT, customerReply: `reply ${SENTINEL}` });
+    const ticket = await insertTicket('TICK-PRIV-004', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+
+    expect(alerts()).toHaveLength(1);
+    expect(alerts()[0]).toMatchObject({ ticketId: ticket.id, reason: 'incomplete_output' });
+    expect(everythingOpsReceived()).not.toContain(SENTINEL);
   });
 });
 
@@ -466,9 +569,10 @@ describe('processMessage — retry behaviour', () => {
     await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
 
     expect(mockTo).toHaveBeenCalledWith('ops');
-    const opsEmitCall = mockEmit.mock.calls.find(([event]) => event === 'ticket:needs_attention');
+    const opsEmitCall = mockOpsEmit.mock.calls.find(([event]) => event === 'ticket:needs_attention');
     expect(opsEmitCall).toBeDefined();
-    expect(opsEmitCall![1]).toMatchObject({ ticketId: ticket.id });
+    expect(opsEmitCall![1]).toMatchObject({ ticketId: ticket.id, reason: 'triage_retries_exhausted' });
+    expect(opsEmitCall![1]).not.toHaveProperty('detail');
   });
 
   it('skips processing and deletes message for a completed ticket', async () => {
@@ -572,8 +676,9 @@ describe('processMessage — output validation', () => {
     await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
 
     expect(mockTo).toHaveBeenCalledWith('ops');
-    const opsEmitCall = mockEmit.mock.calls.find(([event]) => event === 'ticket:needs_attention');
+    const opsEmitCall = mockOpsEmit.mock.calls.find(([event]) => event === 'ticket:needs_attention');
     expect(opsEmitCall).toBeDefined();
-    expect(opsEmitCall![1]).toMatchObject({ ticketId: ticket.id });
+    expect(opsEmitCall![1]).toMatchObject({ ticketId: ticket.id, reason: 'incomplete_output' });
+    expect(opsEmitCall![1]).not.toHaveProperty('detail');
   });
 });
