@@ -5,6 +5,7 @@ import { createClient } from 'redis';
 import type { Server as HttpServer } from 'http';
 import type { TriageOutput, DraftOutput } from './ticket-phases.js';
 import { logger } from './logger.js';
+import { isUuid } from './ids.js';
 
 if (!process.env.REDIS_URL) throw new Error('REDIS_URL environment variable is required');
 
@@ -15,8 +16,14 @@ interface ClosableClient {
   quit(): Promise<unknown>;
 }
 
+// The organization-wide ops feed. This deployment is a single tenant, so there is one room;
+// a multi-tenant version would use `ops:<orgId>` here and at the emit site.
+export const OPS_ROOM = 'ops';
+
 let io: Server | null = null;
 let emitter: Emitter | null = null;
+// Settles once the emitter's Redis client has connected (or failed to). Never rejects.
+let emitterReady: Promise<void> = Promise.resolve();
 
 // Every Redis client this module opens, registered so shutdown() can close it.
 let openClients: ClosableClient[] = [];
@@ -35,10 +42,28 @@ export async function init(server: HttpServer): Promise<Server> {
   io = new Server(server, { cors: { origin: '*' } });
   io.adapter(createAdapter(pubClient, subClient));
   io.on('connection', (socket) => {
-    socket.on('join', (ticketId: string) => {
+    // A customer joins the room of their own ticket. Only ticket ids are accepted: the
+    // room name is client-controlled, so anything else (notably 'ops') would let a
+    // customer read the organization feed.
+    socket.on('join', (ticketId: unknown) => {
+      if (!isUuid(ticketId)) {
+        logger.debug({ socketId: socket.id }, 'Ignoring join for a non-ticket room');
+        return;
+      }
       socket.join(ticketId);
     });
+
+    // Ops staff subscribe to the organization-wide feed (`ops:ticket_event`). The ack lets
+    // the client know it is subscribed before any events are expected.
+    // TODO(7.6): reject here unless the socket presents a valid ops token.
+    socket.on('ops:subscribe', (ack?: (response: { ok: true }) => void) => {
+      socket.join(OPS_ROOM);
+      if (typeof ack === 'function') ack({ ok: true });
+    });
   });
+  // The API publishes `ticket.submitted` to the ops feed, so it needs a connected emitter
+  // before the first request. Redis is already known to be up at this point.
+  await warmEmitter();
   return io;
 }
 
@@ -59,7 +84,10 @@ export function getEmitter(): Emitter {
     const client = createClient({ url: process.env.REDIS_URL, disableOfflineQueue: true });
     openClients.push(client);
     client.on('error', (err) => logger.error({ err }, 'Redis emitter client error'));
-    client.connect().catch((err) => logger.error({ err }, 'Redis emitter client failed to connect'));
+    emitterReady = client
+      .connect()
+      .then(() => undefined)
+      .catch((err) => logger.error({ err }, 'Redis emitter client failed to connect'));
 
     // Emitter.emit()/`.to().emit()` are synchronous and never throw, but internally they
     // call `redisClient.publish(...)` without awaiting it — an unawaited rejected publish
@@ -77,6 +105,15 @@ export function getEmitter(): Emitter {
     emitter = new Emitter(client);
   }
   return emitter;
+}
+
+// The emitter connects lazily and, with `disableOfflineQueue`, drops anything published
+// before it is connected, so the first events after a process starts would be lost.
+// Call this at startup to connect it ahead of time. It never rejects, so a worker can
+// fire it without blocking ticket processing on Redis.
+export function warmEmitter(): Promise<void> {
+  getEmitter();
+  return emitterReady;
 }
 
 let shuttingDown: Promise<void> | null = null;
@@ -99,6 +136,7 @@ async function doShutdown(): Promise<void> {
   const clients = openClients;
   io = null;
   emitter = null;
+  emitterReady = Promise.resolve();
   openClients = [];
 
   if (server) {

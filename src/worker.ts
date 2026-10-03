@@ -15,9 +15,13 @@ import {
   getTriageOutputByTicketId,
   getProcessingResultByTicketId,
 } from './repositories/processing.js';
-import { insertEvent, getEventsByTicketId } from './repositories/events.js';
+import { getEventsByTicketId } from './repositories/events.js';
+import { recordTicketEvent, type TicketRef } from './services/ticket-events.js';
+import { UUID_RE } from './lib/ids.js';
 import {
   getEmitter,
+  warmEmitter,
+  OPS_ROOM,
   shutdown as shutdownSocket,
   buildTicketCompletedPayload,
   type TicketCompletedPayload,
@@ -36,7 +40,6 @@ if (!process.env.PORTKEY_API_KEY) throw new Error('PORTKEY_API_KEY environment v
 
 const aiService = new AIService();
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_SQS_BATCH_SIZE = 10;
 const DEFAULT_WORKER_CONCURRENCY = 10;
 const RECEIVE_ERROR_BACKOFF_MS = 1000;
@@ -64,7 +67,7 @@ function emitTicketCompleted(payload: TicketCompletedPayload): void {
 
 function emitOpsAlert(ticketId: string, detail?: string): void {
   try {
-    getEmitter().to('ops').emit('ticket:needs_attention', { ticketId, detail, occurredAt: new Date() });
+    getEmitter().to(OPS_ROOM).emit('ticket:needs_attention', { ticketId, detail, occurredAt: new Date() });
   } catch (err) {
     logger.error({ err, ticketId }, 'Failed to emit ticket:needs_attention');
   }
@@ -88,8 +91,9 @@ function resolveWorkerConcurrency(envValue: string | undefined, override?: numbe
   return parsed;
 }
 
-async function setFailed(ticketId: string, event: string, detail: string): Promise<void> {
-  await insertEvent(ticketId, event, detail);
+async function setFailed(ticket: TicketRef, event: string, detail: string): Promise<void> {
+  const ticketId = ticket.id;
+  await recordTicketEvent(ticket, event, detail);
   emitTicketUpdate(ticketId, event);
   const markedFailed = await markTicketFailed(ticketId);
   if (!markedFailed) {
@@ -97,8 +101,9 @@ async function setFailed(ticketId: string, event: string, detail: string): Promi
   }
 }
 
-async function setNeedsAttention(ticketId: string, detail: string): Promise<void> {
-  await insertEvent(ticketId, 'ticket.needs_attention', detail);
+async function setNeedsAttention(ticket: TicketRef, detail: string): Promise<void> {
+  const ticketId = ticket.id;
+  await recordTicketEvent(ticket, 'ticket.needs_attention', detail);
   const marked = await markTicketNeedsAttention(ticketId);
   if (!marked) {
     logger.warn({ ticketId }, 'Ticket was not in processing state when marking needs_attention');
@@ -148,24 +153,24 @@ export async function processMessage(
     logger.info({ ticketId }, 'Triage already completed, resuming from draft');
   } else {
     if (failureCounts.triage >= MAX_ATTEMPTS) {
-      await setNeedsAttention(ticketId, 'Max triage attempts reached');
+      await setNeedsAttention(ticket, 'Max triage attempts reached');
       return;
     }
 
     try {
-      await insertEvent(ticketId, 'triage.started');
+      await recordTicketEvent(ticket, 'triage.started');
       emitTicketUpdate(ticketId, 'triage.started');
       triageOutput = await ai.triage(ticketId, ticket.subject, ticket.description);
       await upsertTriageOutput(ticketId, triageOutput!);
-      await insertEvent(ticketId, 'triage.completed');
+      await recordTicketEvent(ticket, 'triage.completed');
       emitTicketUpdate(ticketId, 'triage.completed');
       logger.info({ ticketId }, 'Triage complete');
     } catch (err) {
       const message = (err as Error).message;
-      await insertEvent(ticketId, 'triage.failed', message);
+      await recordTicketEvent(ticket, 'triage.failed', message);
       emitTicketUpdate(ticketId, 'triage.failed');
       if (failureCounts.triage + 1 >= MAX_ATTEMPTS) {
-        await setNeedsAttention(ticketId, message);
+        await setNeedsAttention(ticket, message);
         return;
       }
       throw err;
@@ -174,24 +179,24 @@ export async function processMessage(
 
   // DRAFT STAGE
   if (failureCounts.draft >= MAX_ATTEMPTS) {
-    await setNeedsAttention(ticketId, 'Max draft attempts reached');
+    await setNeedsAttention(ticket, 'Max draft attempts reached');
     return;
   }
 
   try {
-    await insertEvent(ticketId, 'draft.started');
+    await recordTicketEvent(ticket, 'draft.started');
     emitTicketUpdate(ticketId, 'draft.started');
     const draft = await ai.draft(ticketId, ticket.subject, ticket.description, triageOutput!);
     await completeDraftOutput(ticketId, draft);
-    await insertEvent(ticketId, 'draft.completed');
+    await recordTicketEvent(ticket, 'draft.completed');
     emitTicketUpdate(ticketId, 'draft.completed');
     logger.info({ ticketId }, 'Draft complete');
   } catch (err) {
     const message = (err as Error).message;
-    await insertEvent(ticketId, 'draft.failed', message);
+    await recordTicketEvent(ticket, 'draft.failed', message);
     emitTicketUpdate(ticketId, 'draft.failed');
     if (failureCounts.draft + 1 >= MAX_ATTEMPTS) {
-      await setNeedsAttention(ticketId, message);
+      await setNeedsAttention(ticket, message);
       return;
     }
     throw err;
@@ -200,14 +205,14 @@ export async function processMessage(
   // VALIDATE OUTPUTS
   const processingResult = await getProcessingResultByTicketId(ticketId);
   if (!processingResult) {
-    await setNeedsAttention(ticketId, 'Processing result not found');
+    await setNeedsAttention(ticket, 'Processing result not found');
     return;
   }
 
   const validation = validateProcessingOutput(processingResult);
   if (!validation.valid) {
     const detail = `Incomplete output: missing fields [${validation.missingFields.join(', ')}]`;
-    await setNeedsAttention(ticketId, detail);
+    await setNeedsAttention(ticket, detail);
     return;
   }
 
@@ -218,7 +223,7 @@ export async function processMessage(
       throw new Error(`Unable to mark ticket ${ticketId} as completed`);
     }
 
-    await insertEvent(ticketId, 'ticket.completed');
+    await recordTicketEvent(ticket, 'ticket.completed');
     const triage: TriageOutput = {
       category: processingResult.category,
       priority: processingResult.priority,
@@ -235,7 +240,7 @@ export async function processMessage(
     emitTicketCompleted(buildTicketCompletedPayload(ticketId, triage, draft));
   } catch (err) {
     const message = (err as Error).message;
-    await setFailed(ticketId, 'ticket.failed', message);
+    await setFailed(ticket, 'ticket.failed', message);
     throw err;
   }
 
@@ -310,6 +315,10 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         .finally(() => process.exit(0));
     });
   }
+
+  // Connect the notification emitter now rather than on the first event, which would be
+  // dropped. Not awaited: processing must never wait on Redis (story 4.3).
+  void warmEmitter();
 
   run().catch(err => {
     logger.error({ err }, 'Worker exited unexpectedly');
