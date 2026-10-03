@@ -188,6 +188,17 @@ Each `ops:ticket_event` payload is `{ ticketId, referenceNumber, event, occurred
 is one of `ticket.submitted`, `triage.started`, `triage.completed`, `triage.failed`, `draft.started`,
 `draft.completed`, `draft.failed`, `ticket.completed`, `ticket.failed` or `ticket.needs_attention`.
 
+When a ticket runs out of retries, ops also receives `ticket:needs_attention` with
+`{ ticketId, referenceNumber, reason, occurredAt }`. `reason` is one of `triage_retries_exhausted`,
+`draft_retries_exhausted`, `incomplete_output` or `processing_result_missing`. It is a fixed code, never the
+error message, because error messages can quote AI output or customer content. The full text stays in the
+ticket's event history (`GET /api/tickets/:id`).
+
+**Privacy boundary.** The ops room is visible to every ops subscriber, so only
+`src/services/ops-feed.ts` may publish to it, and only identifiers, codes and timestamps. AI output (triage
+findings and the draft reply) is delivered only to the ticket's own room, which only that customer joins.
+`tests/ops-feed.guard.test.ts` fails if any other file publishes to the ops room.
+
 Every event goes through `recordTicketEvent()` (`src/services/ticket-events.ts`), which writes the
 `ticket_events` row and publishes to the feed, so the two cannot drift apart. Publishing is best-effort
 and never affects ticket processing. Customers join only their own ticket room (`join` accepts a
