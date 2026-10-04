@@ -19,7 +19,7 @@ afterAll(async () => {
   await pool.end();
 });
 
-describe('failed tickets in the API (story 5.1)', () => {
+describe('failed tickets in the API (story 5.2)', () => {
   it('lists a failed ticket with its reason and time, distinct from in-progress tickets', async () => {
     const failed = await insertTicket('TICK-API-FAIL-1', 'Sub', 'Desc');
     const waiting = await insertTicket('TICK-API-FAIL-2', 'Sub', 'Desc');

@@ -687,7 +687,7 @@ describe('processMessage — output validation', () => {
   });
 });
 
-describe('processMessage — permanent failure (story 5.1)', () => {
+describe('processMessage — permanent failure (story 5.2)', () => {
   it('does not restart a failed ticket: skips it, deletes the message, makes no AI call', async () => {
     const ticket = await insertTicket('TICK-FAIL-001', 'Sub', 'Desc');
     createdIds.push(ticket.id);
