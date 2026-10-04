@@ -162,7 +162,7 @@ describe('processMessage — ops feed (story 4.4)', () => {
     expect(JSON.stringify(opsEvents())).not.toContain('SECRET-ERROR-TEXT');
   });
 
-  it('publishes ticket.needs_attention to the feed when retries are exhausted', async () => {
+  it('publishes ticket.failed to the feed when retries are exhausted', async () => {
     const ticket = await insertTicket('TICK-OPS-FEED-004', 'Sub', 'Desc');
     createdIds.push(ticket.id);
     await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
@@ -175,7 +175,7 @@ describe('processMessage — ops feed (story 4.4)', () => {
     expect(opsEvents().map((p) => p.event)).toEqual([
       'triage.started',
       'triage.failed',
-      'ticket.needs_attention',
+      'ticket.failed',
     ]);
   });
 
@@ -209,9 +209,9 @@ describe('processMessage — ops feed privacy (story 4.5)', () => {
   afterEach(() => mockOpsEmit.mockReset());
 
   const everythingOpsReceived = () => JSON.stringify(mockOpsEmit.mock.calls);
-  const alerts = () =>
+  const alerts = (name = 'ticket:failed') =>
     mockOpsEmit.mock.calls
-      .filter(([name]) => name === 'ticket:needs_attention')
+      .filter(([event]) => event === name)
       .map(([, payload]) => payload as Record<string, unknown>);
 
   it('sends nothing containing AI output or ticket content to ops on success, but still delivers it to the ticket room', async () => {
@@ -257,7 +257,7 @@ describe('processMessage — ops feed privacy (story 4.5)', () => {
     expect(everythingOpsReceived()).not.toContain(SENTINEL);
 
     // Ops can still investigate: the full text stays in the event history.
-    const stored = (await getEventsByTicketId(ticket.id)).find((e) => e.event === 'ticket.needs_attention');
+    const stored = (await getEventsByTicketId(ticket.id)).find((e) => e.event === 'ticket.failed');
     expect(stored?.detail).toBe(message);
   });
 
@@ -287,8 +287,8 @@ describe('processMessage — ops feed privacy (story 4.5)', () => {
 
     await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
 
-    expect(alerts()).toHaveLength(1);
-    expect(alerts()[0]).toMatchObject({ ticketId: ticket.id, reason: 'incomplete_output' });
+    expect(alerts('ticket:needs_attention')).toHaveLength(1);
+    expect(alerts('ticket:needs_attention')[0]).toMatchObject({ ticketId: ticket.id, reason: 'incomplete_output' });
     expect(everythingOpsReceived()).not.toContain(SENTINEL);
   });
 });
@@ -522,7 +522,7 @@ describe('processMessage — retry behaviour', () => {
     expect(updated.status).toBe('processing');
   });
 
-  it('marks ticket needs_attention after 3 triage failures', async () => {
+  it('marks ticket failed after 3 triage failures', async () => {
     const ticket = await insertTicket('TICK-WKR-013', 'Sub', 'Desc');
     createdIds.push(ticket.id);
     await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
@@ -534,12 +534,15 @@ describe('processMessage — retry behaviour', () => {
     await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
 
     const updated = await getTicketById(ticket.id);
-    expect(updated.status).toBe('needs_attention');
+    expect(updated.status).toBe('failed');
+    expect(updated.failureReason).toBe('triage_retries_exhausted');
+    expect(updated.failedAt).toBeInstanceOf(Date);
     const events = await getEventsByTicketId(ticket.id);
-    expect(events.find(e => e.event === 'ticket.needs_attention')).toBeDefined();
+    expect(events.find(e => e.event === 'ticket.failed')).toBeDefined();
+    expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
   });
 
-  it('marks ticket needs_attention after 3 draft failures', async () => {
+  it('marks ticket failed after 3 draft failures', async () => {
     const ticket = await insertTicket('TICK-WKR-014', 'Sub', 'Desc');
     createdIds.push(ticket.id);
     await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
@@ -554,10 +557,11 @@ describe('processMessage — retry behaviour', () => {
     await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
 
     const updated = await getTicketById(ticket.id);
-    expect(updated.status).toBe('needs_attention');
+    expect(updated.status).toBe('failed');
+    expect(updated.failureReason).toBe('draft_retries_exhausted');
   });
 
-  it('emits ticket:needs_attention to ops room on exhaustion', async () => {
+  it('emits ticket:failed to ops room on exhaustion', async () => {
     const ticket = await insertTicket('TICK-WKR-015', 'Sub', 'Desc');
     createdIds.push(ticket.id);
     await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
@@ -569,7 +573,7 @@ describe('processMessage — retry behaviour', () => {
     await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
 
     expect(mockTo).toHaveBeenCalledWith('ops');
-    const opsEmitCall = mockOpsEmit.mock.calls.find(([event]) => event === 'ticket:needs_attention');
+    const opsEmitCall = mockOpsEmit.mock.calls.find(([event]) => event === 'ticket:failed');
     expect(opsEmitCall).toBeDefined();
     expect(opsEmitCall![1]).toMatchObject({ ticketId: ticket.id, reason: 'triage_retries_exhausted' });
     expect(opsEmitCall![1]).not.toHaveProperty('detail');
@@ -680,5 +684,123 @@ describe('processMessage — output validation', () => {
     expect(opsEmitCall).toBeDefined();
     expect(opsEmitCall![1]).toMatchObject({ ticketId: ticket.id, reason: 'incomplete_output' });
     expect(opsEmitCall![1]).not.toHaveProperty('detail');
+  });
+});
+
+describe('processMessage — permanent failure (story 5.2)', () => {
+  it('does not restart a failed ticket: skips it, deletes the message, makes no AI call', async () => {
+    const ticket = await insertTicket('TICK-FAIL-001', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'failed' WHERE id = $1", [ticket.id]);
+
+    await processMessage(ticket.id, 'fake-receipt', 4, mockAi());
+
+    expect(mockTriage).not.toHaveBeenCalled();
+    expect(mockDraft).not.toHaveBeenCalled();
+    expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
+    expect((await getTicketById(ticket.id)).status).toBe('failed');
+  });
+
+  it('never leaves a failed ticket in processing: the status is failed, not in-progress', async () => {
+    const ticket = await insertTicket('TICK-FAIL-002', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
+    await insertEvent(ticket.id, 'triage.failed', 'Error 1');
+    await insertEvent(ticket.id, 'triage.failed', 'Error 2');
+    mockTriage.mockRejectedValueOnce(new Error('Final'));
+
+    await expect(processMessage(ticket.id, 'fake-receipt', 3, mockAi())).resolves.toBeUndefined();
+
+    expect((await getTicketById(ticket.id)).status).toBe('failed');
+  });
+
+  it('keeps needs_attention for invalid output, with no failure reason', async () => {
+    mockTriage.mockResolvedValueOnce({ ...TRIAGE_RESULT, category: '  ' });
+    mockDraft.mockResolvedValueOnce(DRAFT_RESULT);
+    const ticket = await insertTicket('TICK-FAIL-003', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+
+    const updated = await getTicketById(ticket.id);
+    expect(updated.status).toBe('needs_attention');
+    expect(updated.failureReason).toBeNull();
+    expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
+  });
+
+  it('rethrows an unexpected error while receives remain, leaving the ticket processing', async () => {
+    const ticket = await insertTicket('TICK-FAIL-004', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    mockTriage.mockResolvedValueOnce(TRIAGE_RESULT);
+    mockDraft.mockResolvedValueOnce(DRAFT_RESULT);
+    await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
+    const spy = vi.spyOn(pool, 'query');
+    spy.mockImplementationOnce(() => Promise.reject(new Error('db blip')));
+
+    await expect(processMessage(ticket.id, 'fake-receipt', 2, mockAi())).rejects.toThrow('db blip');
+    spy.mockRestore();
+
+    expect((await getTicketById(ticket.id)).status).toBe('processing');
+    expect(deleteMessage).not.toHaveBeenCalled();
+  });
+
+  it('marks failed with processing_error on the last allowed receive', async () => {
+    const ticket = await insertTicket('TICK-FAIL-005', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
+    const realQuery = pool.query.bind(pool);
+    const spy = vi.spyOn(pool, 'query');
+    // Only the pipeline's first read fails; the failure handler's own queries go through.
+    spy.mockImplementationOnce(() => Promise.reject(new Error('db blip')));
+    spy.mockImplementation(((...args: unknown[]) => (realQuery as any)(...args)) as any);
+
+    await processMessage(ticket.id, 'fake-receipt', 6, mockAi());
+    spy.mockRestore();
+
+    const updated = await getTicketById(ticket.id);
+    expect(updated.status).toBe('failed');
+    expect(updated.failureReason).toBe('processing_error');
+    expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
+    const alert = mockOpsEmit.mock.calls.find(([name]) => name === 'ticket:failed');
+    expect(alert?.[1]).toMatchObject({ ticketId: ticket.id, reason: 'processing_error' });
+  });
+
+  it('fails a ticket without any work when the message arrives past the receive cap', async () => {
+    const ticket = await insertTicket('TICK-FAIL-006', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
+
+    await processMessage(ticket.id, 'fake-receipt', 7, mockAi());
+
+    expect(mockTriage).not.toHaveBeenCalled();
+    const updated = await getTicketById(ticket.id);
+    expect(updated.status).toBe('failed');
+    expect(updated.failureReason).toBe('processing_error');
+    expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
+  });
+
+  it('leaves a completed ticket completed when a stale message arrives past the cap', async () => {
+    const ticket = await insertTicket('TICK-FAIL-007', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'completed' WHERE id = $1", [ticket.id]);
+
+    await processMessage(ticket.id, 'fake-receipt', 8, mockAi());
+
+    expect((await getTicketById(ticket.id)).status).toBe('completed');
+    expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
+  });
+
+  it('gives a replayed ticket a fresh set of attempts', async () => {
+    const ticket = await insertTicket('TICK-FAIL-008', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    await insertEvent(ticket.id, 'triage.failed', 'Error 1');
+    await insertEvent(ticket.id, 'triage.failed', 'Error 2');
+    await insertEvent(ticket.id, 'triage.failed', 'Error 3');
+    await insertEvent(ticket.id, 'ticket.requeued');
+    mockAiSuccess();
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+
+    expect((await getTicketById(ticket.id)).status).toBe('completed');
   });
 });

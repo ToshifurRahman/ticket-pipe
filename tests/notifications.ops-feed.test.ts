@@ -233,7 +233,7 @@ describe('ops organization feed', () => {
     const ops = await connect();
     await subscribeToOps(ops);
     const alerts: Record<string, unknown>[] = [];
-    ops.on('ticket:needs_attention', (p) => alerts.push(p));
+    ops.on('ticket:failed', (p) => alerts.push(p));
 
     await processMessage(ticket.id, 'fake-receipt', 3, ai).catch(() => {});
     await waitFor(() => alerts.some((a) => a.ticketId === ticket.id), 'ops never received the alert');

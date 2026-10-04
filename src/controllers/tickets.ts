@@ -6,6 +6,7 @@ import { getTicketById, requeueTicket, getTicketByReferenceNumber } from '../rep
 import { getProcessingResultByTicketId } from '../repositories/processing.js';
 import { getEventsByTicketId } from '../repositories/events.js';
 import { enqueueTicket } from '../lib/queue.js';
+import { recordTicketEvent } from '../services/ticket-events.js';
 import { resolveTicketPhases, type TicketPhases, type TriageOutput, type DraftOutput } from '../lib/ticket-phases.js';
 
 const TicketSchema = z.object({
@@ -119,7 +120,8 @@ export async function list(req: Request, res: Response, next: NextFunction): Pro
   const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
   const statusParam = req.query.status as string | undefined;
   const status = statusParam ? statusParam.split(',').filter(s => s) : undefined;
-  const sort = (req.query.sort as string) === 'status' ? 'status' : 'createdAt';
+  const sortParam = req.query.sort as string;
+  const sort = sortParam === 'status' || sortParam === 'failedAt' ? sortParam : 'createdAt';
   const order = req.query.order === 'asc' ? 'asc' : 'desc';
 
   try {
@@ -143,6 +145,7 @@ export async function replay(req: Request, res: Response, next: NextFunction): P
     }
 
     await requeueTicket(id);
+    await recordTicketEvent(ticket, 'ticket.requeued');
     await enqueueTicket(id, ticket.referenceNumber).catch(err =>
       logger.error({ err, ticketId: id }, 'Failed to enqueue ticket during replay')
     );

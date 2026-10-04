@@ -1,5 +1,6 @@
 import { pool } from '../lib/db.js';
 import { TicketNotFoundError } from '../lib/errors.js';
+import type { FailureReason } from '../services/ops-feed.js';
 
 export interface Ticket {
   id: string;
@@ -8,6 +9,8 @@ export interface Ticket {
   description: string;
   status: string;
   createdAt: Date;
+  failureReason: FailureReason | null;
+  failedAt: Date | null;
 }
 
 interface TicketRow {
@@ -17,6 +20,8 @@ interface TicketRow {
   description: string;
   status: string;
   created_at: Date;
+  failure_reason: FailureReason | null;
+  failed_at: Date | null;
 }
 
 export async function insertTicket(
@@ -66,10 +71,11 @@ export async function markTicketCompleted(id: string): Promise<boolean> {
   return result.rowCount === 1;
 }
 
-export async function markTicketFailed(id: string): Promise<boolean> {
+export async function markTicketFailed(id: string, reason: FailureReason): Promise<boolean> {
   const result = await pool.query(
-    "UPDATE tickets SET status = 'failed' WHERE id = $1 AND status = 'processing'",
-    [id]
+    `UPDATE tickets SET status = 'failed', failure_reason = $2, failed_at = NOW()
+     WHERE id = $1 AND status IN ('queued', 'processing')`,
+    [id, reason]
   );
   return result.rowCount === 1;
 }
@@ -83,14 +89,17 @@ export async function markTicketNeedsAttention(id: string): Promise<boolean> {
 }
 
 export async function requeueTicket(id: string): Promise<void> {
-  await pool.query('UPDATE tickets SET status = $1 WHERE id = $2', ['queued', id]);
+  await pool.query(
+    "UPDATE tickets SET status = 'queued', failure_reason = NULL, failed_at = NULL WHERE id = $1",
+    [id]
+  );
 }
 
 export interface ListTicketsOptions {
   page: number;
   limit: number;
   status?: string[];
-  sort: 'createdAt' | 'status';
+  sort: 'createdAt' | 'status' | 'failedAt';
   order: 'asc' | 'desc';
 }
 
@@ -116,8 +125,9 @@ export async function listTickets(options: ListTicketsOptions): Promise<ListTick
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-  const orderBy = sort === 'status' ? 'status' : 'created_at';
-  const orderDir = order.toUpperCase();
+  const orderBy =
+    sort === 'status' ? 'status' : sort === 'failedAt' ? 'failed_at' : 'created_at';
+  const orderDir = order.toUpperCase() + (sort === 'failedAt' ? ' NULLS LAST' : '');
 
   const countQuery = `SELECT COUNT(*) FROM tickets ${whereClause}`;
   const dataQuery = `SELECT * FROM tickets ${whereClause} ORDER BY ${orderBy} ${orderDir} LIMIT $${paramIndex++} OFFSET $${paramIndex}`;
@@ -146,5 +156,7 @@ function mapRow(row: TicketRow): Ticket {
     description: row.description,
     status: row.status,
     createdAt: row.created_at,
+    failureReason: row.failure_reason,
+    failedAt: row.failed_at,
   };
 }

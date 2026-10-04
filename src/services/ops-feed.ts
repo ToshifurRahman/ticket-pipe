@@ -24,11 +24,22 @@ export interface OpsTicketEvent {
 
 // A closed set rather than a string: the only way to say why a ticket needs attention is
 // to pick one of these, so a raw error message can't be passed through by accident.
-export type NeedsAttentionReason =
+export type NeedsAttentionReason = 'incomplete_output' | 'processing_result_missing';
+
+// Why processing gave up on a ticket for good (status `failed`). Also the closed set the
+// `tickets.failure_reason` column accepts (migration 007).
+export type FailureReason =
   | 'triage_retries_exhausted'
   | 'draft_retries_exhausted'
-  | 'incomplete_output'
-  | 'processing_result_missing';
+  | 'finalize_failed'
+  | 'processing_error';
+
+export interface OpsTicketFailed {
+  ticketId: string;
+  referenceNumber: string;
+  reason: FailureReason;
+  occurredAt: Date;
+}
 
 export interface OpsNeedsAttention {
   ticketId: string;
@@ -39,7 +50,7 @@ export interface OpsNeedsAttention {
 
 // Publishing must never affect ticket processing: a synchronous throw is logged here, and
 // async publish failures are contained inside getEmitter() (see src/lib/socket.ts).
-function publish(name: string, payload: OpsTicketEvent | OpsNeedsAttention): void {
+function publish(name: string, payload: OpsTicketEvent | OpsNeedsAttention | OpsTicketFailed): void {
   try {
     getEmitter().to(OPS_ROOM).emit(name, payload);
   } catch (err) {
@@ -58,6 +69,15 @@ export function publishTicketEvent(ticket: TicketRef, event: string): void {
 
 export function publishNeedsAttention(ticket: TicketRef, reason: NeedsAttentionReason): void {
   publish('ticket:needs_attention', {
+    ticketId: ticket.id,
+    referenceNumber: ticket.referenceNumber,
+    reason,
+    occurredAt: new Date(),
+  });
+}
+
+export function publishTicketFailed(ticket: TicketRef, reason: FailureReason): void {
+  publish('ticket:failed', {
     ticketId: ticket.id,
     referenceNumber: ticket.referenceNumber,
     reason,

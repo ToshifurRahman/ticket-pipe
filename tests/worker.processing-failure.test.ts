@@ -1,5 +1,7 @@
 /**
  * Tests processMessage when markTicketCompleted throws during finalization.
+ * A finalization error is retried like any other error, and fails the ticket
+ * (finalize_failed) only once the receive cap is reached.
  */
 
 import { describe, it, expect, vi, afterEach, afterAll } from 'vitest';
@@ -26,6 +28,7 @@ import { pool } from '../src/lib/db.js';
 import { insertTicket, getTicketById } from '../src/repositories/tickets.js';
 import { getEventsByTicketId } from '../src/repositories/events.js';
 import { getProcessingResultByTicketId } from '../src/repositories/processing.js';
+import { deleteMessage } from '../src/lib/queue.js';
 import { processMessage } from '../src/worker.js';
 
 const TRIAGE_RESULT = {
@@ -43,17 +46,22 @@ const DRAFT_RESULT = {
   nextSteps: ['Check auth logs', 'Reset session'],
 };
 
+const mockTriage = vi.fn();
+const mockDraft = vi.fn();
+
 function mockAi(): AIService {
-  return {
-    triage: vi.fn().mockResolvedValue(TRIAGE_RESULT),
-    draft: vi.fn().mockResolvedValue(DRAFT_RESULT),
-  } as unknown as AIService;
+  mockTriage.mockResolvedValue(TRIAGE_RESULT);
+  mockDraft.mockResolvedValue(DRAFT_RESULT);
+  return { triage: mockTriage, draft: mockDraft } as unknown as AIService;
 }
 
 const createdIds: string[] = [];
 
 afterEach(async () => {
   vi.clearAllMocks();
+  mockMarkTicketCompleted.mockReset();
+  mockTriage.mockReset();
+  mockDraft.mockReset();
   if (createdIds.length) {
     await pool.query('DELETE FROM ticket_events WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
     await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
@@ -67,51 +75,65 @@ afterAll(async () => {
 });
 
 describe('processMessage — finalization failure', () => {
-  it('sets status to failed when markTicketCompleted throws', async () => {
+  it('retries instead of failing while receives remain', async () => {
     mockMarkTicketCompleted.mockRejectedValueOnce(new Error('DB constraint violated'));
-
     const ticket = await insertTicket('TICK-PROC-001', 'Sub', 'Desc');
     createdIds.push(ticket.id);
 
-    await processMessage(ticket.id, 'fake-receipt', 1, mockAi()).catch(() => {});
+    await expect(processMessage(ticket.id, 'fake-receipt', 1, mockAi())).rejects.toThrow('DB constraint violated');
 
-    const updated = await getTicketById(ticket.id);
-    expect(updated.status).toBe('failed');
+    expect((await getTicketById(ticket.id)).status).toBe('processing');
+    expect(deleteMessage).not.toHaveBeenCalled();
+    const events = await getEventsByTicketId(ticket.id);
+    expect(events.map(e => e.event)).not.toContain('ticket.failed');
   });
 
-  it('writes ticket.failed event with the error message', async () => {
+  it('does not run the draft AI call again on the retry', async () => {
     mockMarkTicketCompleted.mockRejectedValueOnce(new Error('DB constraint violated'));
-
+    const ai = mockAi();
     const ticket = await insertTicket('TICK-PROC-002', 'Sub', 'Desc');
     createdIds.push(ticket.id);
 
-    await processMessage(ticket.id, 'fake-receipt', 1, mockAi()).catch(() => {});
+    await processMessage(ticket.id, 'fake-receipt', 1, ai).catch(() => {});
+    mockMarkTicketCompleted.mockResolvedValueOnce(true);
+    await processMessage(ticket.id, 'fake-receipt', 2, ai);
 
-    const events = await getEventsByTicketId(ticket.id);
-    const failedEvent = events.find(e => e.event === 'ticket.failed');
-    expect(failedEvent).toBeDefined();
-    expect(failedEvent!.detail).toBe('DB constraint violated');
+    expect(mockTriage).toHaveBeenCalledTimes(1);
+    expect(mockDraft).toHaveBeenCalledTimes(1);
   });
 
-  it('does not write ticket.completed when finalization fails', async () => {
-    mockMarkTicketCompleted.mockRejectedValueOnce(new Error('DB constraint violated'));
-
+  it('fails the ticket with finalize_failed on the last allowed receive', async () => {
+    mockMarkTicketCompleted.mockRejectedValue(new Error('DB constraint violated'));
     const ticket = await insertTicket('TICK-PROC-003', 'Sub', 'Desc');
     createdIds.push(ticket.id);
 
-    await processMessage(ticket.id, 'fake-receipt', 1, mockAi()).catch(() => {});
+    await processMessage(ticket.id, 'fake-receipt', 6, mockAi());
+
+    const updated = await getTicketById(ticket.id);
+    expect(updated.status).toBe('failed');
+    expect(updated.failureReason).toBe('finalize_failed');
+    expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
+    const failedEvent = (await getEventsByTicketId(ticket.id)).find(e => e.event === 'ticket.failed');
+    expect(failedEvent?.detail).toBe('DB constraint violated');
+  });
+
+  it('does not write ticket.completed when finalization fails', async () => {
+    mockMarkTicketCompleted.mockRejectedValue(new Error('DB constraint violated'));
+    const ticket = await insertTicket('TICK-PROC-004', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+
+    await processMessage(ticket.id, 'fake-receipt', 6, mockAi());
 
     const events = await getEventsByTicketId(ticket.id);
     expect(events.map(e => e.event)).not.toContain('ticket.completed');
   });
 
   it('processing row has triage and draft data even when finalization fails', async () => {
-    mockMarkTicketCompleted.mockRejectedValueOnce(new Error('DB constraint violated'));
-
-    const ticket = await insertTicket('TICK-PROC-004', 'Sub', 'Desc');
+    mockMarkTicketCompleted.mockRejectedValue(new Error('DB constraint violated'));
+    const ticket = await insertTicket('TICK-PROC-005', 'Sub', 'Desc');
     createdIds.push(ticket.id);
 
-    await processMessage(ticket.id, 'fake-receipt', 1, mockAi()).catch(() => {});
+    await processMessage(ticket.id, 'fake-receipt', 6, mockAi());
 
     const processing = await getProcessingResultByTicketId(ticket.id);
     expect(processing).not.toBeNull();

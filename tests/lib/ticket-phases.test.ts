@@ -107,3 +107,19 @@ describe('resolveTicketFailureCounts', () => {
     ).toEqual({ triage: 0, draft: 0 });
   });
 });
+
+describe('resolveTicketFailureCounts — replay', () => {
+  it('counts only failures since the last ticket.requeued', () => {
+    expect(
+      resolveTicketFailureCounts(
+        events('triage.failed', 'triage.failed', 'triage.failed', 'ticket.failed', 'ticket.requeued', 'triage.failed')
+      )
+    ).toEqual({ triage: 1, draft: 0 });
+  });
+
+  it('resets both stages on a replay', () => {
+    expect(
+      resolveTicketFailureCounts(events('triage.failed', 'draft.failed', 'ticket.requeued'))
+    ).toEqual({ triage: 0, draft: 0 });
+  });
+});

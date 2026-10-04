@@ -65,9 +65,14 @@ export interface TicketFailureCounts {
   draft: number;
 }
 
+// Only failures since the last replay count: a replayed ticket gets a fresh set of attempts.
 export function resolveTicketFailureCounts(events: ReadonlyArray<TicketEventLike>): TicketFailureCounts {
   const counts: TicketFailureCounts = { triage: 0, draft: 0 };
   for (const { event } of events) {
+    if (event === 'ticket.requeued') {
+      counts.triage = 0;
+      counts.draft = 0;
+    }
     if (event === 'triage.failed') counts.triage++;
     else if (event === 'draft.failed') counts.draft++;
   }
