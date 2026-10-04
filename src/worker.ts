@@ -17,7 +17,12 @@ import {
 } from './repositories/processing.js';
 import { getEventsByTicketId } from './repositories/events.js';
 import { recordTicketEvent, type TicketRef } from './services/ticket-events.js';
-import { publishNeedsAttention, type NeedsAttentionReason } from './services/ops-feed.js';
+import {
+  publishNeedsAttention,
+  publishTicketFailed,
+  type NeedsAttentionReason,
+  type FailureReason,
+} from './services/ops-feed.js';
 import { UUID_RE } from './lib/ids.js';
 import {
   getEmitter,
@@ -44,6 +49,19 @@ const MAX_SQS_BATCH_SIZE = 10;
 const DEFAULT_WORKER_CONCURRENCY = 10;
 const RECEIVE_ERROR_BACKOFF_MS = 1000;
 const MAX_ATTEMPTS = 3;
+// Triage and draft each get MAX_ATTEMPTS, and those limits fire first with a precise reason.
+// This cap only catches everything else (DB errors, finalize errors): once a message has been
+// received this many times the ticket is marked failed instead of retried. It must stay below the
+// queue's DLQ maxReceiveCount (10), or the message would reach the DLQ with the ticket still
+// showing `processing`.
+const MAX_RECEIVES = 2 * MAX_ATTEMPTS;
+
+class FinalizeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'FinalizeError';
+  }
+}
 
 // Notification delivery must never affect ticket processing: each of these is
 // wrapped so a synchronous throw from the emitter can't propagate into processMessage
@@ -83,20 +101,37 @@ function resolveWorkerConcurrency(envValue: string | undefined, override?: numbe
   return parsed;
 }
 
-async function setFailed(ticket: TicketRef, event: string, detail: string): Promise<void> {
+// Terminal: the ticket is `failed`, its message is removed, and nothing will pick it up again
+// until ops replay it. If the ticket already reached another terminal state, nothing is recorded.
+async function setFailed(
+  ticket: TicketRef,
+  reason: FailureReason,
+  detail: string,
+  receiptHandle: string
+): Promise<void> {
   const ticketId = ticket.id;
-  await recordTicketEvent(ticket, event, detail);
-  emitTicketUpdate(ticketId, event);
-  const markedFailed = await markTicketFailed(ticketId);
-  if (!markedFailed) {
-    logger.warn({ ticketId }, 'Ticket was not in processing state when marking failed');
+  const marked = await markTicketFailed(ticketId, reason);
+  if (!marked) {
+    logger.warn({ ticketId, reason }, 'Ticket was not queued or processing when marking failed');
+    await deleteMessage(receiptHandle);
+    return;
   }
+  await recordTicketEvent(ticket, 'ticket.failed', detail);
+  emitTicketUpdate(ticketId, 'ticket.failed');
+  publishTicketFailed(ticket, reason);
+  await deleteMessage(receiptHandle);
+  logger.warn({ ticketId, reason }, 'Ticket failed permanently');
 }
 
 // `detail` (the raw error text) goes into the ticket's event history only. Ops is told
 // *that* a ticket needs attention and a fixed `reason`, never the text itself: it can
 // quote AI output or customer content (story 4.5).
-async function setNeedsAttention(ticket: TicketRef, reason: NeedsAttentionReason, detail: string): Promise<void> {
+async function setNeedsAttention(
+  ticket: TicketRef,
+  reason: NeedsAttentionReason,
+  detail: string,
+  receiptHandle: string
+): Promise<void> {
   const ticketId = ticket.id;
   await recordTicketEvent(ticket, 'ticket.needs_attention', detail);
   const marked = await markTicketNeedsAttention(ticketId);
@@ -105,6 +140,7 @@ async function setNeedsAttention(ticket: TicketRef, reason: NeedsAttentionReason
   }
   emitTicketUpdate(ticketId, 'ticket.needs_attention');
   publishNeedsAttention(ticket, reason);
+  await deleteMessage(receiptHandle);
 }
 
 export async function processMessage(
@@ -119,13 +155,36 @@ export async function processMessage(
     return;
   }
 
+  // Past the cap on arrival: the failure could not be recorded on an earlier receive. Do no work.
+  if (attemptNumber > MAX_RECEIVES) {
+    const ticket = await getTicketById(ticketId);
+    await setFailed(ticket, 'processing_error', 'Receive limit exceeded', receiptHandle);
+    return;
+  }
+
+  try {
+    await runPipeline(ticketId, receiptHandle, attemptNumber, ai);
+  } catch (err) {
+    if (attemptNumber < MAX_RECEIVES) throw err;
+    const ticket = await getTicketById(ticketId);
+    const reason = err instanceof FinalizeError ? 'finalize_failed' : 'processing_error';
+    await setFailed(ticket, reason, (err as Error).message, receiptHandle);
+  }
+}
+
+async function runPipeline(
+  ticketId: string,
+  receiptHandle: string,
+  attemptNumber: number,
+  ai: AIService
+): Promise<void> {
   const events = await getEventsByTicketId(ticketId);
   const phases = resolveTicketPhases(events);
   const failureCounts = resolveTicketFailureCounts(events);
 
   const ticket = await getTicketById(ticketId);
 
-  if (ticket.status === 'completed' || ticket.status === 'needs_attention') {
+  if (ticket.status === 'completed' || ticket.status === 'needs_attention' || ticket.status === 'failed') {
     logger.info({ ticketId, status: ticket.status }, 'Skipping terminal-state ticket');
     await deleteMessage(receiptHandle);
     return;
@@ -148,7 +207,7 @@ export async function processMessage(
     logger.info({ ticketId }, 'Triage already completed, resuming from draft');
   } else {
     if (failureCounts.triage >= MAX_ATTEMPTS) {
-      await setNeedsAttention(ticket, 'triage_retries_exhausted', 'Max triage attempts reached');
+      await setFailed(ticket, 'triage_retries_exhausted', 'Max triage attempts reached', receiptHandle);
       return;
     }
 
@@ -165,7 +224,7 @@ export async function processMessage(
       await recordTicketEvent(ticket, 'triage.failed', message);
       emitTicketUpdate(ticketId, 'triage.failed');
       if (failureCounts.triage + 1 >= MAX_ATTEMPTS) {
-        await setNeedsAttention(ticket, 'triage_retries_exhausted', message);
+        await setFailed(ticket, 'triage_retries_exhausted', message, receiptHandle);
         return;
       }
       throw err;
@@ -173,41 +232,45 @@ export async function processMessage(
   }
 
   // DRAFT STAGE
-  if (failureCounts.draft >= MAX_ATTEMPTS) {
-    await setNeedsAttention(ticket, 'draft_retries_exhausted', 'Max draft attempts reached');
-    return;
-  }
-
-  try {
-    await recordTicketEvent(ticket, 'draft.started');
-    emitTicketUpdate(ticketId, 'draft.started');
-    const draft = await ai.draft(ticketId, ticket.subject, ticket.description, triageOutput!);
-    await completeDraftOutput(ticketId, draft);
-    await recordTicketEvent(ticket, 'draft.completed');
-    emitTicketUpdate(ticketId, 'draft.completed');
-    logger.info({ ticketId }, 'Draft complete');
-  } catch (err) {
-    const message = (err as Error).message;
-    await recordTicketEvent(ticket, 'draft.failed', message);
-    emitTicketUpdate(ticketId, 'draft.failed');
-    if (failureCounts.draft + 1 >= MAX_ATTEMPTS) {
-      await setNeedsAttention(ticket, 'draft_retries_exhausted', message);
+  if (phases.draft.status === 'completed') {
+    logger.info({ ticketId }, 'Draft already completed, resuming from validation');
+  } else {
+    if (failureCounts.draft >= MAX_ATTEMPTS) {
+      await setFailed(ticket, 'draft_retries_exhausted', 'Max draft attempts reached', receiptHandle);
       return;
     }
-    throw err;
+
+    try {
+      await recordTicketEvent(ticket, 'draft.started');
+      emitTicketUpdate(ticketId, 'draft.started');
+      const draft = await ai.draft(ticketId, ticket.subject, ticket.description, triageOutput!);
+      await completeDraftOutput(ticketId, draft);
+      await recordTicketEvent(ticket, 'draft.completed');
+      emitTicketUpdate(ticketId, 'draft.completed');
+      logger.info({ ticketId }, 'Draft complete');
+    } catch (err) {
+      const message = (err as Error).message;
+      await recordTicketEvent(ticket, 'draft.failed', message);
+      emitTicketUpdate(ticketId, 'draft.failed');
+      if (failureCounts.draft + 1 >= MAX_ATTEMPTS) {
+        await setFailed(ticket, 'draft_retries_exhausted', message, receiptHandle);
+        return;
+      }
+      throw err;
+    }
   }
 
   // VALIDATE OUTPUTS
   const processingResult = await getProcessingResultByTicketId(ticketId);
   if (!processingResult) {
-    await setNeedsAttention(ticket, 'processing_result_missing', 'Processing result not found');
+    await setNeedsAttention(ticket, 'processing_result_missing', 'Processing result not found', receiptHandle);
     return;
   }
 
   const validation = validateProcessingOutput(processingResult);
   if (!validation.valid) {
     const detail = `Incomplete output: missing fields [${validation.missingFields.join(', ')}]`;
-    await setNeedsAttention(ticket, 'incomplete_output', detail);
+    await setNeedsAttention(ticket, 'incomplete_output', detail, receiptHandle);
     return;
   }
 
@@ -234,9 +297,8 @@ export async function processMessage(
     };
     emitTicketCompleted(buildTicketCompletedPayload(ticketId, triage, draft));
   } catch (err) {
-    const message = (err as Error).message;
-    await setFailed(ticket, 'ticket.failed', message);
-    throw err;
+    // Not marked failed here: the receive-cap handler in processMessage does that once retries run out.
+    throw new FinalizeError((err as Error).message);
   }
 
   await deleteMessage(receiptHandle);
