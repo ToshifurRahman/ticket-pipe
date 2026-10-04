@@ -4,6 +4,9 @@ import {
   insertTicket,
   getTicketById,
   updateTicketStatus,
+  markTicketFailed,
+  requeueTicket,
+  listTickets,
 } from '../../src/repositories/tickets.js';
 
 const createdIds: string[] = [];
@@ -89,5 +92,70 @@ describe('updateTicketStatus', () => {
 
     const updated = await getTicketById(ticket.id);
     expect(updated.status).toBe('failed');
+  });
+});
+
+describe('markTicketFailed', () => {
+  it('sets status, reason and failed_at together', async () => {
+    const t = await insertTicket('TICK-TEST-FAIL-1', 'Sub', 'Desc');
+    createdIds.push(t.id);
+    await updateTicketStatus(t.id, 'processing');
+
+    expect(await markTicketFailed(t.id, 'draft_retries_exhausted')).toBe(true);
+
+    const updated = await getTicketById(t.id);
+    expect(updated.status).toBe('failed');
+    expect(updated.failureReason).toBe('draft_retries_exhausted');
+    expect(updated.failedAt).toBeInstanceOf(Date);
+  });
+
+  it('does not overwrite a completed ticket', async () => {
+    const t = await insertTicket('TICK-TEST-FAIL-2', 'Sub', 'Desc');
+    createdIds.push(t.id);
+    await updateTicketStatus(t.id, 'completed');
+
+    expect(await markTicketFailed(t.id, 'processing_error')).toBe(false);
+    expect((await getTicketById(t.id)).status).toBe('completed');
+  });
+
+  it('rejects a reason outside the closed set', async () => {
+    const t = await insertTicket('TICK-TEST-FAIL-3', 'Sub', 'Desc');
+    createdIds.push(t.id);
+
+    await expect(
+      pool.query("UPDATE tickets SET failure_reason = 'because' WHERE id = $1", [t.id])
+    ).rejects.toThrow();
+  });
+});
+
+describe('requeueTicket', () => {
+  it('clears the failure data', async () => {
+    const t = await insertTicket('TICK-TEST-FAIL-4', 'Sub', 'Desc');
+    createdIds.push(t.id);
+    await markTicketFailed(t.id, 'processing_error');
+
+    await requeueTicket(t.id);
+
+    const updated = await getTicketById(t.id);
+    expect(updated.status).toBe('queued');
+    expect(updated.failureReason).toBeNull();
+    expect(updated.failedAt).toBeNull();
+  });
+});
+
+describe('listTickets sort by failedAt', () => {
+  it('orders failed tickets oldest failure first and puts unfailed tickets last', async () => {
+    const a = await insertTicket('TICK-TEST-SORT-A', 'Sub', 'Desc');
+    const b = await insertTicket('TICK-TEST-SORT-B', 'Sub', 'Desc');
+    const c = await insertTicket('TICK-TEST-SORT-C', 'Sub', 'Desc');
+    createdIds.push(a.id, b.id, c.id);
+    await markTicketFailed(b.id, 'processing_error');
+    await markTicketFailed(a.id, 'processing_error');
+    await pool.query("UPDATE tickets SET failed_at = NOW() - interval '1 hour' WHERE id = $1", [b.id]);
+
+    const { tickets } = await listTickets({ page: 1, limit: 100000, sort: 'failedAt', order: 'asc' });
+    const ours = tickets.filter(t => [a.id, b.id, c.id].includes(t.id)).map(t => t.id);
+
+    expect(ours).toEqual([b.id, a.id, c.id]);
   });
 });
