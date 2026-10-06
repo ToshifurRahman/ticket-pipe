@@ -20,9 +20,10 @@ vi.mock('../src/lib/queue.js', async (importOriginal) => {
 
 import { app } from '../src/index.js';
 import { pool } from '../src/lib/db.js';
+import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 import { init as initSocket, shutdown as shutdownSocket, getIo } from '../src/lib/socket.js';
 import { insertTicket } from '../src/repositories/tickets.js';
-import { getEventsByTicketId, insertEvent } from '../src/repositories/events.js';
+import { getAllEventsByTicketId, insertEvent } from '../src/repositories/events.js';
 import { processMessage } from '../src/worker.js';
 
 const TRIAGE_RESULT = {
@@ -72,7 +73,7 @@ beforeAll(async () => {
 afterEach(async () => {
   for (const client of openClients.splice(0)) client.disconnect();
   if (createdIds.length) {
-    await pool.query('DELETE FROM ticket_events WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
+    await purgeTicketEvents(createdIds);
     await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
     await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
     createdIds.length = 0;
@@ -142,7 +143,7 @@ describe('ops organization feed', () => {
 
     await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
 
-    const rows = await getEventsByTicketId(ticket.id);
+    const rows = await getAllEventsByTicketId(ticket.id);
     await waitFor(
       () => eventsFor(received, ticket.id).length === rows.length,
       `ops client got ${eventsFor(received, ticket.id).length} of ${rows.length} events`

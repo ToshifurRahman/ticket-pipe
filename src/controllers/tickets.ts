@@ -2,9 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { createTicket, listTickets } from '../services/tickets.js';
 import { logger } from '../lib/logger.js';
-import { getTicketById, requeueTicket, getTicketByReferenceNumber } from '../repositories/tickets.js';
+import { getTicketById, requeueTicket, getTicketByReferenceNumber, type Ticket } from '../repositories/tickets.js';
 import { getProcessingResultByTicketId } from '../repositories/processing.js';
-import { getEventsByTicketId } from '../repositories/events.js';
+import { getAllEventsByTicketId, getEventPage, type TicketEvent } from '../repositories/events.js';
+import { encodeEventCursor, decodeEventCursor } from '../lib/event-cursor.js';
 import { enqueueTicket } from '../lib/queue.js';
 import { recordTicketEvent } from '../services/ticket-events.js';
 import { resolveTicketPhases, type TicketPhases, type TriageOutput, type DraftOutput } from '../lib/ticket-phases.js';
@@ -14,8 +15,11 @@ const TicketSchema = z.object({
   description: z.string({ required_error: 'Description is required' }).trim().min(1, 'Description is required'),
 });
 
+const EVENTS_DEFAULT_LIMIT = 50;
+const EVENTS_MAX_LIMIT = 200;
+
 function buildTicketPhases(
-  events: Awaited<ReturnType<typeof getEventsByTicketId>>,
+  events: TicketEvent[],
   processing: Awaited<ReturnType<typeof getProcessingResultByTicketId>>
 ): TicketPhases {
   const phases = resolveTicketPhases(events);
@@ -71,23 +75,35 @@ export async function create(req: Request, res: Response, next: NextFunction): P
   }
 }
 
+/**
+ * The status lookup. `phases` comes from the ticket's full history; `events` is its first
+ * page, and `eventsNextCursor` (null when there is nothing more) continues it at
+ * GET /api/tickets/:id/events.
+ */
+async function buildTicketResponse(ticket: Ticket) {
+  const [allEvents, firstPage, processing] = await Promise.all([
+    getAllEventsByTicketId(ticket.id),
+    getEventPage(ticket.id, { limit: EVENTS_DEFAULT_LIMIT }),
+    getProcessingResultByTicketId(ticket.id),
+  ]);
+
+  return {
+    id: ticket.id,
+    referenceNumber: ticket.referenceNumber,
+    subject: ticket.subject,
+    status: ticket.status,
+    createdAt: ticket.createdAt,
+    events: firstPage.events,
+    eventsNextCursor: firstPage.nextSeq === null ? null : encodeEventCursor(firstPage.nextSeq),
+    phases: buildTicketPhases(allEvents, processing),
+  };
+}
+
 export async function getById(req: Request, res: Response, next: NextFunction): Promise<void> {
   const id = req.params['id'] as string;
   try {
     const ticket = await getTicketById(id);
-    const events = await getEventsByTicketId(id);
-    const processing = await getProcessingResultByTicketId(id);
-    const phases = buildTicketPhases(events, processing);
-
-    res.json({
-      id: ticket.id,
-      referenceNumber: ticket.referenceNumber,
-      subject: ticket.subject,
-      status: ticket.status,
-      createdAt: ticket.createdAt,
-      events,
-      phases,
-    });
+    res.json(await buildTicketResponse(ticket));
   } catch (err) {
     next(err);
   }
@@ -97,18 +113,34 @@ export async function getByRef(req: Request, res: Response, next: NextFunction):
   const ref = req.params['referenceNumber'] as string;
   try {
     const ticket = await getTicketByReferenceNumber(ref);
-    const events = await getEventsByTicketId(ticket.id);
-    const processing = await getProcessingResultByTicketId(ticket.id);
-    const phases = buildTicketPhases(events, processing);
+    res.json(await buildTicketResponse(ticket));
+  } catch (err) {
+    next(err);
+  }
+}
 
+/** The ticket's full history, a page at a time, oldest first. Follow `nextCursor` until it is null. */
+export async function listEvents(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const id = req.params['id'] as string;
+  const limit = Math.min(EVENTS_MAX_LIMIT, Math.max(1, Number(req.query.limit) || EVENTS_DEFAULT_LIMIT));
+
+  let afterSeq: number | undefined;
+  const after = req.query.after;
+  if (after !== undefined) {
+    const decoded = typeof after === 'string' ? decodeEventCursor(after) : null;
+    if (decoded === null) {
+      res.status(400).json({ error: 'Invalid cursor' });
+      return;
+    }
+    afterSeq = decoded;
+  }
+
+  try {
+    await getTicketById(id);
+    const page = await getEventPage(id, { afterSeq, limit });
     res.json({
-      id: ticket.id,
-      referenceNumber: ticket.referenceNumber,
-      subject: ticket.subject,
-      status: ticket.status,
-      createdAt: ticket.createdAt,
-      events,
-      phases,
+      events: page.events,
+      nextCursor: page.nextSeq === null ? null : encodeEventCursor(page.nextSeq),
     });
   } catch (err) {
     next(err);

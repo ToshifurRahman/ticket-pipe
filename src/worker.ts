@@ -15,7 +15,7 @@ import {
   getTriageOutputByTicketId,
   getProcessingResultByTicketId,
 } from './repositories/processing.js';
-import { getEventsByTicketId } from './repositories/events.js';
+import { getAllEventsByTicketId } from './repositories/events.js';
 import { recordTicketEvent, type TicketRef } from './services/ticket-events.js';
 import {
   publishNeedsAttention,
@@ -178,7 +178,7 @@ async function runPipeline(
   attemptNumber: number,
   ai: AIService
 ): Promise<void> {
-  const events = await getEventsByTicketId(ticketId);
+  const events = await getAllEventsByTicketId(ticketId);
   const phases = resolveTicketPhases(events);
   const failureCounts = resolveTicketFailureCounts(events);
 

@@ -52,9 +52,10 @@ vi.mock('../src/lib/queue.js', () => ({
 }));
 
 import { pool } from '../src/lib/db.js';
+import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 import { enqueueTicket } from '../src/lib/queue.js';
 import { insertTicket, getTicketById } from '../src/repositories/tickets.js';
-import { getEventsByTicketId } from '../src/repositories/events.js';
+import { getAllEventsByTicketId } from '../src/repositories/events.js';
 import { run } from '../src/worker.js';
 
 const createdIds: string[] = [];
@@ -64,7 +65,7 @@ afterEach(async () => {
   mockQueue.length = 0;
 
   if (createdIds.length) {
-    await pool.query('DELETE FROM ticket_events WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
+    await purgeTicketEvents(createdIds);
     await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
     await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
     createdIds.length = 0;
@@ -95,7 +96,7 @@ describe('run — surge concurrency', () => {
     const ticketStates = await Promise.all(tickets.map(ticket => getTicketById(ticket.id)));
     expect(ticketStates.every(ticket => ticket.status === 'completed')).toBe(true);
 
-    const ticketEvents = await Promise.all(tickets.map(ticket => getEventsByTicketId(ticket.id)));
+    const ticketEvents = await Promise.all(tickets.map(ticket => getAllEventsByTicketId(ticket.id)));
     const startedAt = ticketEvents
       .map(events => events.find(event => event.event === 'triage.started')?.occurredAt)
       .filter((value): value is Date => value instanceof Date);

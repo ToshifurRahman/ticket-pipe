@@ -24,8 +24,9 @@ vi.mock('../src/lib/socket.js', async (importOriginal) => {
 });
 
 import { pool } from '../src/lib/db.js';
+import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 import { insertTicket, getTicketById } from '../src/repositories/tickets.js';
-import { getEventsByTicketId, insertEvent } from '../src/repositories/events.js';
+import { getAllEventsByTicketId, insertEvent } from '../src/repositories/events.js';
 import { getProcessingResultByTicketId, upsertTriageOutput } from '../src/repositories/processing.js';
 import { deleteMessage } from '../src/lib/queue.js';
 import { processMessage } from '../src/worker.js';
@@ -84,7 +85,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   if (createdIds.length) {
-    await pool.query('DELETE FROM ticket_events WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
+    await purgeTicketEvents(createdIds);
     await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
     await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
     createdIds.length = 0;
@@ -113,7 +114,7 @@ describe('processMessage — ops feed (story 4.4)', () => {
 
     await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
 
-    const rows = await getEventsByTicketId(ticket.id);
+    const rows = await getAllEventsByTicketId(ticket.id);
     expect(mockTo).toHaveBeenCalledWith('ops');
     expect(opsEvents().map((p) => p.event)).toEqual(rows.map((r) => r.event));
     expect(opsEvents().map((p) => p.event)).toEqual([
@@ -257,7 +258,7 @@ describe('processMessage — ops feed privacy (story 4.5)', () => {
     expect(everythingOpsReceived()).not.toContain(SENTINEL);
 
     // Ops can still investigate: the full text stays in the event history.
-    const stored = (await getEventsByTicketId(ticket.id)).find((e) => e.event === 'ticket.failed');
+    const stored = (await getAllEventsByTicketId(ticket.id)).find((e) => e.event === 'ticket.failed');
     expect(stored?.detail).toBe(message);
   });
 
@@ -312,7 +313,7 @@ describe('processMessage — happy path', () => {
 
     await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
 
-    const events = await getEventsByTicketId(ticket.id);
+    const events = await getAllEventsByTicketId(ticket.id);
     expect(events.map(e => e.event)).toEqual([
       'triage.started',
       'triage.completed',
@@ -374,7 +375,7 @@ describe('processMessage — happy path', () => {
     expect(updated.status).toBe('completed');
     expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
 
-    const events = await getEventsByTicketId(ticket.id);
+    const events = await getAllEventsByTicketId(ticket.id);
     expect(events.map((e) => e.event)).toEqual([
       'triage.started',
       'triage.completed',
@@ -434,7 +435,7 @@ describe('processMessage — triage failure', () => {
 
     await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
 
-    const events = await getEventsByTicketId(ticket.id);
+    const events = await getAllEventsByTicketId(ticket.id);
     const failure = events.find(e => e.event === 'triage.failed');
     expect(failure).toBeDefined();
     expect(failure!.detail).toBe('Groq API unavailable');
@@ -447,7 +448,7 @@ describe('processMessage — triage failure', () => {
 
     await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
 
-    const events = await getEventsByTicketId(ticket.id);
+    const events = await getAllEventsByTicketId(ticket.id);
     const eventNames = events.map(e => e.event);
     expect(eventNames).not.toContain('draft.completed');
     expect(eventNames).not.toContain('ticket.completed');
@@ -475,7 +476,7 @@ describe('processMessage — draft failure', () => {
 
     await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
 
-    const events = await getEventsByTicketId(ticket.id);
+    const events = await getAllEventsByTicketId(ticket.id);
     const names = events.map(e => e.event);
     expect(names).toContain('triage.completed');
     expect(names).toContain('draft.failed');
@@ -491,7 +492,7 @@ describe('processMessage — retry behaviour', () => {
 
     await processMessage(ticket.id, 'fake-receipt', 1, mockAi()).catch(() => {});
 
-    const events = await getEventsByTicketId(ticket.id);
+    const events = await getAllEventsByTicketId(ticket.id);
     const failed = events.find(e => e.event === 'triage.failed');
     expect(failed).toBeDefined();
     expect(failed!.detail).toBe('Transient error');
@@ -506,7 +507,7 @@ describe('processMessage — retry behaviour', () => {
 
     await processMessage(ticket.id, 'fake-receipt', 1, mockAi()).catch(() => {});
 
-    const events = await getEventsByTicketId(ticket.id);
+    const events = await getAllEventsByTicketId(ticket.id);
     expect(events.find(e => e.event === 'draft.failed')).toBeDefined();
     expect(events.find(e => e.event === 'ticket.retry')).toBeUndefined();
   });
@@ -537,9 +538,28 @@ describe('processMessage — retry behaviour', () => {
     expect(updated.status).toBe('failed');
     expect(updated.failureReason).toBe('triage_retries_exhausted');
     expect(updated.failedAt).toBeInstanceOf(Date);
-    const events = await getEventsByTicketId(ticket.id);
+    const events = await getAllEventsByTicketId(ticket.id);
     expect(events.find(e => e.event === 'ticket.failed')).toBeDefined();
     expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
+  });
+
+  it('counts failures from the full history, even when they are more than 20 events back (story 5.3)', async () => {
+    const ticket = await insertTicket('TICK-WKR-013B', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
+    for (const n of [1, 2, 3]) await insertEvent(ticket.id, 'triage.failed', `Error ${n}`);
+    // Enough later events to push the three failures out of the old 20-event window.
+    await pool.query(
+      "INSERT INTO ticket_events (ticket_id, event) SELECT $1, 'triage.started' FROM generate_series(1, 25)",
+      [ticket.id]
+    );
+
+    await processMessage(ticket.id, 'fake-receipt', 3, mockAi());
+
+    expect(mockTriage).not.toHaveBeenCalled();
+    const updated = await getTicketById(ticket.id);
+    expect(updated.status).toBe('failed');
+    expect(updated.failureReason).toBe('triage_retries_exhausted');
   });
 
   it('marks ticket failed after 3 draft failures', async () => {
@@ -634,7 +654,7 @@ describe('processMessage — output validation', () => {
 
     const updated = await getTicketById(ticket.id);
     expect(updated.status).toBe('needs_attention');
-    const events = await getEventsByTicketId(ticket.id);
+    const events = await getAllEventsByTicketId(ticket.id);
     const needsAttention = events.find(e => e.event === 'ticket.needs_attention');
     expect(needsAttention).toBeDefined();
     expect(needsAttention!.detail).toContain('category');
@@ -651,7 +671,7 @@ describe('processMessage — output validation', () => {
 
     const updated = await getTicketById(ticket.id);
     expect(updated.status).toBe('needs_attention');
-    const events = await getEventsByTicketId(ticket.id);
+    const events = await getAllEventsByTicketId(ticket.id);
     const needsAttention = events.find(e => e.event === 'ticket.needs_attention');
     expect(needsAttention).toBeDefined();
     expect(needsAttention!.detail).toContain('nextSteps');
@@ -666,7 +686,7 @@ describe('processMessage — output validation', () => {
 
     await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
 
-    const events = await getEventsByTicketId(ticket.id);
+    const events = await getAllEventsByTicketId(ticket.id);
     expect(events.find(e => e.event === 'ticket.completed')).toBeUndefined();
   });
 

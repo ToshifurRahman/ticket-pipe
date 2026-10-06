@@ -9,6 +9,7 @@ An AI-powered ticket processing system that automatically analyzes support ticke
 - [Quick Start](#quick-start)
 - [Architecture Overview](#architecture-overview)
 - [Features](#features)
+- [Ticket History](#ticket-history)
 - [AI Observability](#ai-observability)
 - [Project Structure](#project-structure)
 - [Development Guide](#development-guide)
@@ -165,7 +166,7 @@ User/Portal
 ### Reliability & Retry Logic
 - **Per-Stage Retry**: Each processing phase (triage, draft) retries independently with configurable retry counts
 - **Escalation on Max Failures**: Tickets that exceed retry thresholds are escalated to ops team
-- **Event Audit Trail**: Complete history of all state transitions and failures recorded as events
+- **Event Audit Trail**: Complete, permanent history of all state transitions and failures recorded as events (see [Ticket History](#ticket-history))
 - **Resume Capability**: Failed tickets can be manually reprocessed via `POST /api/tickets/:id/replay`
 
 ### Developer Features
@@ -203,6 +204,33 @@ Every event goes through `recordTicketEvent()` (`src/services/ticket-events.ts`)
 `ticket_events` row and publishes to the feed, so the two cannot drift apart. Publishing is best-effort
 and never affects ticket processing. Customers join only their own ticket room (`join` accepts a
 ticket UUID and nothing else), so they cannot subscribe to the feed.
+
+## Ticket History
+
+Every ticket keeps its full event history forever, from `ticket.submitted` to its final outcome, so
+support agents can look it up during a follow-up or dispute weeks later.
+
+The status lookup (`GET /api/tickets/:id` or `GET /api/tickets/ref/:referenceNumber`) returns the first
+50 events, oldest first, in `events`. If there are more, `eventsNextCursor` holds a cursor for the rest;
+otherwise it is `null`. `phases` is always worked out from the whole history, not just that first page.
+
+```bash
+# The rest of the history, a page at a time. Keep passing nextCursor back as `after` until it is null.
+curl "http://localhost:3000/api/tickets/<id>/events?limit=50"
+# { "events": [{ "event": "ticket.submitted", "detail": "TKT-001", "occurredAt": "..." }, ...],
+#   "nextCursor": "djE6MTIz" }
+curl "http://localhost:3000/api/tickets/<id>/events?limit=50&after=djE6MTIz"
+```
+
+- `limit` defaults to 50 and is clamped to 1–200. An invalid `after` cursor returns `400`, and an unknown
+  ticket returns `404`. Treat cursors as opaque.
+- Events are ordered by `ticket_events.seq`, an identity column, so order is exact even when two events
+  share a timestamp.
+- **Append-only.** Database triggers (migration `008`) reject every `UPDATE`, `DELETE` and `TRUNCATE` on
+  `ticket_events`, so history can't be lost by age, by a bug or by a stray query. Test cleanup opts in for a
+  single transaction with `set_config('app.allow_event_purge', 'on', true)`; see
+  `tests/helpers/purge-ticket-events.ts`. `tests/ticket-events.guard.test.ts` fails if code tries to change
+  the table.
 
 ## AI Observability
 
