@@ -2,14 +2,15 @@ import { describe, it, expect, afterEach, afterAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../../src/index.js';
 import { pool } from '../../src/lib/db.js';
+import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 import { insertTicket, markTicketFailed } from '../../src/repositories/tickets.js';
-import { getEventsByTicketId } from '../../src/repositories/events.js';
+import { getAllEventsByTicketId } from '../../src/repositories/events.js';
 
 const createdIds: string[] = [];
 
 afterEach(async () => {
   if (createdIds.length) {
-    await pool.query('DELETE FROM ticket_events WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
+    await purgeTicketEvents(createdIds);
     await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
     createdIds.length = 0;
   }
@@ -62,7 +63,7 @@ describe('failed tickets in the API (story 5.2)', () => {
     );
     expect(row.status).toBe('queued');
     expect(row.failureReason).toBeNull();
-    expect((await getEventsByTicketId(t.id)).map(e => e.event)).toContain('ticket.requeued');
+    expect((await getAllEventsByTicketId(t.id)).map(e => e.event)).toContain('ticket.requeued');
   });
 
   it('refuses to replay a ticket that has not failed', async () => {

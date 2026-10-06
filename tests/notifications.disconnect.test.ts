@@ -21,10 +21,11 @@ vi.mock('../src/lib/queue.js', async (importOriginal) => {
 
 import { app } from '../src/index.js';
 import { pool } from '../src/lib/db.js';
+import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 import { init as initSocket, shutdown as shutdownSocket, getIo } from '../src/lib/socket.js';
 import { deleteMessage } from '../src/lib/queue.js';
 import { insertTicket, getTicketById } from '../src/repositories/tickets.js';
-import { getEventsByTicketId } from '../src/repositories/events.js';
+import { getAllEventsByTicketId } from '../src/repositories/events.js';
 import { processMessage } from '../src/worker.js';
 
 // ---- AIService stub ---------------------------------------------------
@@ -69,7 +70,7 @@ beforeAll(async () => {
 afterEach(async () => {
   for (const client of openClients.splice(0)) client.disconnect();
   if (createdIds.length) {
-    await pool.query('DELETE FROM ticket_events WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
+    await purgeTicketEvents(createdIds);
     await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
     await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
     createdIds.length = 0;
@@ -186,7 +187,7 @@ describe('notification delivery vs. ticket processing', () => {
     expect((await getTicketById(ticketId)).status).toBe('completed');
     expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
 
-    const events = await getEventsByTicketId(ticketId);
+    const events = await getAllEventsByTicketId(ticketId);
     expect(events.map((e) => e.event)).toEqual([
       'triage.started',
       'triage.completed',

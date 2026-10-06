@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach, afterAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../../src/index.js';
 import { pool } from '../../src/lib/db.js';
+import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 import { insertTicket, updateTicketStatus } from '../../src/repositories/tickets.js';
 import { insertEvent } from '../../src/repositories/events.js';
 
@@ -39,7 +40,7 @@ async function seedSnapshot({ status, events }: SnapshotSeed): Promise<string> {
 
 afterEach(async () => {
   if (!createdIds.length) return;
-  await pool.query('DELETE FROM ticket_events WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
+  await purgeTicketEvents(createdIds);
   await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
   await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
   createdIds.length = 0;

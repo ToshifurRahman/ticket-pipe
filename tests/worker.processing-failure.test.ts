@@ -25,8 +25,9 @@ vi.mock('../src/repositories/tickets.js', async (importOriginal) => {
 });
 
 import { pool } from '../src/lib/db.js';
+import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 import { insertTicket, getTicketById } from '../src/repositories/tickets.js';
-import { getEventsByTicketId } from '../src/repositories/events.js';
+import { getAllEventsByTicketId } from '../src/repositories/events.js';
 import { getProcessingResultByTicketId } from '../src/repositories/processing.js';
 import { deleteMessage } from '../src/lib/queue.js';
 import { processMessage } from '../src/worker.js';
@@ -63,7 +64,7 @@ afterEach(async () => {
   mockTriage.mockReset();
   mockDraft.mockReset();
   if (createdIds.length) {
-    await pool.query('DELETE FROM ticket_events WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
+    await purgeTicketEvents(createdIds);
     await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
     await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
     createdIds.length = 0;
@@ -84,7 +85,7 @@ describe('processMessage — finalization failure', () => {
 
     expect((await getTicketById(ticket.id)).status).toBe('processing');
     expect(deleteMessage).not.toHaveBeenCalled();
-    const events = await getEventsByTicketId(ticket.id);
+    const events = await getAllEventsByTicketId(ticket.id);
     expect(events.map(e => e.event)).not.toContain('ticket.failed');
   });
 
@@ -113,7 +114,7 @@ describe('processMessage — finalization failure', () => {
     expect(updated.status).toBe('failed');
     expect(updated.failureReason).toBe('finalize_failed');
     expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
-    const failedEvent = (await getEventsByTicketId(ticket.id)).find(e => e.event === 'ticket.failed');
+    const failedEvent = (await getAllEventsByTicketId(ticket.id)).find(e => e.event === 'ticket.failed');
     expect(failedEvent?.detail).toBe('DB constraint violated');
   });
 
@@ -124,7 +125,7 @@ describe('processMessage — finalization failure', () => {
 
     await processMessage(ticket.id, 'fake-receipt', 6, mockAi());
 
-    const events = await getEventsByTicketId(ticket.id);
+    const events = await getAllEventsByTicketId(ticket.id);
     expect(events.map(e => e.event)).not.toContain('ticket.completed');
   });
 

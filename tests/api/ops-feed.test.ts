@@ -15,13 +15,14 @@ vi.mock('../../src/lib/socket.js', async (importOriginal) => {
 
 import { app } from '../../src/index.js';
 import { pool } from '../../src/lib/db.js';
+import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 
 const createdIds: string[] = [];
 
 afterEach(async () => {
   mockOpsEmit.mockReset();
   if (createdIds.length) {
-    await pool.query('DELETE FROM ticket_events WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
+    await purgeTicketEvents(createdIds);
     await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
     createdIds.length = 0;
   }
