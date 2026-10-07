@@ -23,6 +23,7 @@ import {
   type NeedsAttentionReason,
   type FailureReason,
 } from './services/ops-feed.js';
+import { emitTicketUpdate } from './services/ticket-updates.js';
 import { UUID_RE } from './lib/ids.js';
 import {
   getEmitter,
@@ -63,18 +64,11 @@ class FinalizeError extends Error {
   }
 }
 
-// Notification delivery must never affect ticket processing: each of these is
-// wrapped so a synchronous throw from the emitter can't propagate into processMessage
-// and be mistaken for a processing failure (see getEmitter() in socket.ts for how the
-// underlying async publish failures are also contained).
-function emitTicketUpdate(ticketId: string, event: string): void {
-  try {
-    getEmitter().to(ticketId).emit('ticket:update', { event, ticketId, occurredAt: new Date() });
-  } catch (err) {
-    logger.error({ err, ticketId }, 'Failed to emit ticket:update');
-  }
-}
-
+// Notification delivery must never affect ticket processing: emitTicketUpdate
+// (src/services/ticket-updates.ts) and the helper below each catch a synchronous throw
+// from the emitter, so it can't propagate into processMessage and be mistaken for a
+// processing failure (see getEmitter() in socket.ts for how the underlying async publish
+// failures are also contained).
 function emitTicketCompleted(payload: TicketCompletedPayload): void {
   try {
     getEmitter().to(payload.ticketId).emit('ticket:update', payload);

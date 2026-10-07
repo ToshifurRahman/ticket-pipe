@@ -123,3 +123,74 @@ describe('resolveTicketFailureCounts — replay', () => {
     ).toEqual({ triage: 0, draft: 0 });
   });
 });
+
+describe('resolveTicketPhases — replay (story 5.4)', () => {
+  const draftFailed = events(
+    'triage.started', 'triage.completed',
+    'draft.started', 'draft.failed', 'draft.started', 'draft.failed', 'draft.started', 'draft.failed',
+    'ticket.failed'
+  );
+  const needsAttention = events(
+    'triage.started', 'triage.completed', 'draft.started', 'draft.completed', 'ticket.needs_attention'
+  );
+
+  it('after ticket.failed, resets only the failed phase and keeps completed ones', () => {
+    expect(resolveTicketPhases([...draftFailed, ...events('ticket.requeued')])).toEqual({
+      triage: { status: 'completed' },
+      draft: { status: 'pending' },
+    });
+  });
+
+  it('after ticket.needs_attention, resets both phases so both stages run again', () => {
+    expect(resolveTicketPhases([...needsAttention, ...events('ticket.requeued')])).toEqual({
+      triage: { status: 'pending' },
+      draft: { status: 'pending' },
+    });
+  });
+
+  it('tracks the new attempt after the reset', () => {
+    expect(
+      resolveTicketPhases([...needsAttention, ...events('ticket.requeued', 'triage.started', 'triage.completed')])
+    ).toEqual({
+      triage: { status: 'completed' },
+      draft: { status: 'pending' },
+    });
+  });
+
+  it('restores the earlier phases when the replay is rolled back', () => {
+    expect(resolveTicketPhases([...draftFailed, ...events('ticket.requeued', 'ticket.requeue_failed')])).toEqual({
+      triage: { status: 'completed' },
+      draft: { status: 'failed' },
+    });
+  });
+
+  it('uses the most recent ending: a needs_attention ticket that later failed only resumes', () => {
+    expect(
+      resolveTicketPhases([
+        ...needsAttention,
+        ...events('ticket.requeued', 'triage.started', 'triage.completed', 'draft.started', 'draft.failed', 'ticket.failed', 'ticket.requeued'),
+      ])
+    ).toEqual({
+      triage: { status: 'completed' },
+      draft: { status: 'pending' },
+    });
+  });
+});
+
+describe('resolveTicketFailureCounts — rolled-back replay (story 5.4)', () => {
+  it('brings the earlier counts back on ticket.requeue_failed', () => {
+    expect(
+      resolveTicketFailureCounts(
+        events('draft.failed', 'draft.failed', 'draft.failed', 'ticket.failed', 'ticket.requeued', 'ticket.requeue_failed')
+      )
+    ).toEqual({ triage: 0, draft: 3 });
+  });
+
+  it('starts fresh again on the next successful replay', () => {
+    expect(
+      resolveTicketFailureCounts(
+        events('draft.failed', 'draft.failed', 'ticket.failed', 'ticket.requeued', 'ticket.requeue_failed', 'ticket.requeued')
+      )
+    ).toEqual({ triage: 0, draft: 0 });
+  });
+});

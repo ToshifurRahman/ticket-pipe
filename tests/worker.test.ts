@@ -15,7 +15,11 @@ const mockTo = vi.hoisted(() =>
 
 vi.mock('../src/lib/queue.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../src/lib/queue.js')>();
-  return { ...real, deleteMessage: vi.fn().mockResolvedValue(undefined) };
+  return {
+    ...real,
+    deleteMessage: vi.fn().mockResolvedValue(undefined),
+    enqueueTicket: vi.fn().mockResolvedValue(undefined),
+  };
 });
 
 vi.mock('../src/lib/socket.js', async (importOriginal) => {
@@ -30,6 +34,7 @@ import { getAllEventsByTicketId, insertEvent } from '../src/repositories/events.
 import { getProcessingResultByTicketId, upsertTriageOutput } from '../src/repositories/processing.js';
 import { deleteMessage } from '../src/lib/queue.js';
 import { processMessage } from '../src/worker.js';
+import { replayTicket } from '../src/services/tickets.js';
 
 // ---- AIService mock helpers -------------------------------------------
 
@@ -822,5 +827,58 @@ describe('processMessage — permanent failure (story 5.2)', () => {
     await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
 
     expect((await getTicketById(ticket.id)).status).toBe('completed');
+  });
+});
+
+describe('ops recovery end to end (story 5.4)', () => {
+  // clearAllMocks() keeps queued one-shot results from earlier tests.
+  beforeEach(() => {
+    mockTriage.mockReset();
+    mockDraft.mockReset();
+  });
+
+  it('resumes a draft-failed ticket at draft, reusing the stored triage, and completes it', async () => {
+    const ticket = await insertTicket('TICK-RECOVER-001', 'Login broken', 'Cannot sign in');
+    createdIds.push(ticket.id);
+    mockTriage.mockResolvedValueOnce(TRIAGE_RESULT);
+    mockDraft.mockRejectedValue(new Error('model overloaded'));
+    for (const attempt of [1, 2, 3]) {
+      await processMessage(ticket.id, 'fake-receipt', attempt, mockAi()).catch(() => {});
+    }
+    expect((await getTicketById(ticket.id)).status).toBe('failed');
+
+    const result = await replayTicket(ticket.id);
+    expect(result).toMatchObject({ ok: true, previousStatus: 'failed' });
+
+    vi.clearAllMocks();
+    mockDraft.mockReset().mockResolvedValueOnce(DRAFT_RESULT);
+    await processMessage(ticket.id, 'fake-receipt-2', 1, mockAi());
+
+    expect(mockTriage).not.toHaveBeenCalled();
+    expect(mockDraft).toHaveBeenCalledTimes(1);
+    expect((await getTicketById(ticket.id)).status).toBe('completed');
+  });
+
+  it('re-runs both stages for a needs_attention ticket and completes it', async () => {
+    const ticket = await insertTicket('TICK-RECOVER-002', 'Login broken', 'Cannot sign in');
+    createdIds.push(ticket.id);
+    for (const event of ['triage.started', 'triage.completed', 'draft.started', 'draft.completed', 'ticket.needs_attention']) {
+      await insertEvent(ticket.id, event);
+    }
+    await pool.query("UPDATE tickets SET status = 'needs_attention' WHERE id = $1", [ticket.id]);
+
+    const result = await replayTicket(ticket.id);
+    expect(result).toMatchObject({ ok: true, previousStatus: 'needs_attention' });
+
+    mockAiSuccess();
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+
+    expect(mockTriage).toHaveBeenCalledTimes(1);
+    expect(mockDraft).toHaveBeenCalledTimes(1);
+    expect((await getTicketById(ticket.id)).status).toBe('completed');
+    expect(await getProcessingResultByTicketId(ticket.id)).toMatchObject({
+      issueSummary: TRIAGE_RESULT.issueSummary,
+      customerReply: DRAFT_RESULT.customerReply,
+    });
   });
 });

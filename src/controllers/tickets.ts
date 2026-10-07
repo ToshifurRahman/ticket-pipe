@@ -1,13 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { createTicket, listTickets } from '../services/tickets.js';
+import { createTicket, listTickets, replayTicket } from '../services/tickets.js';
 import { logger } from '../lib/logger.js';
-import { getTicketById, requeueTicket, getTicketByReferenceNumber, type Ticket } from '../repositories/tickets.js';
+import { getTicketById, getTicketByReferenceNumber, type Ticket } from '../repositories/tickets.js';
 import { getProcessingResultByTicketId } from '../repositories/processing.js';
 import { getAllEventsByTicketId, getEventPage, type TicketEvent } from '../repositories/events.js';
 import { encodeEventCursor, decodeEventCursor } from '../lib/event-cursor.js';
-import { enqueueTicket } from '../lib/queue.js';
-import { recordTicketEvent } from '../services/ticket-events.js';
 import { resolveTicketPhases, type TicketPhases, type TriageOutput, type DraftOutput } from '../lib/ticket-phases.js';
 
 const TicketSchema = z.object({
@@ -169,20 +167,18 @@ export async function replay(req: Request, res: Response, next: NextFunction): P
   const id = req.params['id'] as string;
 
   try {
-    const ticket = await getTicketById(id);
+    const result = await replayTicket(id);
 
-    if (ticket.status !== 'failed') {
-      res.status(400).json({ error: 'Ticket can only be replayed if status is failed' });
-      return;
+    if (result.ok) {
+      res.json({ success: true, status: 'queued', previousStatus: result.previousStatus });
+    } else if (result.reason === 'not_replayable') {
+      res.status(409).json({
+        error: 'Ticket can only be replayed if status is failed or needs_attention',
+        status: result.status,
+      });
+    } else {
+      res.status(503).json({ error: 'Could not requeue the ticket; it was left as it was. Try again.' });
     }
-
-    await requeueTicket(id);
-    await recordTicketEvent(ticket, 'ticket.requeued');
-    await enqueueTicket(id, ticket.referenceNumber).catch(err =>
-      logger.error({ err, ticketId: id }, 'Failed to enqueue ticket during replay')
-    );
-
-    res.json({ success: true, status: 'queued' });
   } catch (err) {
     next(err);
   }

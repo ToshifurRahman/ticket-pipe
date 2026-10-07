@@ -48,9 +48,20 @@ export interface OpsNeedsAttention {
   occurredAt: Date;
 }
 
+// A failed or needs_attention ticket that ops sent back for processing (story 5.4).
+export interface OpsTicketRequeued {
+  ticketId: string;
+  referenceNumber: string;
+  previousStatus: 'failed' | 'needs_attention';
+  occurredAt: Date;
+}
+
 // Publishing must never affect ticket processing: a synchronous throw is logged here, and
 // async publish failures are contained inside getEmitter() (see src/lib/socket.ts).
-function publish(name: string, payload: OpsTicketEvent | OpsNeedsAttention | OpsTicketFailed): void {
+function publish(
+  name: string,
+  payload: OpsTicketEvent | OpsNeedsAttention | OpsTicketFailed | OpsTicketRequeued
+): void {
   try {
     getEmitter().to(OPS_ROOM).emit(name, payload);
   } catch (err) {
@@ -81,6 +92,15 @@ export function publishTicketFailed(ticket: TicketRef, reason: FailureReason): v
     ticketId: ticket.id,
     referenceNumber: ticket.referenceNumber,
     reason,
+    occurredAt: new Date(),
+  });
+}
+
+export function publishTicketRequeued(ticket: TicketRef, previousStatus: OpsTicketRequeued['previousStatus']): void {
+  publish('ticket:requeued', {
+    ticketId: ticket.id,
+    referenceNumber: ticket.referenceNumber,
+    previousStatus,
     occurredAt: new Date(),
   });
 }
