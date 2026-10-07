@@ -167,7 +167,7 @@ User/Portal
 - **Per-Stage Retry**: Each processing phase (triage, draft) retries independently with configurable retry counts
 - **Escalation on Max Failures**: Tickets that exceed retry thresholds are escalated to ops team
 - **Event Audit Trail**: Complete, permanent history of all state transitions and failures recorded as events (see [Ticket History](#ticket-history))
-- **Resume Capability**: Failed tickets can be manually reprocessed via `POST /api/tickets/:id/replay`
+- **Ops Recovery**: Ops can send a `failed` or `needs_attention` ticket back through processing without the customer resubmitting (see [Ticket Recovery](#ticket-recovery))
 
 ### Developer Features
 - **Local Development Support**: Works with LocalStack for SQS, Portkey for routing, and local PostgreSQL
@@ -187,13 +187,17 @@ await socket.emitWithAck('ops:subscribe'); // resolves to { ok: true } once subs
 
 Each `ops:ticket_event` payload is `{ ticketId, referenceNumber, event, occurredAt }`, where `event`
 is one of `ticket.submitted`, `triage.started`, `triage.completed`, `triage.failed`, `draft.started`,
-`draft.completed`, `draft.failed`, `ticket.completed`, `ticket.failed` or `ticket.needs_attention`.
+`draft.completed`, `draft.failed`, `ticket.completed`, `ticket.failed`, `ticket.needs_attention`,
+`ticket.requeued` or `ticket.requeue_failed`.
 
 When a ticket runs out of retries, ops also receives `ticket:needs_attention` with
 `{ ticketId, referenceNumber, reason, occurredAt }`. `reason` is one of `triage_retries_exhausted`,
 `draft_retries_exhausted`, `incomplete_output` or `processing_result_missing`. It is a fixed code, never the
 error message, because error messages can quote AI output or customer content. The full text stays in the
 ticket's event history (`GET /api/tickets/:id`).
+
+When ops replays a ticket, the room also receives `ticket:requeued` with
+`{ ticketId, referenceNumber, previousStatus, occurredAt }`, where `previousStatus` is `failed` or `needs_attention`.
 
 **Privacy boundary.** The ops room is visible to every ops subscriber, so only
 `src/services/ops-feed.ts` may publish to it, and only identifiers, codes and timestamps. AI output (triage
@@ -204,6 +208,32 @@ Every event goes through `recordTicketEvent()` (`src/services/ticket-events.ts`)
 `ticket_events` row and publishes to the feed, so the two cannot drift apart. Publishing is best-effort
 and never affects ticket processing. Customers join only their own ticket room (`join` accepts a
 ticket UUID and nothing else), so they cannot subscribe to the feed.
+
+## Ticket Recovery
+
+Ops can send a ticket that ended `failed` or `needs_attention` back through processing. The customer does
+nothing: their open ticket page gets a `ticket:update` with `ticket.requeued` and then follows the new
+attempt live.
+
+```bash
+curl -X POST http://localhost:3000/api/tickets/<ticket-id>/replay
+# 200 { "success": true, "status": "queued", "previousStatus": "failed" }
+```
+
+The ticket goes back to `queued`, its `failure_reason` and `failed_at` are cleared, and `ticket.requeued` is
+recorded. Each replay is a new attempt with a fresh set of retries per stage:
+
+- **After `failed`** a stage ran out of retries. Only the failed stage runs again; a completed triage is reused.
+- **After `needs_attention`** both stages finished but their output was unusable, so both run again.
+
+| Response | When |
+|---|---|
+| `200` | The ticket was requeued. |
+| `404` | No ticket with that id. |
+| `409` | The ticket is not `failed` or `needs_attention` (its current `status` is in the body). Two replays at the same moment: one wins, the other gets `409`. |
+| `503` | The message could not be sent to the queue. The ticket is put back exactly as it was, `ticket.requeue_failed` is recorded, and it can be replayed again. |
+
+There is no limit on how many times a ticket can be replayed; every replay is in its history.
 
 ## Ticket History
 
