@@ -6,6 +6,7 @@ import {
   updateTicketStatus,
   markTicketFailed,
   requeueTicket,
+  restoreTicketAfterFailedRequeue,
   listTickets,
 } from '../../src/repositories/tickets.js';
 
@@ -140,6 +141,75 @@ describe('requeueTicket', () => {
     expect(updated.status).toBe('queued');
     expect(updated.failureReason).toBeNull();
     expect(updated.failedAt).toBeNull();
+  });
+
+  it('returns what a failed ticket looked like before the requeue', async () => {
+    const t = await insertTicket('TICK-TEST-REQ-1', 'Sub', 'Desc');
+    createdIds.push(t.id);
+    await markTicketFailed(t.id, 'draft_retries_exhausted');
+    const failed = await getTicketById(t.id);
+
+    const prev = await requeueTicket(t.id);
+
+    expect(prev).toEqual({ status: 'failed', failureReason: 'draft_retries_exhausted', failedAt: failed.failedAt });
+  });
+
+  it('requeues a needs_attention ticket', async () => {
+    const t = await insertTicket('TICK-TEST-REQ-2', 'Sub', 'Desc');
+    createdIds.push(t.id);
+    await updateTicketStatus(t.id, 'needs_attention');
+
+    const prev = await requeueTicket(t.id);
+
+    expect(prev).toEqual({ status: 'needs_attention', failureReason: null, failedAt: null });
+    expect((await getTicketById(t.id)).status).toBe('queued');
+  });
+
+  it.each(['queued', 'processing', 'completed'])('leaves a %s ticket alone and returns null', async status => {
+    const t = await insertTicket(`TICK-TEST-REQ-${status}`, 'Sub', 'Desc');
+    createdIds.push(t.id);
+    await updateTicketStatus(t.id, status);
+
+    expect(await requeueTicket(t.id)).toBeNull();
+    expect((await getTicketById(t.id)).status).toBe(status);
+  });
+
+  it('lets exactly one of two concurrent requeues win', async () => {
+    const t = await insertTicket('TICK-TEST-REQ-RACE', 'Sub', 'Desc');
+    createdIds.push(t.id);
+    await markTicketFailed(t.id, 'processing_error');
+
+    const results = await Promise.all([requeueTicket(t.id), requeueTicket(t.id)]);
+
+    expect(results.filter(r => r !== null)).toHaveLength(1);
+  });
+});
+
+describe('restoreTicketAfterFailedRequeue', () => {
+  it('puts a requeued ticket back exactly as it was', async () => {
+    const t = await insertTicket('TICK-TEST-RESTORE-1', 'Sub', 'Desc');
+    createdIds.push(t.id);
+    await markTicketFailed(t.id, 'finalize_failed');
+    const failed = await getTicketById(t.id);
+    const prev = (await requeueTicket(t.id))!;
+
+    expect(await restoreTicketAfterFailedRequeue(t.id, prev)).toBe(true);
+
+    const restored = await getTicketById(t.id);
+    expect(restored.status).toBe('failed');
+    expect(restored.failureReason).toBe('finalize_failed');
+    expect(restored.failedAt).toEqual(failed.failedAt);
+  });
+
+  it('does not touch a ticket the worker has already claimed', async () => {
+    const t = await insertTicket('TICK-TEST-RESTORE-2', 'Sub', 'Desc');
+    createdIds.push(t.id);
+    await markTicketFailed(t.id, 'processing_error');
+    const prev = (await requeueTicket(t.id))!;
+    await updateTicketStatus(t.id, 'processing');
+
+    expect(await restoreTicketAfterFailedRequeue(t.id, prev)).toBe(false);
+    expect((await getTicketById(t.id)).status).toBe('processing');
   });
 });
 

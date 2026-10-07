@@ -391,10 +391,8 @@
       if (data.events && data.events.length) renderTimeline(data.events);
       if (data.status === 'completed' && data.phases) {
         renderResults(data.phases.triage.output, data.phases.draft.output);
-        return true;
       }
-      if (data.status === 'failed' || data.status === 'needs_attention') return true;
-      return false;
+      return data.status;
     }
 
     async function startSocketUpdates(ticketId, referenceNumber, onDone) {
@@ -412,12 +410,16 @@
       socket = io();
       socket.emit('join', ticketId);
 
-      const done = await fetchAndRender(ticketId);
-      if (done) {
-        socket.disconnect();
-        handleDone();
-        return;
-      }
+      // Completed is final. Failed and needs_attention are not: ops can send the ticket back
+      // for processing, so the socket stays open to pick that up without a refresh.
+      const settle = (status) => {
+        if (status === 'completed') {
+          socket.disconnect();
+          handleDone();
+        } else if (status === 'failed' || status === 'needs_attention') {
+          handleDone();
+        }
+      };
 
       socket.on('ticket:update', async (payload) => {
         if (payload.event === 'ticket.completed') {
@@ -426,12 +428,10 @@
           liveBadge.style.display = 'inline-flex';
         }
 
-        const done = await fetchAndRender(ticketId);
-        if (done) {
-          socket.disconnect();
-          handleDone();
-        }
+        settle(await fetchAndRender(ticketId));
       });
+
+      settle(await fetchAndRender(ticketId));
     }
 
     function renderTimeline(events) {
