@@ -9,6 +9,7 @@ An AI-powered ticket processing system that automatically analyzes support ticke
 - [Quick Start](#quick-start)
 - [Architecture Overview](#architecture-overview)
 - [Features](#features)
+- [Ops Email Alerts](#ops-email-alerts)
 - [Ticket History](#ticket-history)
 - [AI Observability](#ai-observability)
 - [Project Structure](#project-structure)
@@ -209,6 +210,57 @@ Every event goes through `recordTicketEvent()` (`src/services/ticket-events.ts`)
 and never affects ticket processing. Customers join only their own ticket room (`join` accepts a
 ticket UUID and nothing else), so they cannot subscribe to the feed.
 
+## Ops Email Alerts
+
+The live feed only helps while someone has it open. When a ticket enters `needs_attention`, the worker also
+publishes one alert to an AWS SNS topic, and SNS emails it to the ops address subscribed to that topic.
+
+```
+Subject: [Ticket Pipe] TICK-1791462896000-9F2A1C07 needs attention (incomplete_output)
+
+Ticket TICK-1791462896000-9F2A1C07 needs attention.
+
+Reference: TICK-1791462896000-9F2A1C07
+Ticket ID: 3f6c…
+Reason:    incomplete_output
+Time:      2026-10-08T12:34:56.000Z
+
+Replay it with POST /tickets/3f6c…/replay once the cause is fixed.
+```
+
+**What SNS is used for, and what it isn't.** SNS fans a message out to servers and people (email, SMS,
+queues), which makes it the right tool for "tell ops by email". It can't push to a browser, so live updates
+stay on Redis + Socket.io. It can't email customers either: only confirmed subscribers receive SNS email.
+If several independent consumers ever need every ticket event, the same topic can fan out to one SQS queue
+per consumer. That is the scaling direction, not something built here.
+
+**Same privacy boundary as the ops feed.** The alert is built field by field from `OpsNeedsAttention`, so it
+holds the reference number, ticket id, reason code and time, and never the subject, description, AI output or
+error text. Only `src/services/ops-alerts.ts` may publish to SNS (`tests/ops-alerts.guard.test.ts`).
+
+**Behaviour**
+- One alert per ticket that actually moves into `needs_attention`. A redelivered message that finds the
+  ticket already moved sends nothing.
+- Best-effort: the worker doesn't wait for SNS. A failed or slow call (5s timeout, one retry) is logged and
+  never fails or delays processing.
+- Capped at `SNS_ALERT_MAX_PER_HOUR` (default 20) so a bad AI provider day can't flood the inbox or use up
+  SNS's free 1,000 emails a month. Past the cap, alerts are dropped and one warning is logged per hour. The
+  ticket and the live feed still have the event. The count is kept in memory, so the cap is per worker process
+  and restarts with it.
+
+**Configuration**
+
+| Variable | Purpose |
+|---|---|
+| `SNS_TOPIC_ARN` | Turns alerts on. Unset (local dev, CI, or after the AWS free plan ends) means no alerts; everything else works unchanged. |
+| `SNS_ENDPOINT` | LocalStack URL for local runs. Leave unset in production to use AWS. |
+| `SNS_ALERT_MAX_PER_HOUR` | Hourly cap, default 20. |
+
+To try it locally, `npm run setup` creates the `ticket-needs-attention` topic in LocalStack and prints its ARN.
+Set `SNS_TOPIC_ARN` to it. LocalStack doesn't send email, so subscribe a queue to the topic to see the alerts
+(as `tests/ops-alerts.localstack.test.ts` does). In production the topic, the email subscription (the recipient
+must click the confirmation link) and `sns:Publish` on that topic for the app's IAM user are set up by hand.
+
 ## Ticket Recovery
 
 Ops can send a ticket that ended `failed` or `needs_attention` back through processing. The customer does
@@ -322,7 +374,8 @@ ticket-pipe/
 │   ├── controllers/
 │   │   └── tickets.ts           # Request handlers (validation, response formatting)
 │   ├── services/
-│   │   └── tickets.ts           # Business logic (create, list, etc.)
+│   │   ├── tickets.ts           # Business logic (create, list, etc.)
+│   │   └── ops-alerts.ts        # SNS email alerts for needs_attention tickets
 │   ├── repositories/
 │   │   ├── tickets.ts           # Ticket table operations
 │   │   ├── processing.ts        # Triage & draft results
@@ -332,6 +385,7 @@ ticket-pipe/
 │       ├── ticket-graph.ts      # LangGraph orchestration
 │       ├── ticket-phases.ts     # Phase state machine logic
 │       ├── queue.ts             # AWS SQS wrapper
+│       ├── sns.ts               # AWS SNS client (null when alerts are off)
 │       ├── socket.ts            # Socket.io initialization
 │       ├── db.ts                # PostgreSQL connection pool
 │       ├── logger.ts            # Pino logger setup
