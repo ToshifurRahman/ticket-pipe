@@ -141,7 +141,7 @@ describe('resolveTicketPhases — replay (story 5.4)', () => {
     });
   });
 
-  it('after ticket.needs_attention, resets both phases so both stages run again', () => {
+  it('after a ticket.needs_attention with no *.invalid marker, resets both phases', () => {
     expect(resolveTicketPhases([...needsAttention, ...events('ticket.requeued')])).toEqual({
       triage: { status: 'pending' },
       draft: { status: 'pending' },
@@ -174,6 +174,68 @@ describe('resolveTicketPhases — replay (story 5.4)', () => {
       triage: { status: 'completed' },
       draft: { status: 'pending' },
     });
+  });
+});
+
+describe('resolveTicketPhases — resume from the first bad stage', () => {
+  const draftInvalid = events(
+    'triage.started', 'triage.completed', 'draft.started', 'draft.invalid', 'ticket.needs_attention'
+  );
+  const triageInvalid = events('triage.started', 'triage.invalid', 'ticket.needs_attention');
+
+  it('shows the invalid stage as failed', () => {
+    expect(resolveTicketPhases(draftInvalid)).toEqual({
+      triage: { status: 'completed' },
+      draft: { status: 'failed' },
+    });
+  });
+
+  it('after an invalid draft, keeps the completed triage and resets only the draft', () => {
+    expect(resolveTicketPhases([...draftInvalid, ...events('ticket.requeued')])).toEqual({
+      triage: { status: 'completed' },
+      draft: { status: 'pending' },
+    });
+  });
+
+  it('after an invalid triage, resets both stages', () => {
+    expect(resolveTicketPhases([...triageInvalid, ...events('ticket.requeued')])).toEqual({
+      triage: { status: 'pending' },
+      draft: { status: 'pending' },
+    });
+  });
+
+  it('after a failed triage, resets every stage from triage onward', () => {
+    expect(
+      resolveTicketPhases(events('triage.started', 'triage.failed', 'ticket.failed', 'ticket.requeued'))
+    ).toEqual({
+      triage: { status: 'pending' },
+      draft: { status: 'pending' },
+    });
+  });
+
+  it('keeps the marker across a rolled-back replay', () => {
+    expect(
+      resolveTicketPhases([...draftInvalid, ...events('ticket.requeued', 'ticket.requeue_failed', 'ticket.requeued')])
+    ).toEqual({
+      triage: { status: 'completed' },
+      draft: { status: 'pending' },
+    });
+  });
+
+  it('does not let a marker from an earlier attempt apply to a later unmarked needs_attention', () => {
+    expect(
+      resolveTicketPhases([
+        ...draftInvalid,
+        ...events('ticket.requeued', 'draft.started', 'draft.completed', 'ticket.needs_attention', 'ticket.requeued'),
+      ])
+    ).toEqual({
+      triage: { status: 'pending' },
+      draft: { status: 'pending' },
+    });
+  });
+
+  it('does not count *.invalid as a failure', () => {
+    expect(resolveTicketFailureCounts([...triageInvalid, ...draftInvalid])).toEqual({ triage: 0, draft: 0 });
   });
 });
 

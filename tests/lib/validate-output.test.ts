@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateProcessingOutput } from '../../src/lib/validate-output.js';
+import { validateProcessingOutput, validateTriageOutput, validateDraftOutput } from '../../src/lib/validate-output.js';
 import type { ProcessingResult } from '../../src/repositories/processing.js';
 
 function validResult(): ProcessingResult {
@@ -123,5 +123,33 @@ describe('validateProcessingOutput', () => {
     const output = validateProcessingOutput(result);
     expect(output.valid).toBe(true);
     expect(output.missingFields).toEqual([]);
+  });
+});
+
+describe('validateTriageOutput', () => {
+  it('accepts complete triage output', () => {
+    expect(validateTriageOutput(validResult())).toEqual({ valid: true, missingFields: [] });
+  });
+
+  it('flags blank triage fields and a non-boolean escalate', () => {
+    const triage = { ...validResult(), category: ' ', escalate: undefined as unknown as boolean };
+    expect(validateTriageOutput(triage)).toEqual({ valid: false, missingFields: ['category', 'escalate'] });
+  });
+
+  it('does not look at draft fields', () => {
+    const result: ProcessingResult = { ...validResult(), customerReply: null };
+    expect(validateTriageOutput(result).valid).toBe(true);
+  });
+});
+
+describe('validateDraftOutput', () => {
+  it('accepts a complete draft', () => {
+    expect(validateDraftOutput(validResult())).toEqual({ valid: true, missingFields: [] });
+  });
+
+  it('flags missing draft fields only', () => {
+    expect(
+      validateDraftOutput({ customerReply: '', internalNote: null, nextSteps: ['  '] })
+    ).toEqual({ valid: false, missingFields: ['customerReply', 'internalNote', 'nextSteps'] });
   });
 });

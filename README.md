@@ -186,8 +186,8 @@ await socket.emitWithAck('ops:subscribe'); // resolves to { ok: true } once subs
 ```
 
 Each `ops:ticket_event` payload is `{ ticketId, referenceNumber, event, occurredAt }`, where `event`
-is one of `ticket.submitted`, `triage.started`, `triage.completed`, `triage.failed`, `draft.started`,
-`draft.completed`, `draft.failed`, `ticket.completed`, `ticket.failed`, `ticket.needs_attention`,
+is one of `ticket.submitted`, `triage.started`, `triage.completed`, `triage.failed`, `triage.invalid`,
+`draft.started`, `draft.completed`, `draft.failed`, `draft.invalid`, `ticket.completed`, `ticket.failed`, `ticket.needs_attention`,
 `ticket.requeued` or `ticket.requeue_failed`.
 
 When a ticket runs out of retries, ops also receives `ticket:needs_attention` with
@@ -221,10 +221,25 @@ curl -X POST http://localhost:3000/api/tickets/<ticket-id>/replay
 ```
 
 The ticket goes back to `queued`, its `failure_reason` and `failed_at` are cleared, and `ticket.requeued` is
-recorded. Each replay is a new attempt with a fresh set of retries per stage:
+recorded. Each replay is a new attempt with a fresh set of retries per stage.
 
-- **After `failed`** a stage ran out of retries. Only the failed stage runs again; a completed triage is reused.
-- **After `needs_attention`** both stages finished but their output was unusable, so both run again.
+A replay continues from where the ticket stopped. A stage that already completed successfully never runs
+again: its saved output is reused.
+
+- **Draft failed or its output was unusable** → only the draft runs again, using the saved triage.
+- **Triage failed or its output was unusable** → triage runs again, and so does the draft, because it is
+  written from the triage.
+- **Finalizing failed** (both stages done) → no stage runs again; the ticket is only finalized.
+
+Each stage's output is checked as soon as the stage runs. Unusable output is recorded as `triage.invalid` or
+`draft.invalid`, and the ticket goes to `needs_attention` (`incomplete_output`). An invalid triage stops the
+ticket before the draft is written. The marker tells a replay which stage to start from. Older
+`needs_attention` tickets without a marker re-run any stage whose saved output is missing or unusable.
+
+The worker skips a stage based on its **saved output**, not the event history. If a worker crashes after
+saving a stage's output but before recording `*.completed`, the next attempt reuses that output and
+records `*.completed` with the detail `reused stored output`. If the history says a stage completed but
+its output is missing, the stage runs again.
 
 | Response | When |
 |---|---|
