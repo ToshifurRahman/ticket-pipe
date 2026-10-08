@@ -12,8 +12,8 @@ import {
 import {
   upsertTriageOutput,
   completeDraftOutput,
-  getTriageOutputByTicketId,
   getProcessingResultByTicketId,
+  type ProcessingResult,
 } from './repositories/processing.js';
 import { getAllEventsByTicketId } from './repositories/events.js';
 import { recordTicketEvent, type TicketRef } from './services/ticket-events.js';
@@ -38,8 +38,15 @@ import {
   resolveTicketFailureCounts,
   type TriageOutput,
   type DraftOutput,
+  type TicketPhaseStatus,
 } from './lib/ticket-phases.js';
-import { validateProcessingOutput } from './lib/validate-output.js';
+import {
+  validateProcessingOutput,
+  validateTriageOutput,
+  validateDraftOutput,
+  type DraftFields,
+  type ValidationResult,
+} from './lib/validate-output.js';
 
 if (!process.env.GOOGLE_API_KEY) throw new Error('GOOGLE_API_KEY environment variable is required');
 if (!process.env.PORTKEY_API_KEY) throw new Error('PORTKEY_API_KEY environment variable is required');
@@ -137,6 +144,51 @@ async function setNeedsAttention(
   await deleteMessage(receiptHandle);
 }
 
+function incompleteOutputDetail(validation: ValidationResult): string {
+  return `Incomplete output: missing fields [${validation.missingFields.join(', ')}]`;
+}
+
+// The stage ran but its output is unusable. `<stage>.invalid` marks which stage it was, so a
+// replay re-runs from there and keeps the stages before it (see resolveTicketPhases).
+async function setStageInvalid(
+  ticket: TicketRef,
+  stage: 'triage' | 'draft',
+  validation: ValidationResult,
+  receiptHandle: string
+): Promise<void> {
+  const detail = incompleteOutputDetail(validation);
+  await recordTicketEvent(ticket, `${stage}.invalid`, detail);
+  emitTicketUpdate(ticket.id, `${stage}.invalid`);
+  await setNeedsAttention(ticket, 'incomplete_output', detail, receiptHandle);
+}
+
+// A stage is skipped because its saved output is valid. If the history doesn't already say it
+// completed (a crash right after the output was saved), record that now so the phases agree.
+async function reuseStoredStage(
+  ticket: TicketRef,
+  stage: 'triage' | 'draft',
+  phaseStatus: TicketPhaseStatus
+): Promise<void> {
+  if (phaseStatus === 'completed') {
+    logger.info({ ticketId: ticket.id, stage }, 'Stage already completed, reusing its saved output');
+    return;
+  }
+  await recordTicketEvent(ticket, `${stage}.completed`, 'reused stored output');
+  emitTicketUpdate(ticket.id, `${stage}.completed`);
+  logger.info({ ticketId: ticket.id, stage }, 'Stage output already saved, reusing it');
+}
+
+function pickTriageOutput(result: ProcessingResult): TriageOutput {
+  return {
+    category: result.category,
+    priority: result.priority,
+    sentiment: result.sentiment,
+    escalate: result.escalate,
+    recommendedTeam: result.recommendedTeam,
+    issueSummary: result.issueSummary,
+  };
+}
+
 export async function processMessage(
   ticketId: string,
   receiptHandle: string,
@@ -193,13 +245,23 @@ async function runPipeline(
 
   logger.info({ ticketId }, 'Processing ticket');
 
-  // TRIAGE STAGE
-  let triageOutput: Awaited<ReturnType<typeof getTriageOutputByTicketId>>;
+  // The saved output, not the event history, decides whether a stage is skipped: a stage whose
+  // output is already saved and valid never runs again. That covers a resume after a replay, a
+  // retry, and a crash between saving the output and recording `*.completed`. A stage that runs
+  // makes every later stage's saved output stale, so those run too.
+  const stored = await getProcessingResultByTicketId(ticketId);
 
-  if (phases.triage.status === 'completed') {
-    triageOutput = await getTriageOutputByTicketId(ticketId);
-    logger.info({ ticketId }, 'Triage already completed, resuming from draft');
+  // TRIAGE STAGE
+  let triageOutput: TriageOutput;
+  let triageRan = false;
+
+  if (stored && validateTriageOutput(stored).valid) {
+    triageOutput = pickTriageOutput(stored);
+    await reuseStoredStage(ticket, 'triage', phases.triage.status);
   } else {
+    if (phases.triage.status === 'completed') {
+      logger.warn({ ticketId }, 'Triage is marked completed but its saved output is missing or invalid; running it again');
+    }
     if (failureCounts.triage >= MAX_ATTEMPTS) {
       await setFailed(ticket, 'triage_retries_exhausted', 'Max triage attempts reached', receiptHandle);
       return;
@@ -209,10 +271,7 @@ async function runPipeline(
       await recordTicketEvent(ticket, 'triage.started');
       emitTicketUpdate(ticketId, 'triage.started');
       triageOutput = await ai.triage(ticketId, ticket.subject, ticket.description);
-      await upsertTriageOutput(ticketId, triageOutput!);
-      await recordTicketEvent(ticket, 'triage.completed');
-      emitTicketUpdate(ticketId, 'triage.completed');
-      logger.info({ ticketId }, 'Triage complete');
+      await upsertTriageOutput(ticketId, triageOutput);
     } catch (err) {
       const message = (err as Error).message;
       await recordTicketEvent(ticket, 'triage.failed', message);
@@ -223,25 +282,38 @@ async function runPipeline(
       }
       throw err;
     }
+    triageRan = true;
+
+    // Checked before the draft: a draft written from unusable triage would be thrown away anyway.
+    const validation = validateTriageOutput(triageOutput);
+    if (!validation.valid) {
+      await setStageInvalid(ticket, 'triage', validation, receiptHandle);
+      return;
+    }
+    await recordTicketEvent(ticket, 'triage.completed');
+    emitTicketUpdate(ticketId, 'triage.completed');
+    logger.info({ ticketId }, 'Triage complete');
   }
 
   // DRAFT STAGE
-  if (phases.draft.status === 'completed') {
-    logger.info({ ticketId }, 'Draft already completed, resuming from validation');
+  if (!triageRan && stored && validateDraftOutput(stored).valid) {
+    await reuseStoredStage(ticket, 'draft', phases.draft.status);
   } else {
+    if (!triageRan && phases.draft.status === 'completed') {
+      logger.warn({ ticketId }, 'Draft is marked completed but its saved output is missing or invalid; running it again');
+    }
     if (failureCounts.draft >= MAX_ATTEMPTS) {
       await setFailed(ticket, 'draft_retries_exhausted', 'Max draft attempts reached', receiptHandle);
       return;
     }
 
+    let draft: DraftFields;
     try {
       await recordTicketEvent(ticket, 'draft.started');
       emitTicketUpdate(ticketId, 'draft.started');
-      const draft = await ai.draft(ticketId, ticket.subject, ticket.description, triageOutput!);
-      await completeDraftOutput(ticketId, draft);
-      await recordTicketEvent(ticket, 'draft.completed');
-      emitTicketUpdate(ticketId, 'draft.completed');
-      logger.info({ ticketId }, 'Draft complete');
+      const output = await ai.draft(ticketId, ticket.subject, ticket.description, triageOutput);
+      await completeDraftOutput(ticketId, output);
+      draft = output;
     } catch (err) {
       const message = (err as Error).message;
       await recordTicketEvent(ticket, 'draft.failed', message);
@@ -252,9 +324,19 @@ async function runPipeline(
       }
       throw err;
     }
+
+    const validation = validateDraftOutput(draft);
+    if (!validation.valid) {
+      await setStageInvalid(ticket, 'draft', validation, receiptHandle);
+      return;
+    }
+    await recordTicketEvent(ticket, 'draft.completed');
+    emitTicketUpdate(ticketId, 'draft.completed');
+    logger.info({ ticketId }, 'Draft complete');
   }
 
   // VALIDATE OUTPUTS
+  // Each stage is validated as it runs; this re-checks the saved row as a whole before finalizing.
   const processingResult = await getProcessingResultByTicketId(ticketId);
   if (!processingResult) {
     await setNeedsAttention(ticket, 'processing_result_missing', 'Processing result not found', receiptHandle);
@@ -263,8 +345,7 @@ async function runPipeline(
 
   const validation = validateProcessingOutput(processingResult);
   if (!validation.valid) {
-    const detail = `Incomplete output: missing fields [${validation.missingFields.join(', ')}]`;
-    await setNeedsAttention(ticket, 'incomplete_output', detail, receiptHandle);
+    await setNeedsAttention(ticket, 'incomplete_output', incompleteOutputDetail(validation), receiptHandle);
     return;
   }
 

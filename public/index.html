@@ -439,7 +439,7 @@
       historyCard.style.display = 'block';
       const rows = events.map(e => {
         const label = e.event.replace('.', ' ');
-        const cls = e.event.endsWith('.failed') ? 'failed'
+        const cls = e.event.endsWith('.failed') || e.event.endsWith('.invalid') ? 'failed'
                   : e.event.endsWith('.completed') ? 'completed' : '';
         const time = new Date(e.occurredAt).toLocaleTimeString();
         const detail = e.detail ? `<span class="evt-detail">— ${e.detail}</span>` : '';

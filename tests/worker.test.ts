@@ -31,7 +31,7 @@ import { pool } from '../src/lib/db.js';
 import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 import { insertTicket, getTicketById } from '../src/repositories/tickets.js';
 import { getAllEventsByTicketId, insertEvent } from '../src/repositories/events.js';
-import { getProcessingResultByTicketId, upsertTriageOutput } from '../src/repositories/processing.js';
+import { getProcessingResultByTicketId, upsertTriageOutput, completeDraftOutput } from '../src/repositories/processing.js';
 import { deleteMessage } from '../src/lib/queue.js';
 import { processMessage } from '../src/worker.js';
 import { replayTicket } from '../src/services/tickets.js';
@@ -287,7 +287,6 @@ describe('processMessage — ops feed privacy (story 4.5)', () => {
 
   it('keeps AI output out of the ops alert when the output is incomplete', async () => {
     mockTriage.mockResolvedValueOnce({ ...TRIAGE_RESULT, category: '   ', issueSummary: `summary ${SENTINEL}` });
-    mockDraft.mockResolvedValueOnce({ ...DRAFT_RESULT, customerReply: `reply ${SENTINEL}` });
     const ticket = await insertTicket('TICK-PRIV-004', 'Sub', 'Desc');
     createdIds.push(ticket.id);
 
@@ -648,10 +647,9 @@ describe('processMessage — retry behaviour', () => {
 });
 
 describe('processMessage — output validation', () => {
-  it('marks ticket needs_attention when triage output has empty category', async () => {
+  it('marks ticket needs_attention when triage output has empty category, without drafting', async () => {
     const incompleteTriageResult = { ...TRIAGE_RESULT, category: '' };
     mockTriage.mockResolvedValueOnce(incompleteTriageResult);
-    mockDraft.mockResolvedValueOnce(DRAFT_RESULT);
     const ticket = await insertTicket('TICK-WKR-019', 'Sub', 'Desc');
     createdIds.push(ticket.id);
 
@@ -659,10 +657,26 @@ describe('processMessage — output validation', () => {
 
     const updated = await getTicketById(ticket.id);
     expect(updated.status).toBe('needs_attention');
+    expect(mockDraft).not.toHaveBeenCalled();
     const events = await getAllEventsByTicketId(ticket.id);
+    expect(events.map(e => e.event)).toEqual(['triage.started', 'triage.invalid', 'ticket.needs_attention']);
     const needsAttention = events.find(e => e.event === 'ticket.needs_attention');
-    expect(needsAttention).toBeDefined();
     expect(needsAttention!.detail).toContain('category');
+  });
+
+  it('records draft.invalid and keeps the completed triage when the draft output is incomplete', async () => {
+    mockTriage.mockResolvedValueOnce(TRIAGE_RESULT);
+    mockDraft.mockResolvedValueOnce({ ...DRAFT_RESULT, internalNote: '' });
+    const ticket = await insertTicket('TICK-WKR-020B', 'Sub', 'Desc');
+    createdIds.push(ticket.id);
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+
+    const events = await getAllEventsByTicketId(ticket.id);
+    expect(events.map(e => e.event)).toEqual([
+      'triage.started', 'triage.completed', 'draft.started', 'draft.invalid', 'ticket.needs_attention',
+    ]);
+    expect(events.find(e => e.event === 'draft.invalid')!.detail).toContain('internalNote');
   });
 
   it('marks ticket needs_attention when draft output has empty nextSteps', async () => {
@@ -685,7 +699,6 @@ describe('processMessage — output validation', () => {
   it('does not write ticket.completed event on validation failure', async () => {
     const incompleteTriageResult = { ...TRIAGE_RESULT, sentiment: '' };
     mockTriage.mockResolvedValueOnce(incompleteTriageResult);
-    mockDraft.mockResolvedValueOnce(DRAFT_RESULT);
     const ticket = await insertTicket('TICK-WKR-021', 'Sub', 'Desc');
     createdIds.push(ticket.id);
 
@@ -698,7 +711,6 @@ describe('processMessage — output validation', () => {
   it('emits ticket:needs_attention to ops room on validation failure', async () => {
     const incompleteTriageResult = { ...TRIAGE_RESULT, category: '   ' };
     mockTriage.mockResolvedValueOnce(incompleteTriageResult);
-    mockDraft.mockResolvedValueOnce(DRAFT_RESULT);
     const ticket = await insertTicket('TICK-WKR-022', 'Sub', 'Desc');
     createdIds.push(ticket.id);
 
@@ -857,9 +869,97 @@ describe('ops recovery end to end (story 5.4)', () => {
     expect(mockTriage).not.toHaveBeenCalled();
     expect(mockDraft).toHaveBeenCalledTimes(1);
     expect((await getTicketById(ticket.id)).status).toBe('completed');
+    // The customer gets their reply, built on the triage from before the failure.
+    const completed = mockEmit.mock.calls
+      .map(([, payload]) => payload as Record<string, any>)
+      .find(p => p.event === 'ticket.completed');
+    expect(completed?.triage).toEqual(TRIAGE_RESULT);
+    expect(completed?.draft.customerReply).toBe(DRAFT_RESULT.customerReply);
   });
 
-  it('re-runs both stages for a needs_attention ticket and completes it', async () => {
+  it('re-runs only the draft for a ticket whose draft output was invalid', async () => {
+    const ticket = await insertTicket('TICK-RECOVER-003', 'Login broken', 'Cannot sign in');
+    createdIds.push(ticket.id);
+    mockTriage.mockResolvedValueOnce(TRIAGE_RESULT);
+    mockDraft.mockResolvedValueOnce({ ...DRAFT_RESULT, nextSteps: [] });
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+    expect((await getTicketById(ticket.id)).status).toBe('needs_attention');
+
+    await replayTicket(ticket.id);
+    vi.clearAllMocks();
+    mockDraft.mockResolvedValueOnce(DRAFT_RESULT);
+    await processMessage(ticket.id, 'fake-receipt-2', 1, mockAi());
+
+    expect(mockTriage).not.toHaveBeenCalled();
+    expect(mockDraft).toHaveBeenCalledTimes(1);
+    expect((await getTicketById(ticket.id)).status).toBe('completed');
+  });
+
+  it('re-runs both stages for a ticket whose triage output was invalid', async () => {
+    const ticket = await insertTicket('TICK-RECOVER-004', 'Login broken', 'Cannot sign in');
+    createdIds.push(ticket.id);
+    mockTriage.mockResolvedValueOnce({ ...TRIAGE_RESULT, category: '' });
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+    expect((await getTicketById(ticket.id)).status).toBe('needs_attention');
+
+    await replayTicket(ticket.id);
+    mockAiSuccess();
+    await processMessage(ticket.id, 'fake-receipt-2', 1, mockAi());
+
+    expect(mockTriage).toHaveBeenCalledTimes(2);
+    expect(mockDraft).toHaveBeenCalledTimes(1);
+    expect((await getTicketById(ticket.id)).status).toBe('completed');
+  });
+
+  it('reuses triage output saved just before a crash, without running triage again', async () => {
+    const ticket = await insertTicket('TICK-RECOVER-005', 'Login broken', 'Cannot sign in');
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
+    await insertEvent(ticket.id, 'triage.started');
+    await upsertTriageOutput(ticket.id, TRIAGE_RESULT);
+    mockDraft.mockResolvedValueOnce(DRAFT_RESULT);
+
+    await processMessage(ticket.id, 'fake-receipt', 2, mockAi());
+
+    expect(mockTriage).not.toHaveBeenCalled();
+    expect(mockDraft).toHaveBeenCalledTimes(1);
+    const events = await getAllEventsByTicketId(ticket.id);
+    expect(events.map(e => e.event)).toEqual([
+      'triage.started', 'triage.completed', 'draft.started', 'draft.completed', 'ticket.completed',
+    ]);
+    expect(events[1]!.detail).toBe('reused stored output');
+  });
+
+  it('runs triage again when the history says completed but no output was saved', async () => {
+    const ticket = await insertTicket('TICK-RECOVER-006', 'Login broken', 'Cannot sign in');
+    createdIds.push(ticket.id);
+    await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
+    await insertEvent(ticket.id, 'triage.started');
+    await insertEvent(ticket.id, 'triage.completed');
+    mockAiSuccess();
+
+    await processMessage(ticket.id, 'fake-receipt', 2, mockAi());
+
+    expect(mockTriage).toHaveBeenCalledTimes(1);
+    expect(mockDraft).toHaveBeenCalledWith(ticket.id, 'Login broken', 'Cannot sign in', TRIAGE_RESULT);
+    expect((await getTicketById(ticket.id)).status).toBe('completed');
+  });
+
+  it('does not reuse a saved draft once triage has run again', async () => {
+    const ticket = await insertTicket('TICK-RECOVER-007', 'Login broken', 'Cannot sign in');
+    createdIds.push(ticket.id);
+    await upsertTriageOutput(ticket.id, { ...TRIAGE_RESULT, category: '' });
+    await completeDraftOutput(ticket.id, { ...DRAFT_RESULT, customerReply: 'stale reply' });
+    mockAiSuccess();
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+
+    expect(mockTriage).toHaveBeenCalledTimes(1);
+    expect(mockDraft).toHaveBeenCalledTimes(1);
+    expect((await getProcessingResultByTicketId(ticket.id))!.customerReply).toBe(DRAFT_RESULT.customerReply);
+  });
+
+  it('re-runs both stages for an older needs_attention ticket with no marker and no saved output', async () => {
     const ticket = await insertTicket('TICK-RECOVER-002', 'Login broken', 'Cannot sign in');
     createdIds.push(ticket.id);
     for (const event of ['triage.started', 'triage.completed', 'draft.started', 'draft.completed', 'ticket.needs_attention']) {
