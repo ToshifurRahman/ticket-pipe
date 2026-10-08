@@ -13,7 +13,7 @@ services:
     ports:
       - "4566:4566"
     environment:
-      SERVICES: sqs
+      SERVICES: sqs,sns
 
   redis:
     image: redis:7-alpine

@@ -23,6 +23,7 @@ import {
   type NeedsAttentionReason,
   type FailureReason,
 } from './services/ops-feed.js';
+import { alertNeedsAttention } from './services/ops-alerts.js';
 import { emitTicketUpdate } from './services/ticket-updates.js';
 import { UUID_RE } from './lib/ids.js';
 import {
@@ -127,6 +128,8 @@ async function setFailed(
 // `detail` (the raw error text) goes into the ticket's event history only. Ops is told
 // *that* a ticket needs attention and a fixed `reason`, never the text itself: it can
 // quote AI output or customer content (story 4.5).
+// The ops email (story 5.7) goes out only when this call actually moved the ticket into
+// needs_attention, so a redelivered message can't send a second email.
 async function setNeedsAttention(
   ticket: TicketRef,
   reason: NeedsAttentionReason,
@@ -141,6 +144,9 @@ async function setNeedsAttention(
   }
   emitTicketUpdate(ticketId, 'ticket.needs_attention');
   publishNeedsAttention(ticket, reason);
+  if (marked) {
+    alertNeedsAttention({ ticketId, referenceNumber: ticket.referenceNumber, reason, occurredAt: new Date() });
+  }
   await deleteMessage(receiptHandle);
 }
 
