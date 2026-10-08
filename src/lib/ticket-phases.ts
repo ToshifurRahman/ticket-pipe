@@ -43,13 +43,20 @@ const PHASE_TRANSITIONS = {
   'draft.started': { phase: 'draft', status: 'processing' },
   'draft.completed': { phase: 'draft', status: 'completed' },
   'draft.failed': { phase: 'draft', status: 'failed' },
+  // The stage ran but its output was unusable. Not a retryable error, so it is not counted by
+  // resolveTicketFailureCounts.
+  'triage.invalid': { phase: 'triage', status: 'failed' },
+  'draft.invalid': { phase: 'draft', status: 'failed' },
 } satisfies Record<string, { phase: PhaseName; status: TicketPhaseStatus }>;
 
-// A replay (`ticket.requeued`) is a new attempt. What it resets depends on how the ticket ended:
-// - after `ticket.failed`, a stage ran out of attempts; only failed stages start over and completed
-//   ones are reused (resume).
-// - after `ticket.needs_attention`, both stages completed but their output was unusable, so both
-//   start over; resuming would just re-validate the same output.
+// Pipeline order: a stage's output feeds every stage after it.
+const PHASE_ORDER = ['triage', 'draft'] as const satisfies ReadonlyArray<PhaseName>;
+
+// A replay (`ticket.requeued`) is a new attempt that continues from where the ticket stopped: the
+// first failed stage (`*.failed` or `*.invalid`) and every stage after it start over, because later
+// stages were built on its output. Earlier completed stages are kept.
+// A `ticket.needs_attention` with no `*.invalid` marker (recorded before the markers existed, or a
+// missing processing result) can't say which stage was bad, so both start over.
 // `ticket.requeue_failed` means the replay was rolled back, so the state from before it comes back.
 export function resolveTicketPhases(events: ReadonlyArray<TicketEventLike>): TicketPhases {
   let phases: TicketPhases = {
@@ -57,7 +64,8 @@ export function resolveTicketPhases(events: ReadonlyArray<TicketEventLike>): Tic
     draft: { status: 'pending' },
   };
   let lastTerminal: 'ticket.failed' | 'ticket.needs_attention' | null = null;
-  let beforeRequeue: TicketPhases | null = null;
+  let sawInvalid = false;
+  let beforeRequeue: { phases: TicketPhases; sawInvalid: boolean } | null = null;
 
   for (const { event } of events) {
     if (event === 'ticket.failed' || event === 'ticket.needs_attention') {
@@ -65,19 +73,21 @@ export function resolveTicketPhases(events: ReadonlyArray<TicketEventLike>): Tic
       continue;
     }
     if (event === 'ticket.requeued') {
-      beforeRequeue = clonePhases(phases);
-      for (const name of ['triage', 'draft'] as const) {
-        if (lastTerminal === 'ticket.needs_attention' || phases[name].status === 'failed') {
-          phases[name] = { status: 'pending' };
-        }
+      beforeRequeue = { phases: clonePhases(phases), sawInvalid };
+      let resetting = lastTerminal === 'ticket.needs_attention' && !sawInvalid;
+      for (const name of PHASE_ORDER) {
+        if (phases[name].status === 'failed') resetting = true;
+        if (resetting) phases[name] = { status: 'pending' };
       }
+      sawInvalid = false;
       continue;
     }
     if (event === 'ticket.requeue_failed') {
-      if (beforeRequeue) phases = beforeRequeue;
+      if (beforeRequeue) ({ phases, sawInvalid } = beforeRequeue);
       beforeRequeue = null;
       continue;
     }
+    if (event === 'triage.invalid' || event === 'draft.invalid') sawInvalid = true;
     const transition = PHASE_TRANSITIONS[event as keyof typeof PHASE_TRANSITIONS];
     if (!transition) continue;
     phases[transition.phase].status = transition.status;
