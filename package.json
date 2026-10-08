@@ -15,6 +15,7 @@
     "src/**/*.{ts,tsx}": "eslint --fix"
   },
   "dependencies": {
+    "@aws-sdk/client-sns": "^3.1147.0",
     "@aws-sdk/client-sqs": "^3.758.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "@socket.io/redis-emitter": "^5.1.0",
