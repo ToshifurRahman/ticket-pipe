@@ -1,8 +1,15 @@
 import type { ProcessingResult } from '../repositories/processing.js';
+import type { TriageOutput } from './ticket-phases.js';
 
 export interface ValidationResult {
   valid: boolean;
   missingFields: string[];
+}
+
+export interface DraftFields {
+  customerReply: string | null;
+  internalNote: string | null;
+  nextSteps: string[] | null;
 }
 
 const TRIAGE_FIELDS = [
@@ -13,38 +20,47 @@ const TRIAGE_FIELDS = [
   'issueSummary',
 ] as const;
 
-export function validateProcessingOutput(result: ProcessingResult): ValidationResult {
-  const missingFields: string[] = [];
+function isBlank(value: unknown): boolean {
+  return typeof value !== 'string' || value.trim() === '';
+}
 
-  for (const field of TRIAGE_FIELDS) {
-    const value = result[field];
-    if (typeof value !== 'string' || value.trim() === '') {
-      missingFields.push(field);
-    }
-  }
+function result(missingFields: string[]): ValidationResult {
+  return { valid: missingFields.length === 0, missingFields };
+}
 
-  if (typeof result.escalate !== 'boolean') {
+export function validateTriageOutput(triage: TriageOutput): ValidationResult {
+  const missingFields: string[] = TRIAGE_FIELDS.filter(field => isBlank(triage[field]));
+  if (typeof triage.escalate !== 'boolean') {
     missingFields.push('escalate');
   }
+  return result(missingFields);
+}
 
-  if (typeof result.customerReply !== 'string' || result.customerReply.trim() === '') {
+export function validateDraftOutput(draft: DraftFields): ValidationResult {
+  const missingFields: string[] = [];
+
+  if (isBlank(draft.customerReply)) {
     missingFields.push('customerReply');
   }
 
-  if (typeof result.internalNote !== 'string' || result.internalNote.trim() === '') {
+  if (isBlank(draft.internalNote)) {
     missingFields.push('internalNote');
   }
 
   if (
-    !Array.isArray(result.nextSteps) ||
-    result.nextSteps.length === 0 ||
-    result.nextSteps.every(step => typeof step !== 'string' || step.trim() === '')
+    !Array.isArray(draft.nextSteps) ||
+    draft.nextSteps.length === 0 ||
+    draft.nextSteps.every(isBlank)
   ) {
     missingFields.push('nextSteps');
   }
 
-  return {
-    valid: missingFields.length === 0,
-    missingFields,
-  };
+  return result(missingFields);
+}
+
+export function validateProcessingOutput(processing: ProcessingResult): ValidationResult {
+  return result([
+    ...validateTriageOutput(processing).missingFields,
+    ...validateDraftOutput(processing).missingFields,
+  ]);
 }
