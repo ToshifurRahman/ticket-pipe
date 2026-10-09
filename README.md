@@ -1,8 +1,8 @@
 # Ticket-Pipeline
 
-An AI-powered ticket processing system that automatically analyzes support tickets, performs intelligent triage, and generates response drafts using LLMs. Built with Express.js, PostgreSQL, AWS SQS, and LangChain.
+An AI-powered ticket processing system that automatically analyzes support tickets, performs intelligent triage, and generates response drafts using LLMs. Built with Hono on Bun, PostgreSQL, AWS SQS, and LangChain.
 
-![Node.js](https://img.shields.io/badge/node.js-v20+-green) ![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-13+-blue)
+![Bun](https://img.shields.io/badge/bun-v1.3+-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-13+-blue)
 
 ## Table of Contents
 
@@ -20,8 +20,8 @@ An AI-powered ticket processing system that automatically analyzes support ticke
 
 ### Prerequisites
 
-- **Node.js** v20 or higher (the runtime; TypeScript runs through `tsx`)
-- **Bun** v1.3 or higher (the package manager; there is no `package-lock.json`, only `bun.lock`)
+- **Bun** v1.3 or higher (the runtime for the API, worker and scripts, and the package manager; there is no `package-lock.json`, only `bun.lock`). Bun runs TypeScript directly.
+- **Node.js** v20 or higher (only the test runner, Vitest, runs on Node)
 - **PostgreSQL** 13 or higher
 - **AWS Account** (for SQS)
 - **API Keys**:
@@ -100,7 +100,7 @@ curl http://localhost:3000/api/tickets/550e8400-e29b-41d4-a716-446655440000
 ```
 User/Portal
     ↓
-[Express API Server] → [PostgreSQL Database]
+[Hono API Server (Bun)] → [PostgreSQL Database]
     ↓                      ↑
 [AWS SQS Queue] ← → [Background Worker]
                          ↓
@@ -114,7 +114,7 @@ User/Portal
 ### Key Components
 
 #### 1. **API Server** (`src/index.ts`)
-- Express.js REST API for ticket submission and status tracking
+- Hono REST API on Bun for ticket submission and status tracking
 - WebSocket support via Socket.io for real-time updates
 - Request validation using Zod schemas
 - Error handling and logging with Pino
@@ -214,14 +214,14 @@ ticket UUID and nothing else), so they cannot subscribe to the feed.
 
 ## Web App
 
-The UI is a React single-page app in `web/` (Vite, TypeScript, Tailwind v4, shadcn/ui). It is a separate package with its own `package.json`; Express serves the built `web/dist` on the same origin as the API, with deep links such as `/t/<reference>` falling back to `index.html`.
+The UI is a React single-page app in `web/` (Vite, TypeScript, Tailwind v4, shadcn/ui). It is a separate package with its own `package.json`; the API serves the built `web/dist` on the same origin as the API, with deep links such as `/t/<reference>` falling back to `index.html`.
 
 ```bash
 # Development: API on :3000 plus the Vite dev server on :5173 (proxies /api and /socket.io)
 bun run dev
 bun run web:dev
 
-# Production-style: build once, then Express serves it on :3000
+# Production-style: build once, then the API serves it on :3000
 bun run build
 bun run dev
 ```
@@ -401,7 +401,9 @@ GROUP BY outcome;
 ```
 ticket-pipe/
 ├── src/
-│   ├── index.ts                 # Express app entry point
+│   ├── index.ts                 # Entry point: boots Socket.io + Bun.serve
+│   ├── app.ts                   # The Hono app (routes, middleware, error handling)
+│   ├── server.ts                # Bun.serve wiring for the app and Socket.io's Bun engine
 │   ├── worker.ts                # Background worker process
 │   ├── routes/
 │   │   ├── tickets.ts           # Ticket API routes
@@ -439,6 +441,10 @@ ticket-pipe/
 └── README.md                   # This file
 ```
 
+## Deployment
+
+The `Dockerfile` builds the web app and runs the API on `oven/bun`; the same image runs the worker with `docker run <image> bun src/worker.ts`. Render supports Bun both natively and through Docker, and WebSocket connections are supported on its free web services.
+
 ## Development Guide
 
 ### Running Tests
@@ -461,7 +467,9 @@ bun run test --coverage
 
 **Test Structure**:
 - `tests/` contains integration tests for repositories, services, and worker
-- Tests use Vitest and Supertest for HTTP endpoint testing
+- Tests run on Node under Vitest. HTTP tests call the Hono app in-process through `tests/helpers/request.ts` (no port is opened)
+- `tests/bun-server.integration.test.ts` boots the real server under Bun, because Socket.io's Bun engine only loads there
+- Vitest cannot run on Bun: `vi.mock` does not take effect, so keep `vitest` on Node
 - Database tests use a test database (configured in vitest.config.ts)
 
 ### Code Quality
