@@ -9,6 +9,7 @@ An AI-powered ticket processing system that automatically analyzes support ticke
 - [Quick Start](#quick-start)
 - [Architecture Overview](#architecture-overview)
 - [Features](#features)
+- [Web App](#web-app)
 - [Ops Email Alerts](#ops-email-alerts)
 - [Ticket History](#ticket-history)
 - [AI Observability](#ai-observability)
@@ -210,6 +211,39 @@ Every event goes through `recordTicketEvent()` (`src/services/ticket-events.ts`)
 and never affects ticket processing. Customers join only their own ticket room (`join` accepts a
 ticket UUID and nothing else), so they cannot subscribe to the feed.
 
+## Web App
+
+The UI is a React single-page app in `web/` (Vite, TypeScript, Tailwind v4, shadcn/ui). It is a separate package with its own `package.json`; Express serves the built `web/dist` on the same origin as the API, with deep links such as `/t/<reference>` falling back to `index.html`.
+
+```bash
+# Development: API on :3000 plus the Vite dev server on :5173 (proxies /api and /socket.io)
+npm run dev
+npm run web:dev
+
+# Production-style: build once, then Express serves it on :3000
+npm run build
+npm run dev
+```
+
+If `web/dist` has not been built, the API starts normally and logs a warning; only the UI is missing.
+
+### Testing without an AI provider
+
+`LLM_MODE=fake` returns canned triage and draft output at the provider boundary, so tickets complete without Portkey or any API key. Everything above that layer still runs for real (retries, validation, `ai_interactions` rows with model `fake`, events, notifications).
+
+| Setting | Effect |
+|---|---|
+| `LLM_FAKE_DELAY_MS` | Delay per fake call (default `1500`, so the typing indicators are visible). Tests use `0`. |
+| `[fake:invalid-triage]` in a description | Triage returns blank fields, so the ticket goes to `needs_attention` |
+| `[fake:invalid-draft]` in a description | Draft returns a blank reply, so the ticket goes to `needs_attention` |
+
+The API and the worker both refuse to start with `LLM_MODE=fake` when `NODE_ENV=production`, and with any `LLM_MODE` other than `real` or `fake`.
+
+```bash
+npm run test:web    # web unit tests (Vitest + Testing Library + MSW)
+npm run test:e2e    # Playwright against the built app; needs `docker compose up -d`, `npm run migrate`, `npm run setup`
+```
+
 ## Ops Email Alerts
 
 The live feed only helps while someone has it open. When a ticket enters `needs_attention`, the worker also
@@ -385,6 +419,7 @@ ticket-pipe/
 │       ├── ticket-graph.ts      # LangGraph orchestration
 │       ├── ticket-phases.ts     # Phase state machine logic
 │       ├── queue.ts             # AWS SQS wrapper
+│       ├── web-app.ts           # Serves web/dist with an SPA fallback
 │       ├── sns.ts               # AWS SNS client (null when alerts are off)
 │       ├── socket.ts            # Socket.io initialization
 │       ├── db.ts                # PostgreSQL connection pool
@@ -393,7 +428,8 @@ ticket-pipe/
 │       └── reference.ts         # Reference number generation
 ├── migrations/                  # Database schema migrations
 ├── tests/                       # Test suite (Vitest)
-├── public/                      # Static files (if any)
+├── web/                         # React app (separate package; built to web/dist)
+├── e2e/                         # Playwright smoke tests
 ├── package.json                 # Dependencies and scripts
 ├── tsconfig.json               # TypeScript configuration
 ├── vitest.config.ts            # Test runner configuration

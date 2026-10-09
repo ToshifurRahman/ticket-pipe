@@ -20,6 +20,7 @@ function parseEnvFile(path: string): Record<string, string> {
 export default defineConfig({
   test: {
     environment: 'node',
+    include: ['tests/**/*.test.ts'],
     env: { NODE_ENV: 'test', PORTKEY_API_KEY: 'test-portkey-key', ...parseEnvFile('.env'), SQS_QUEUE_NAME: 'ticket-processing-test' },
     testTimeout: 30000,
   },
