@@ -8,17 +8,20 @@ import { init as initSocket, shutdown as shutdownSocket } from './lib/socket.js'
 import { healthRouter } from './routes/health.js';
 import { opsRouter } from './routes/ops.js';
 import { ticketsRouter } from './routes/tickets.js';
+import { assertLlmModeAllowed } from './lib/llm-client.js';
+import { apiNotFound, mountWebApp } from './lib/web-app.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
 
 app.use('/health', healthRouter);
 app.use('/api/tickets', ticketsRouter);
 app.use('/api/ops', opsRouter);
+app.use('/api', apiNotFound);
+mountWebApp(app, path.join(__dirname, '../web/dist'));
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof TicketNotFoundError) {
@@ -47,6 +50,7 @@ function installShutdownHandlers(httpServer: Server): void {
 }
 
 if (process.argv[1] === __filename) {
+  assertLlmModeAllowed();
   const port = Number(process.env.PORT ?? 3000);
   const httpServer = createServer(app);
   initSocket(httpServer)

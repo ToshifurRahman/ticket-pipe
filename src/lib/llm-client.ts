@@ -53,6 +53,40 @@ export interface LlmCallResult<T> {
   httpStatus: number;
 }
 
+export type LlmMode = 'real' | 'fake';
+
+// `fake` returns canned output at the provider boundary so the UI can be tested end to end
+// without a provider call. Everything above this layer (recording, validation, events)
+// still runs for real.
+export function getLlmMode(): LlmMode {
+  const raw = process.env.LLM_MODE;
+  if (raw === undefined || raw === '' || raw === 'real') return 'real';
+  if (raw === 'fake') return 'fake';
+  throw new Error(`LLM_MODE must be "real" or "fake", got "${raw}"`);
+}
+
+// Called by every process at startup. Throws on a typo (so real traffic is never sent by
+// accident) and refuses fake mode in production.
+export function assertLlmModeAllowed(): void {
+  if (getLlmMode() === 'fake' && process.env.NODE_ENV === 'production') {
+    throw new Error('LLM_MODE=fake is not allowed when NODE_ENV=production');
+  }
+}
+
+const FAKE_INVALID_TRIAGE = '[fake:invalid-triage]';
+const FAKE_INVALID_DRAFT = '[fake:invalid-draft]';
+
+function resolveFakeDelayMs(): number {
+  const parsed = Number(process.env.LLM_FAKE_DELAY_MS);
+  return process.env.LLM_FAKE_DELAY_MS !== undefined && Number.isFinite(parsed) && parsed >= 0 ? parsed : 1500;
+}
+
+async function fakeCall<T>(output: T): Promise<LlmCallResult<T>> {
+  const delay = resolveFakeDelayMs();
+  if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
+  return { output, usage: { promptTokens: 0, completionTokens: 0 }, httpStatus: 200 };
+}
+
 const DEFAULT_GATEWAY: LlmGateway = 'groq';
 const DEFAULT_MODEL = 'openai/gpt-oss-20b';
 
@@ -70,6 +104,7 @@ function apiKeyForGateway(gateway: LlmGateway, envValue: string | undefined): st
 }
 
 export function getPrimaryProvider(): LlmProvider {
+  if (getLlmMode() === 'fake') return { name: 'primary', gateway: 'groq', apiKey: 'fake', model: 'fake' };
   const gateway = resolveGateway(process.env.PRIMARY_GATEWAY);
   const apiKey = gateway === 'google' ? process.env.GOOGLE_API_KEY : process.env.GROQ_API_KEY;
   return {
@@ -81,6 +116,7 @@ export function getPrimaryProvider(): LlmProvider {
 }
 
 export function isBackupConfigured(): boolean {
+  if (getLlmMode() === 'fake') return false;
   const gateway = resolveGateway(process.env.BACKUP_GATEWAY);
   const apiKey = gateway === 'google' ? process.env.GOOGLE_API_KEY : process.env.BACKUP_API_KEY;
   return !!apiKey;
@@ -208,6 +244,18 @@ export async function triage(
   subject: string,
   description: string
 ): Promise<LlmCallResult<TriageOutput>> {
+  if (getLlmMode() === 'fake') {
+    const invalid = description.includes(FAKE_INVALID_TRIAGE);
+    return fakeCall<TriageOutput>({
+      category: invalid ? '' : 'general',
+      priority: 'medium',
+      sentiment: 'neutral',
+      escalate: false,
+      recommended_team: 'support',
+      issue_summary: invalid ? '' : `Customer reports: ${subject}`,
+    });
+  }
+
   const systemPrompt =
     'You are a support ticket triage agent. Analyze the ticket and classify it accurately.';
   const userPrompt = `Triage this support ticket:\n\nSubject: ${subject}\nDescription: ${description}`;
@@ -238,6 +286,17 @@ export async function draft(
   description: string,
   triageOutput: TriageOutput
 ): Promise<LlmCallResult<DraftOutput>> {
+  if (getLlmMode() === 'fake') {
+    const invalid = description.includes(FAKE_INVALID_DRAFT);
+    return fakeCall<DraftOutput>({
+      customer_reply: invalid
+        ? ''
+        : `Thanks for reaching out about "${subject}". We have looked into it and here is what to try next.`,
+      internal_note: `Fake-mode draft for "${subject}".`,
+      next_steps: ['Review the details', 'Follow up with the customer'],
+    });
+  }
+
   const systemPrompt =
     'You are a support agent. Write a helpful, empathetic response draft based on the ticket and triage findings.';
   const userPrompt = `Write a response draft for this support ticket.

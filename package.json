@@ -9,7 +9,11 @@
     "migrate": "tsx --env-file=.env scripts/migrate.ts",
     "test": "vitest run",
     "lint": "eslint src",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "build": "cd web && bun install --frozen-lockfile && bun run build",
+    "web:dev": "cd web && bun run dev",
+    "test:web": "cd web && bun run test",
+    "test:e2e": "playwright test"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx}": "eslint --fix"
@@ -30,6 +34,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
+    "@playwright/test": "1.64.0",
     "@types/express": "^5.0.0",
     "@types/pg": "^8.11.11",
     "@types/supertest": "^6.0.2",
