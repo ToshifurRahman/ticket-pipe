@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, afterAll } from 'vitest';
-import request from 'supertest';
-import { app } from '../../src/index.js';
+import request from '../helpers/request.js';
+import { app } from '../../src/app.js';
 import { pool } from '../../src/lib/db.js';
 import { insertTicket } from '../../src/repositories/tickets.js';
 import { insertAiInteraction, type AiInteractionRecord } from '../../src/repositories/ai-interactions.js';

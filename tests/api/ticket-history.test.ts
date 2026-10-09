@@ -3,8 +3,8 @@
  * it is and however long ago it happened. Long histories continue at /api/tickets/:id/events.
  */
 import { describe, it, expect, afterEach, afterAll } from 'vitest';
-import request from 'supertest';
-import { app } from '../../src/index.js';
+import request from '../helpers/request.js';
+import { app } from '../../src/app.js';
 import { pool } from '../../src/lib/db.js';
 import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 import { insertTicket } from '../../src/repositories/tickets.js';

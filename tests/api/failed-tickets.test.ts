@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, afterAll } from 'vitest';
-import request from 'supertest';
+import request from '../helpers/request.js';
 
 const mockEmit = vi.hoisted(() => vi.fn());
 const mockTo = vi.hoisted(() => vi.fn((_room: string) => ({ emit: mockEmit })));
@@ -14,7 +14,7 @@ vi.mock('../../src/lib/socket.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../../src/lib/socket.js')>();
   return { ...real, getEmitter: vi.fn(() => ({ to: mockTo })) };
 });
-import { app } from '../../src/index.js';
+import { app } from '../../src/app.js';
 import { pool } from '../../src/lib/db.js';
 import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 import {

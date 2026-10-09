@@ -19,7 +19,6 @@ vi.mock('../src/lib/queue.js', async (importOriginal) => {
   return { ...real, deleteMessage: vi.fn().mockResolvedValue(undefined) };
 });
 
-import { app } from '../src/index.js';
 import { pool } from '../src/lib/db.js';
 import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 import { init as initSocket, shutdown as shutdownSocket, getIo } from '../src/lib/socket.js';
@@ -61,7 +60,7 @@ const createdIds: string[] = [];
 let refCounter = 0;
 
 beforeAll(async () => {
-  httpServer = createServer(app);
+  httpServer = createServer();
   await initSocket(httpServer);
   await new Promise<void>((resolve) => httpServer.listen(0, resolve));
   url = `http://localhost:${(httpServer.address() as AddressInfo).port}`;

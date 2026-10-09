@@ -1,18 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import express from 'express';
-import request from 'supertest';
+import { Hono } from 'hono';
+import request from '../helpers/request.js';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
-import { apiNotFound, mountWebApp } from '../../src/lib/web-app.js';
+import { mountWebApp } from '../../src/lib/web-app.js';
 
 let dist: string;
 let emptyDist: string;
 
 function buildApp(distDir: string) {
-  const app = express();
-  app.get('/health', (_req, res) => res.json({ status: 'ok' }));
-  app.use('/api', apiNotFound);
+  const app = new Hono();
+  app.get('/health', (c) => c.json({ status: 'ok' }));
   mountWebApp(app, distDir);
   return app;
 }
@@ -61,7 +60,7 @@ describe('web app serving', () => {
   });
 
   it('mounts nothing and does not crash when the build is missing', async () => {
-    const app = express();
+    const app = new Hono();
     expect(mountWebApp(app, emptyDist)).toBe(false);
     expect((await request(app).get('/')).status).toBe(404);
   });
