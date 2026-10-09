@@ -1,5 +1,4 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import { fileURLToPath } from 'url';
 import { logger } from './lib/logger.js';
 import { receiveMessages, deleteMessage } from './lib/queue.js';
 import {
@@ -443,7 +442,7 @@ export async function run(options: RunOptions = {}): Promise<void> {
   }
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   // The worker has no Socket.IO server, but it does own the emitter's Redis client —
   // without this it never gets closed. Guarded so a repeated signal is a no-op.
   let closing = false;
