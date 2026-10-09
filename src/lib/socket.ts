@@ -2,6 +2,7 @@ import { Server } from 'socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Emitter } from '@socket.io/redis-emitter';
 import { createClient } from 'redis';
+import type { Server as Engine } from '@socket.io/bun-engine';
 import type { Server as HttpServer } from 'http';
 import type { TriageOutput, DraftOutput } from './ticket-phases.js';
 import { logger } from './logger.js';
@@ -18,6 +19,9 @@ interface ClosableClient {
 }
 
 let io: Server | null = null;
+// The Bun-native transport io is bound to. The HTTP layer routes /socket.io/ requests to it
+// and registers its websocket handlers on Bun.serve (see server.ts).
+let engine: Engine | null = null;
 let emitter: Emitter | null = null;
 // Settles once the emitter's Redis client has connected (or failed to). Never rejects.
 let emitterReady: Promise<void> = Promise.resolve();
@@ -28,7 +32,12 @@ let openClients: ClosableClient[] = [];
 // Both the adapter (here) and the emitter (worker.ts, a separate process) rely on
 // the default `socket.io` Redis key prefix to agree with each other. Don't pass a
 // custom `key` to either side — it's a cross-process contract that isn't type-checked.
-export async function init(server: HttpServer): Promise<Server> {
+//
+// Production passes nothing: Socket.io is bound to the Bun-native engine, which server.ts
+// wires into Bun.serve. Passing a Node `http.Server` attaches the standard transport
+// instead, so the Node-based test runner can exercise the adapter, rooms and emitter
+// without Bun. (The engine is imported lazily because it only loads under Bun.)
+export async function init(httpServer?: HttpServer): Promise<Server> {
   const pubClient = createClient({ url: process.env.REDIS_URL });
   const subClient = pubClient.duplicate();
   openClients.push(pubClient, subClient);
@@ -36,7 +45,14 @@ export async function init(server: HttpServer): Promise<Server> {
   subClient.on('error', (err) => logger.error({ err }, 'Redis sub client error'));
   await Promise.all([pubClient.connect(), subClient.connect()]);
 
-  io = new Server(server, { cors: { origin: '*' } });
+  if (httpServer) {
+    io = new Server(httpServer, { cors: { origin: '*' } });
+  } else {
+    const { Server: BunEngine } = await import('@socket.io/bun-engine');
+    engine = new BunEngine({ path: '/socket.io/', cors: { origin: '*' } });
+    io = new Server();
+    io.bind(engine);
+  }
   io.adapter(createAdapter(pubClient, subClient));
   io.on('connection', (socket) => {
     // A customer joins the room of their own ticket. Only ticket ids are accepted: the
@@ -66,6 +82,10 @@ export async function init(server: HttpServer): Promise<Server> {
 
 export function getIo(): Server | null {
   return io;
+}
+
+export function getEngine(): Engine | null {
+  return engine;
 }
 
 // Used by worker.ts, which runs as a separate OS process with no Socket.IO `Server`
@@ -132,6 +152,7 @@ async function doShutdown(): Promise<void> {
   const server = io;
   const clients = openClients;
   io = null;
+  engine = null;
   emitter = null;
   emitterReady = Promise.resolve();
   openClients = [];

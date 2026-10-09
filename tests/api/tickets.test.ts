@@ -1,6 +1,6 @@
 import { describe, it, expect, afterAll } from 'vitest';
-import request from 'supertest';
-import { app } from '../../src/index.js';
+import request from '../helpers/request.js';
+import { app } from '../../src/app.js';
 import { pool } from '../../src/lib/db.js';
 import { insertEvent } from '../../src/repositories/events.js';
 import { insertProcessingResult } from '../../src/repositories/processing.js';

@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
+import { zValidator } from '@hono/zod-validator';
+import { createFactory } from 'hono/factory';
 import { z } from 'zod';
 import { listAiInteractions, summarizeAiInteractions } from '../repositories/ai-interactions.js';
 
@@ -24,35 +25,23 @@ const SummaryQuerySchema = z.object({
 
 const DEFAULT_SUMMARY_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-export async function listAiInteractionsHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const parsed = ListQuerySchema.safeParse(req.query);
-  if (!parsed.success) {
-    res.status(400).json({ error: 'Invalid query parameters' });
-    return;
-  }
+const factory = createFactory();
 
-  try {
-    const result = await listAiInteractions(parsed.data);
-    res.json(result);
-  } catch (err) {
-    next(err);
-  }
-}
+const invalidQuery = (result: { success: boolean }, c: { json: (body: unknown, status: 400) => Response }) =>
+  result.success ? undefined : c.json({ error: 'Invalid query parameters' }, 400);
 
-export async function summarizeAiInteractionsHandler(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const parsed = SummaryQuerySchema.safeParse(req.query);
-  if (!parsed.success) {
-    res.status(400).json({ error: 'Invalid query parameters' });
-    return;
-  }
+export const listAiInteractionsHandler = factory.createHandlers(
+  zValidator('query', ListQuerySchema, invalidQuery),
+  async (c) => c.json(await listAiInteractions(c.req.valid('query')))
+);
 
-  const until = parsed.data.until ?? new Date();
-  const since = parsed.data.since ?? new Date(until.getTime() - DEFAULT_SUMMARY_WINDOW_MS);
-
-  try {
+export const summarizeAiInteractionsHandler = factory.createHandlers(
+  zValidator('query', SummaryQuerySchema, invalidQuery),
+  async (c) => {
+    const query = c.req.valid('query');
+    const until = query.until ?? new Date();
+    const since = query.since ?? new Date(until.getTime() - DEFAULT_SUMMARY_WINDOW_MS);
     const summary = await summarizeAiInteractions({ since, until });
-    res.json({ since, until, summary });
-  } catch (err) {
-    next(err);
+    return c.json({ since, until, summary });
   }
-}
+);
