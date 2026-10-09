@@ -6,11 +6,11 @@ import { logger } from './logger.js';
 const NON_APP_PATH = /^\/(api|health|socket\.io)(\/|$)/;
 
 // Serves the built React app with an SPA fallback. Mounted only when the build exists, so
-// the API, the worker and the backend tests never depend on `npm run build` having run.
+// the API, the worker and the backend tests never depend on `bun run build` having run.
 export function mountWebApp(app: Express, distDir: string): boolean {
   const indexFile = path.join(distDir, 'index.html');
   if (!existsSync(indexFile)) {
-    logger.warn({ distDir }, 'web/dist not built; run `npm run build`, or use the Vite dev server (npm run web:dev)');
+    logger.warn({ distDir }, 'web/dist not built; run `bun run build`, or use the Vite dev server (bun run web:dev)');
     return false;
   }
 

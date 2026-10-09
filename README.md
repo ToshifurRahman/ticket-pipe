@@ -20,7 +20,8 @@ An AI-powered ticket processing system that automatically analyzes support ticke
 
 ### Prerequisites
 
-- **Node.js** v20 or higher
+- **Node.js** v20 or higher (the runtime; TypeScript runs through `tsx`)
+- **Bun** v1.3 or higher (the package manager; there is no `package-lock.json`, only `bun.lock`)
 - **PostgreSQL** 13 or higher
 - **AWS Account** (for SQS)
 - **API Keys**:
@@ -39,7 +40,7 @@ An AI-powered ticket processing system that automatically analyzes support ticke
 
 2. **Install dependencies**:
    ```bash
-   npm install
+   bun install
    ```
 
 3. **Set up environment variables**:
@@ -50,25 +51,25 @@ An AI-powered ticket processing system that automatically analyzes support ticke
 
 4. **Set up the database**:
    ```bash
-   npm run migrate
+   bun run migrate
    ```
 
 5. **Set up AWS infrastructure** (SQS queue, etc.):
    ```bash
-   npm run setup
+   bun run setup
    ```
 
 ### Running Locally
 
 **Terminal 1 - Start the API server**:
 ```bash
-npm run dev
+bun run dev
 ```
 The server will start on `http://localhost:3000`
 
 **Terminal 2 - Start the background worker**:
 ```bash
-npm run worker
+bun run worker
 ```
 
 ### Verify It's Working
@@ -217,12 +218,12 @@ The UI is a React single-page app in `web/` (Vite, TypeScript, Tailwind v4, shad
 
 ```bash
 # Development: API on :3000 plus the Vite dev server on :5173 (proxies /api and /socket.io)
-npm run dev
-npm run web:dev
+bun run dev
+bun run web:dev
 
 # Production-style: build once, then Express serves it on :3000
-npm run build
-npm run dev
+bun run build
+bun run dev
 ```
 
 If `web/dist` has not been built, the API starts normally and logs a warning; only the UI is missing.
@@ -240,8 +241,8 @@ If `web/dist` has not been built, the API starts normally and logs a warning; on
 The API and the worker both refuse to start with `LLM_MODE=fake` when `NODE_ENV=production`, and with any `LLM_MODE` other than `real` or `fake`.
 
 ```bash
-npm run test:web    # web unit tests (Vitest + Testing Library + MSW)
-npm run test:e2e    # Playwright against the built app; needs `docker compose up -d`, `npm run migrate`, `npm run setup`
+bun run test:web    # web unit tests (Vitest + Testing Library + MSW)
+bun run test:e2e    # Playwright against the built app; needs `docker compose up -d`, `bun run migrate`, `bun run setup`
 ```
 
 ## Ops Email Alerts
@@ -290,7 +291,7 @@ error text. Only `src/services/ops-alerts.ts` may publish to SNS (`tests/ops-ale
 | `SNS_ENDPOINT` | LocalStack URL for local runs. Leave unset in production to use AWS. |
 | `SNS_ALERT_MAX_PER_HOUR` | Hourly cap, default 20. |
 
-To try it locally, `npm run setup` creates the `ticket-needs-attention` topic in LocalStack and prints its ARN.
+To try it locally, `bun run setup` creates the `ticket-needs-attention` topic in LocalStack and prints its ARN.
 Set `SNS_TOPIC_ARN` to it. LocalStack doesn't send email, so subscribe a queue to the topic to see the alerts
 (as `tests/ops-alerts.localstack.test.ts` does). In production the topic, the email subscription (the recipient
 must click the confirmation link) and `sns:Publish` on that topic for the app's IAM user are set up by hand.
@@ -442,18 +443,20 @@ ticket-pipe/
 
 ### Running Tests
 
+Use `bun run test`, not `bun test`: the latter starts Bun's own test runner instead of Vitest.
+
 ```bash
 # Run all tests once
-npm test
+bun run test
 
 # Run tests in watch mode
-npm test -- --watch
+bun run test --watch
 
 # Run specific test file
-npm test -- src/repositories/tickets.test.ts
+bun run test src/repositories/tickets.test.ts
 
 # Get coverage report
-npm test -- --coverage
+bun run test --coverage
 ```
 
 **Test Structure**:
@@ -465,10 +468,10 @@ npm test -- --coverage
 
 ```bash
 # Run ESLint
-npm run lint
+bun run lint
 
 # Format code with Prettier
-npx prettier --write src/
+bunx prettier --write src/
 ```
 
 ### Local Development Workflow
@@ -480,17 +483,17 @@ npx prettier --write src/
 
 2. **Run migrations**:
    ```bash
-   npm run migrate
+   bun run migrate
    ```
 
 3. **Start the server** (Terminal 1):
    ```bash
-   npm run dev
+   bun run dev
    ```
 
 4. **Start the worker** (Terminal 2):
    ```bash
-   npm run worker
+   bun run worker
    ```
 
 5. **Make API requests** and monitor logs in both terminals
