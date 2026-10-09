@@ -34,6 +34,7 @@ import {
   type TicketCompletedPayload,
 } from './lib/socket.js';
 import { AIService } from './lib/ai-service.js';
+import { assertLlmModeAllowed, getLlmMode } from './lib/llm-client.js';
 import {
   resolveTicketPhases,
   resolveTicketFailureCounts,
@@ -49,8 +50,11 @@ import {
   type ValidationResult,
 } from './lib/validate-output.js';
 
-if (!process.env.GOOGLE_API_KEY) throw new Error('GOOGLE_API_KEY environment variable is required');
-if (!process.env.PORTKEY_API_KEY) throw new Error('PORTKEY_API_KEY environment variable is required');
+assertLlmModeAllowed();
+if (getLlmMode() === 'real') {
+  if (!process.env.GOOGLE_API_KEY) throw new Error('GOOGLE_API_KEY environment variable is required');
+  if (!process.env.PORTKEY_API_KEY) throw new Error('PORTKEY_API_KEY environment variable is required');
+}
 
 const aiService = new AIService();
 

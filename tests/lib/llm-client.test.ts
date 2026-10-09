@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { triage, LlmCallError, type LlmProvider } from '../../src/lib/llm-client.js';
+import { triage, LlmCallError, getLlmMode, assertLlmModeAllowed, type LlmProvider } from '../../src/lib/llm-client.js';
 
 const PROVIDER: LlmProvider = { name: 'primary', gateway: 'groq', apiKey: 'test-key', model: 'test-model' };
 
@@ -115,5 +115,37 @@ describe('triage (llm-client)', () => {
 
     expect(err).toBeInstanceOf(LlmCallError);
     expect((err as LlmCallError).outcome).toBe('invalid_response');
+  });
+});
+
+describe('LLM_MODE guard', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('defaults to real and accepts "real" and "fake"', () => {
+    vi.stubEnv('LLM_MODE', '');
+    expect(getLlmMode()).toBe('real');
+    vi.stubEnv('LLM_MODE', 'real');
+    expect(getLlmMode()).toBe('real');
+    vi.stubEnv('LLM_MODE', 'fake');
+    expect(getLlmMode()).toBe('fake');
+  });
+
+  it('throws on an unknown mode so a typo never sends real traffic', () => {
+    vi.stubEnv('LLM_MODE', 'fkae');
+    expect(() => assertLlmModeAllowed()).toThrow(/LLM_MODE/);
+  });
+
+  it('refuses fake mode in production', () => {
+    vi.stubEnv('LLM_MODE', 'fake');
+    vi.stubEnv('NODE_ENV', 'production');
+    expect(() => assertLlmModeAllowed()).toThrow(/production/);
+  });
+
+  it('allows fake mode outside production', () => {
+    vi.stubEnv('LLM_MODE', 'fake');
+    vi.stubEnv('NODE_ENV', 'test');
+    expect(() => assertLlmModeAllowed()).not.toThrow();
   });
 });
