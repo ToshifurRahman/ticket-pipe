@@ -1,13 +1,13 @@
-import { Router } from 'express';
+import { Hono } from 'hono';
 import { pool } from '../lib/db.js';
 
-export const healthRouter = Router();
+export const healthRouter = new Hono();
 
-healthRouter.get('/', async (req, res) => {
+healthRouter.get('/', async (c) => {
   try {
     await pool.query('SELECT 1');
-    res.json({ status: 'ok' });
+    return c.json({ status: 'ok' });
   } catch {
-    res.status(503).json({ status: 'error', message: 'Database unavailable' });
+    return c.json({ status: 'error', message: 'Database unavailable' }, 503);
   }
 });

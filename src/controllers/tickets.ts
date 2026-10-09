@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
+import { zValidator } from '@hono/zod-validator';
+import { createFactory } from 'hono/factory';
 import { z } from 'zod';
 import { createTicket, listTickets, replayTicket } from '../services/tickets.js';
 import { logger } from '../lib/logger.js';
@@ -15,6 +16,28 @@ const TicketSchema = z.object({
 
 const EVENTS_DEFAULT_LIMIT = 50;
 const EVENTS_MAX_LIMIT = 200;
+
+const factory = createFactory();
+
+// Query params are lenient on purpose: anything unparseable (or 0) falls back to the
+// default, and out-of-range values are clamped rather than rejected.
+const lenientInt = (fallback: number, max = Infinity) =>
+  z.unknown().transform((v) => Math.min(max, Math.max(1, Number(v) || fallback)));
+const optionalString = z.unknown().transform((v) => (typeof v === 'string' ? v : undefined));
+
+const ListQuerySchema = z.object({
+  page: lenientInt(1),
+  limit: lenientInt(20, 100),
+  status: optionalString,
+  sort: optionalString,
+  order: optionalString,
+});
+
+const EventsQuerySchema = z.object({
+  limit: lenientInt(EVENTS_DEFAULT_LIMIT, EVENTS_MAX_LIMIT),
+  // Kept raw: a present-but-undecodable cursor is a 400, and that is decided in the handler.
+  after: z.unknown(),
+});
 
 function buildTicketPhases(
   events: TicketEvent[],
@@ -48,30 +71,32 @@ function buildTicketPhases(
   return phases;
 }
 
-export async function create(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const parsed = TicketSchema.safeParse(req.body);
-  if (!parsed.success) {
-    const fieldErrors = parsed.error.flatten().fieldErrors;
-    const errors = Object.fromEntries(
-      Object.entries(fieldErrors).map(([k, v]) => [k, v![0]])
-    );
-    res.status(400).json({ errors });
-    return;
+export const create = factory.createHandlers(
+  zValidator('json', TicketSchema, (result, c) => {
+    if (result.success) return;
+    const fieldErrors = result.error.flatten().fieldErrors;
+    const errors = Object.fromEntries(Object.entries(fieldErrors).map(([k, v]) => [k, v![0]]));
+    return c.json({ errors }, 400);
+  }),
+  async (c) => {
+    const { subject, description } = c.req.valid('json');
+    try {
+      const ticket = await createTicket(subject, description);
+      return c.json(
+        {
+          ticketId: ticket.id,
+          referenceNumber: ticket.referenceNumber,
+          status: ticket.status,
+          createdAt: ticket.createdAt,
+        },
+        201
+      );
+    } catch (err) {
+      logger.error({ err, context: 'createTicket' }, 'Ticket creation failed');
+      throw err;
+    }
   }
-
-  try {
-    const ticket = await createTicket(parsed.data.subject, parsed.data.description);
-    res.status(201).json({
-      ticketId: ticket.id,
-      referenceNumber: ticket.referenceNumber,
-      status: ticket.status,
-      createdAt: ticket.createdAt,
-    });
-  } catch (err) {
-    logger.error({ err, context: 'createTicket' }, 'Ticket creation failed');
-    next(err);
-  }
-}
+);
 
 /**
  * The status lookup. `phases` comes from the ticket's full history; `events` is its first
@@ -97,89 +122,70 @@ async function buildTicketResponse(ticket: Ticket) {
   };
 }
 
-export async function getById(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const id = req.params['id'] as string;
-  try {
-    const ticket = await getTicketById(id);
-    res.json(await buildTicketResponse(ticket));
-  } catch (err) {
-    next(err);
-  }
-}
+export const getById = factory.createHandlers(async (c) => {
+  const ticket = await getTicketById((c.req.param('id') as string));
+  return c.json(await buildTicketResponse(ticket));
+});
 
-export async function getByRef(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const ref = req.params['referenceNumber'] as string;
-  try {
-    const ticket = await getTicketByReferenceNumber(ref);
-    res.json(await buildTicketResponse(ticket));
-  } catch (err) {
-    next(err);
-  }
-}
+export const getByRef = factory.createHandlers(async (c) => {
+  const ticket = await getTicketByReferenceNumber((c.req.param('referenceNumber') as string));
+  return c.json(await buildTicketResponse(ticket));
+});
 
 /** The ticket's full history, a page at a time, oldest first. Follow `nextCursor` until it is null. */
-export async function listEvents(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const id = req.params['id'] as string;
-  const limit = Math.min(EVENTS_MAX_LIMIT, Math.max(1, Number(req.query.limit) || EVENTS_DEFAULT_LIMIT));
+export const listEvents = factory.createHandlers(
+  zValidator('query', EventsQuerySchema),
+  async (c) => {
+    const id = (c.req.param('id') as string);
+    const { limit, after } = c.req.valid('query');
 
-  let afterSeq: number | undefined;
-  const after = req.query.after;
-  if (after !== undefined) {
-    const decoded = typeof after === 'string' ? decodeEventCursor(after) : null;
-    if (decoded === null) {
-      res.status(400).json({ error: 'Invalid cursor' });
-      return;
+    let afterSeq: number | undefined;
+    if (after !== undefined) {
+      const decoded = typeof after === 'string' ? decodeEventCursor(after) : null;
+      if (decoded === null) return c.json({ error: 'Invalid cursor' }, 400);
+      afterSeq = decoded;
     }
-    afterSeq = decoded;
-  }
 
-  try {
     await getTicketById(id);
     const page = await getEventPage(id, { afterSeq, limit });
-    res.json({
+    return c.json({
       events: page.events,
       nextCursor: page.nextSeq === null ? null : encodeEventCursor(page.nextSeq),
     });
-  } catch (err) {
-    next(err);
   }
-}
+);
 
-export async function list(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const page = Math.max(1, Number(req.query.page) || 1);
-  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
-  const statusParam = req.query.status as string | undefined;
-  const status = statusParam ? statusParam.split(',').filter(s => s) : undefined;
-  const sortParam = req.query.sort as string;
-  const sort = sortParam === 'status' || sortParam === 'failedAt' ? sortParam : 'createdAt';
-  const order = req.query.order === 'asc' ? 'asc' : 'desc';
+export const list = factory.createHandlers(
+  zValidator('query', ListQuerySchema),
+  async (c) => {
+    const { page, limit, status: statusParam, sort: sortParam, order: orderParam } = c.req.valid('query');
+    const status = statusParam ? statusParam.split(',').filter((s) => s) : undefined;
+    const sort = sortParam === 'status' || sortParam === 'failedAt' ? sortParam : 'createdAt';
+    const order = orderParam === 'asc' ? 'asc' : 'desc';
 
-  try {
-    const result = await listTickets({ page, limit, status, sort, order });
-    res.json(result);
-  } catch (err) {
-    logger.error({ err, context: 'listTickets' }, 'List tickets failed');
-    next(err);
+    try {
+      return c.json(await listTickets({ page, limit, status, sort, order }));
+    } catch (err) {
+      logger.error({ err, context: 'listTickets' }, 'List tickets failed');
+      throw err;
+    }
   }
-}
+);
 
-export async function replay(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const id = req.params['id'] as string;
+export const replay = factory.createHandlers(async (c) => {
+  const result = await replayTicket((c.req.param('id') as string));
 
-  try {
-    const result = await replayTicket(id);
-
-    if (result.ok) {
-      res.json({ success: true, status: 'queued', previousStatus: result.previousStatus });
-    } else if (result.reason === 'not_replayable') {
-      res.status(409).json({
+  if (result.ok) {
+    return c.json({ success: true, status: 'queued', previousStatus: result.previousStatus });
+  }
+  if (result.reason === 'not_replayable') {
+    return c.json(
+      {
         error: 'Ticket can only be replayed if status is failed or needs_attention',
         status: result.status,
-      });
-    } else {
-      res.status(503).json({ error: 'Could not requeue the ticket; it was left as it was. Try again.' });
-    }
-  } catch (err) {
-    next(err);
+      },
+      409
+    );
   }
-}
+  return c.json({ error: 'Could not requeue the ticket; it was left as it was. Try again.' }, 503);
+});
