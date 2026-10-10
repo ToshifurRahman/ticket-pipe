@@ -1,15 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { removeTicket } from './helpers/cleanup-ticket';
-
-// Cloudflare's script is replaced by a stub that passes at once, so the run is offline and
-// deterministic. The real widget (test site key) is checked by hand in dev.
-const TURNSTILE_STUB = `
-  window.turnstile = {
-    render(el, opts) { this.cb = opts.callback; setTimeout(() => this.cb('e2e-token')); return 'w1'; },
-    reset() { setTimeout(() => this.cb && this.cb('e2e-token')); },
-    remove() {},
-  };
-`;
+import { stubTurnstile } from './helpers/turnstile';
 
 const created: string[] = [];
 
@@ -18,9 +9,7 @@ test.afterAll(async () => {
 });
 
 test('a customer submits a ticket with the keyboard and finds it again after a reload', async ({ page }) => {
-  await page.route('https://challenges.cloudflare.com/**', (route) =>
-    route.fulfill({ contentType: 'text/javascript', body: TURNSTILE_STUB })
-  );
+  await stubTurnstile(page);
   await page.goto('/new');
   await expect(page.getByRole('heading', { name: 'How can we help?' })).toBeVisible();
 
@@ -69,7 +58,8 @@ test('a customer submits a ticket with the keyboard and finds it again after a r
     'href',
     `/t/${referenceNumber}`
   );
-  await expect(recent.getByText('Processing')).toBeVisible();
+  // The e2e stack runs the worker, so by now the ticket may already be answered.
+  await expect(recent.getByText(/^(Processing|Replied)$/)).toBeVisible();
 });
 
 test('the API rejects lengths outside the limits with field errors', async ({ request }) => {
