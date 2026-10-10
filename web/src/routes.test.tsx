@@ -54,6 +54,6 @@ describe('routes', () => {
     const input = screen.getAllByLabelText('Ticket reference')[0];
     await userEvent.type(input, 'hello{enter}');
     expect(await screen.findByRole('alert')).toHaveTextContent('Enter a reference like TICK-');
-    expect(screen.getByRole('heading', { name: 'Submit a ticket' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'How can we help?' })).toBeInTheDocument();
   });
 });
