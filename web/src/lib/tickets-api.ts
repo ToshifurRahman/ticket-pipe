@@ -1,5 +1,5 @@
 import { request } from './api';
-import type { CreateTicketResponse, TicketSummary } from './types';
+import type { CreateTicketResponse, TicketDetail } from './types';
 
 export type CreateTicketInput = {
   subject: string;
@@ -12,6 +12,9 @@ export function createTicket(input: CreateTicketInput): Promise<CreateTicketResp
   return request<CreateTicketResponse>('/api/tickets', { method: 'POST', body: JSON.stringify(input) });
 }
 
-export function getTicketByRef(ref: string): Promise<TicketSummary> {
-  return request<TicketSummary>(`/api/tickets/ref/${encodeURIComponent(ref)}`);
+/** Cached under `ticketQueryKey(ref)`, shared by the ticket page and the recent-tickets list. */
+export const ticketQueryKey = (ref: string) => ['ticket-by-ref', ref] as const;
+
+export function getTicketByRef(ref: string): Promise<TicketDetail> {
+  return request<TicketDetail>(`/api/tickets/ref/${encodeURIComponent(ref)}`);
 }

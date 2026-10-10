@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { ApiError } from '@/lib/api';
 import type { RecentTicket } from '@/lib/recent-tickets';
 import { relativeTime } from '@/lib/relative-time';
-import { getTicketByRef } from '@/lib/tickets-api';
+import { getTicketByRef, ticketQueryKey } from '@/lib/tickets-api';
 import { StatusPill } from './status-pill';
 
 type RecentTicketsProps = {
@@ -15,7 +15,7 @@ type RecentTicketsProps = {
 export function RecentTickets({ tickets, onForget }: RecentTicketsProps) {
   const statuses = useQueries({
     queries: tickets.map((t) => ({
-      queryKey: ['ticket-by-ref', t.ref],
+      queryKey: ticketQueryKey(t.ref),
       queryFn: () => getTicketByRef(t.ref),
       staleTime: 30_000,
     })),
