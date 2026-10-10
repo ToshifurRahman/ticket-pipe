@@ -25,6 +25,7 @@ import {
 import { alertNeedsAttention } from './services/ops-alerts.js';
 import { emitTicketUpdate } from './services/ticket-updates.js';
 import { UUID_RE } from './lib/ids.js';
+import { TicketNotFoundError } from './lib/errors.js';
 import {
   warmEmitter,
   shutdown as shutdownSocket,
@@ -193,6 +194,22 @@ export async function processMessage(
     return;
   }
 
+  try {
+    await processKnownTicket(ticketId, receiptHandle, attemptNumber, ai);
+  } catch (err) {
+    // A ticket that does not exist never will: retrying only loops the message until the DLQ.
+    if (!(err instanceof TicketNotFoundError)) throw err;
+    logger.warn({ ticketId }, 'Ticket not found, dropping message');
+    await deleteMessage(receiptHandle);
+  }
+}
+
+async function processKnownTicket(
+  ticketId: string,
+  receiptHandle: string,
+  attemptNumber: number,
+  ai: AIService
+): Promise<void> {
   // Past the cap on arrival: the failure could not be recorded on an earlier receive. Do no work.
   if (attemptNumber > MAX_RECEIVES) {
     const ticket = await getTicketById(ticketId);

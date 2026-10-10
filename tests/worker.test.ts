@@ -714,6 +714,15 @@ describe('processMessage — output validation', () => {
 });
 
 describe('processMessage — permanent failure (story 5.2)', () => {
+  it.each([1, 99])('drops a message for a ticket that does not exist (receive %i): deletes it, no AI call', async (attempt) => {
+    const missingId = '78faaa4e-dd56-4bbb-8cf3-5ef7dc7f70ef';
+
+    await expect(processMessage(missingId, 'fake-receipt', attempt, mockAi())).resolves.toBeUndefined();
+
+    expect(mockTriage).not.toHaveBeenCalled();
+    expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
+  });
+
   it('does not restart a failed ticket: skips it, deletes the message, makes no AI call', async () => {
     const ticket = await insertTicket('TICK-FAIL-001', 'Sub', 'Desc');
     createdIds.push(ticket.id);
