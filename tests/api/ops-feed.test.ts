@@ -36,7 +36,7 @@ describe('POST /api/tickets — ops feed', () => {
   it('publishes ticket.submitted to the ops room with status information only', async () => {
     const res = await request(app)
       .post('/api/tickets')
-      .send({ subject: 'Private subject', description: 'Private description' });
+      .send({ subject: 'Private subject', description: 'Private description of the problem' });
     expect(res.status).toBe(201);
     createdIds.push(res.body.ticketId);
 

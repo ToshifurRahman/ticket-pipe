@@ -9,9 +9,28 @@ import { getAllEventsByTicketId, getEventPage, type TicketEvent } from '../repos
 import { encodeEventCursor, decodeEventCursor } from '../lib/event-cursor.js';
 import { resolveTicketPhases, type TicketPhases, type TriageOutput, type DraftOutput } from '../lib/ticket-phases.js';
 
+// Lengths count after trimming. web/src/lib/ticket-form.ts repeats these limits and messages
+// for inline validation; keep the two in step.
+export const SUBJECT_MIN = 3;
+export const SUBJECT_MAX = 120;
+export const DESCRIPTION_MIN = 20;
+export const DESCRIPTION_MAX = 5000;
+
+// Checks run in order and the handler reports the first message per field, so an empty
+// value still reads "is required" rather than "needs at least N characters".
 const TicketSchema = z.object({
-  subject: z.string({ required_error: 'Subject is required' }).trim().min(1, 'Subject is required'),
-  description: z.string({ required_error: 'Description is required' }).trim().min(1, 'Description is required'),
+  subject: z
+    .string({ required_error: 'Subject is required' })
+    .trim()
+    .min(1, 'Subject is required')
+    .min(SUBJECT_MIN, `Subject needs at least ${SUBJECT_MIN} characters.`)
+    .max(SUBJECT_MAX, `Subject can be at most ${SUBJECT_MAX} characters.`),
+  description: z
+    .string({ required_error: 'Description is required' })
+    .trim()
+    .min(1, 'Description is required')
+    .min(DESCRIPTION_MIN, `Description needs at least ${DESCRIPTION_MIN} characters.`)
+    .max(DESCRIPTION_MAX, `Description can be at most ${DESCRIPTION_MAX} characters.`),
 });
 
 const EVENTS_DEFAULT_LIMIT = 50;
