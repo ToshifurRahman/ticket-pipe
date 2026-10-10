@@ -228,6 +228,12 @@ bun run dev
 
 If `web/dist` has not been built, the API starts normally and logs a warning; only the UI is missing.
 
+### Submitting a ticket (`/new`)
+
+`POST /api/tickets` accepts a subject of 3–120 characters and a description of 20–5000, counted after trimming; anything outside that is a 400 `{ "errors": { "<field>": "<message>" } }`. The form checks the same limits inline, with the same messages, before it sends anything.
+
+The form carries a Cloudflare Turnstile check and sends its token as `turnstileToken`. The API does not verify the token yet. Set the site key at build time with `VITE_TURNSTILE_SITE_KEY`; when it is unset, Cloudflare's always-pass test key is used. Each browser remembers its last five submitted references in `localStorage` and lists them on `/new` with their current status.
+
 ### Testing without an AI provider
 
 `LLM_MODE=fake` returns canned triage and draft output at the provider boundary, so tickets complete without Portkey or any API key. Everything above that layer still runs for real (retries, validation, `ai_interactions` rows with model `fake`, events, notifications).

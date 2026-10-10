@@ -207,7 +207,7 @@ describe('POST /api/tickets — whitespace validation', () => {
   it('returns 400 with field error when subject is whitespace only', async () => {
     const res = await request(app)
       .post('/api/tickets')
-      .send({ subject: '   ', description: 'Valid description' });
+      .send({ subject: '   ', description: 'A valid description of the problem' });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ errors: { subject: 'Subject is required' } });
   });
@@ -262,7 +262,7 @@ describe('POST /api/tickets', () => {
   it('returns 400 naming subject when subject is an empty string', async () => {
     const res = await request(app).post('/api/tickets').send({
       subject: '',
-      description: 'Valid description',
+      description: 'A valid description of the problem',
     });
 
     expect(res.status).toBe(400);
@@ -279,5 +279,52 @@ describe('POST /api/tickets', () => {
         description: 'Description is required',
       },
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/tickets — length limits (subject 3–120, description 20–5000, after trim)
+// ---------------------------------------------------------------------------
+
+describe('POST /api/tickets — length limits', () => {
+  const validSubject = 'Cannot export CSV';
+  const validDescription = 'The export button spins and then nothing downloads.';
+
+  it.each([
+    ['subject', 'ab', validDescription, 'Subject needs at least 3 characters.'],
+    ['subject', 'a'.repeat(121), validDescription, 'Subject can be at most 120 characters.'],
+    ['description', validSubject, 'x'.repeat(19), 'Description needs at least 20 characters.'],
+    ['description', validSubject, 'x'.repeat(5001), 'Description can be at most 5000 characters.'],
+  ])('rejects a %s outside the limits with a 400 naming the field', async (field, subject, description, message) => {
+    const res = await request(app).post('/api/tickets').send({ subject, description });
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ errors: { [field]: message } });
+  });
+
+  it('counts length after trimming surrounding whitespace', async () => {
+    const res = await request(app)
+      .post('/api/tickets')
+      .send({ subject: '  ab  ', description: `   ${'x'.repeat(19)}   ` });
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({
+      errors: {
+        subject: 'Subject needs at least 3 characters.',
+        description: 'Description needs at least 20 characters.',
+      },
+    });
+  });
+
+  it('accepts values exactly at the minimum lengths', async () => {
+    const res = await request(app)
+      .post('/api/tickets')
+      .send({ subject: 'abc', description: 'x'.repeat(20) });
+    expect(res.status).toBe(201);
+  });
+
+  it('accepts values exactly at the maximum lengths', async () => {
+    const res = await request(app)
+      .post('/api/tickets')
+      .send({ subject: 'a'.repeat(120), description: 'x'.repeat(5000) });
+    expect(res.status).toBe(201);
   });
 });
