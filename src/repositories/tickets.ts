@@ -1,5 +1,6 @@
 import { pool } from '../lib/db.js';
 import { TicketNotFoundError } from '../lib/errors.js';
+import { isUuid } from '../lib/ids.js';
 import type { FailureReason } from '../services/ops-feed.js';
 
 export interface Ticket {
@@ -40,6 +41,8 @@ export async function insertTicket(
 }
 
 export async function getTicketById(id: string): Promise<Ticket> {
+  // A non-UUID can't match a row, and Postgres would reject it with an error instead of no rows.
+  if (!isUuid(id)) throw new TicketNotFoundError(id);
   const result = await pool.query<TicketRow>('SELECT * FROM tickets WHERE id = $1', [id]);
   if (!result.rows[0]) throw new TicketNotFoundError(id);
   return mapRow(result.rows[0]);
