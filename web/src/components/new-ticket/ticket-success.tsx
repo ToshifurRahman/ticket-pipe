@@ -1,7 +1,8 @@
 import { ArrowRight, Check, CircleCheck, Copy } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useCopy } from '@/hooks/use-copy';
 
 type TicketSuccessProps = {
   referenceNumber: string;
@@ -10,26 +11,11 @@ type TicketSuccessProps = {
 
 export function TicketSuccess({ referenceNumber, onSubmitAnother }: TicketSuccessProps) {
   const heading = useRef<HTMLHeadingElement>(null);
-  const [copy, setCopy] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const [copy, copyText] = useCopy();
 
   // The form this replaces held focus; hand it to the heading so screen readers announce
   // the result and keyboard users continue from here.
   useEffect(() => heading.current?.focus(), []);
-
-  useEffect(() => {
-    if (copy === 'idle') return;
-    const timer = setTimeout(() => setCopy('idle'), 2000);
-    return () => clearTimeout(timer);
-  }, [copy]);
-
-  async function copyRef() {
-    try {
-      await navigator.clipboard.writeText(referenceNumber);
-      setCopy('copied');
-    } catch {
-      setCopy('failed');
-    }
-  }
 
   return (
     <div className="flex flex-col gap-6 rounded-xl border border-border bg-card/60 p-6 sm:p-8">
@@ -52,7 +38,7 @@ export function TicketSuccess({ referenceNumber, onSubmitAnother }: TicketSucces
           <span className="min-w-0 flex-1 truncate font-mono text-sm" data-testid="ticket-reference">
             {referenceNumber}
           </span>
-          <Button variant="ghost" size="icon" onClick={copyRef} aria-label="Copy reference">
+          <Button variant="ghost" size="icon" onClick={() => copyText(referenceNumber)} aria-label="Copy reference">
             {copy === 'copied' ? <Check /> : <Copy />}
           </Button>
         </div>

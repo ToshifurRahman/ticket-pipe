@@ -158,8 +158,9 @@ describe('notification delivery vs. ticket processing', () => {
       rejectAfter(5000, 'no ticket.completed event delivered to connected client'),
     ]);
 
-    expect(payload.ticketId).toBe(ticketId);
-    expect(payload.triage).toEqual(TRIAGE_RESULT);
+    // Only the event name reaches the customer's room: the page refetches the public view,
+    // so no stage output (internal note, sentiment, …) travels over the socket.
+    expect(payload).toEqual({ event: 'ticket.completed', ticketId, occurredAt: expect.any(String) });
     expect((await getTicketById(ticketId)).status).toBe('completed');
   });
 

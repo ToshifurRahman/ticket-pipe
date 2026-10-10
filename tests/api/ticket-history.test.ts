@@ -64,7 +64,8 @@ describe('status lookup (story 5.3)', () => {
       'triage.started',
       'triage.completed',
     ]);
-    expect(res.body.events[0]).toEqual({ event: 'ticket.submitted', detail: null, occurredAt: expect.any(String) });
+    // The public view leaves out `detail`; /api/ops/tickets/:id has it.
+    expect(res.body.events[0]).toEqual({ event: 'ticket.submitted', occurredAt: expect.any(String) });
     expect(res.body.eventsNextCursor).toBeNull();
   });
 

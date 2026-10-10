@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { isValidRef, normalizeRef, REF_EXAMPLE } from '@/lib/ticket-ref';
 
-function TrackForm({ onDone, autoFocus = false }: { onDone?: () => void; autoFocus?: boolean }) {
+export function TrackForm({ onDone, autoFocus = false }: { onDone?: () => void; autoFocus?: boolean }) {
   const navigate = useNavigate();
   const [value, setValue] = useState('');
   const [invalid, setInvalid] = useState(false);

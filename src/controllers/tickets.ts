@@ -3,11 +3,16 @@ import { createFactory } from 'hono/factory';
 import { z } from 'zod';
 import { createTicket, listTickets, replayTicket } from '../services/tickets.js';
 import { logger } from '../lib/logger.js';
-import { getTicketById, getTicketByReferenceNumber, type Ticket } from '../repositories/tickets.js';
-import { getProcessingResultByTicketId } from '../repositories/processing.js';
-import { getAllEventsByTicketId, getEventPage, type TicketEvent } from '../repositories/events.js';
-import { encodeEventCursor, decodeEventCursor } from '../lib/event-cursor.js';
-import { resolveTicketPhases, type TicketPhases, type TriageOutput, type DraftOutput } from '../lib/ticket-phases.js';
+import { getTicketById, getTicketByReferenceNumber } from '../repositories/tickets.js';
+import type { TicketEvent } from '../repositories/events.js';
+import { decodeEventCursor } from '../lib/event-cursor.js';
+import {
+  EVENTS_DEFAULT_LIMIT,
+  buildFullTicketView,
+  getTicketEventPageView,
+  toPublicEvent,
+  toPublicTicketView,
+} from '../services/ticket-views.js';
 
 // Lengths count after trimming. web/src/lib/ticket-form.ts repeats these limits and messages
 // for inline validation; keep the two in step.
@@ -33,7 +38,6 @@ const TicketSchema = z.object({
     .max(DESCRIPTION_MAX, `Description can be at most ${DESCRIPTION_MAX} characters.`),
 });
 
-const EVENTS_DEFAULT_LIMIT = 50;
 const EVENTS_MAX_LIMIT = 200;
 
 const factory = createFactory();
@@ -57,38 +61,6 @@ const EventsQuerySchema = z.object({
   // Kept raw: a present-but-undecodable cursor is a 400, and that is decided in the handler.
   after: z.unknown(),
 });
-
-function buildTicketPhases(
-  events: TicketEvent[],
-  processing: Awaited<ReturnType<typeof getProcessingResultByTicketId>>
-): TicketPhases {
-  const phases = resolveTicketPhases(events);
-
-  if (!processing) return phases;
-
-  if (phases.triage.status === 'completed') {
-    const triageOutput: TriageOutput = {
-      category: processing.category,
-      priority: processing.priority,
-      sentiment: processing.sentiment,
-      escalate: processing.escalate,
-      recommendedTeam: processing.recommendedTeam,
-      issueSummary: processing.issueSummary,
-    };
-    phases.triage.output = triageOutput;
-  }
-
-  if (phases.draft.status === 'completed' && processing.customerReply != null) {
-    const draftOutput: DraftOutput = {
-      customerReply: processing.customerReply,
-      internalNote: processing.internalNote!,
-      nextActions: processing.nextSteps!,
-    };
-    phases.draft.output = draftOutput;
-  }
-
-  return phases;
-}
 
 export const create = factory.createHandlers(
   zValidator('json', TicketSchema, (result, c) => {
@@ -117,45 +89,25 @@ export const create = factory.createHandlers(
   }
 );
 
-/**
- * The status lookup. `phases` comes from the ticket's full history; `events` is its first
- * page, and `eventsNextCursor` (null when there is nothing more) continues it at
- * GET /api/tickets/:id/events.
- */
-async function buildTicketResponse(ticket: Ticket) {
-  const [allEvents, firstPage, processing] = await Promise.all([
-    getAllEventsByTicketId(ticket.id),
-    getEventPage(ticket.id, { limit: EVENTS_DEFAULT_LIMIT }),
-    getProcessingResultByTicketId(ticket.id),
-  ]);
-
-  return {
-    id: ticket.id,
-    referenceNumber: ticket.referenceNumber,
-    subject: ticket.subject,
-    status: ticket.status,
-    createdAt: ticket.createdAt,
-    events: firstPage.events,
-    eventsNextCursor: firstPage.nextSeq === null ? null : encodeEventCursor(firstPage.nextSeq),
-    phases: buildTicketPhases(allEvents, processing),
-  };
-}
-
+// The customer routes return the public view only: no internal AI output, no event detail.
+// The full view is on /api/ops/tickets/:id (src/controllers/ops.ts).
 export const getById = factory.createHandlers(async (c) => {
-  const ticket = await getTicketById((c.req.param('id') as string));
-  return c.json(await buildTicketResponse(ticket));
+  const ticket = await getTicketById(c.req.param('id') as string);
+  return c.json(toPublicTicketView(await buildFullTicketView(ticket)));
 });
 
 export const getByRef = factory.createHandlers(async (c) => {
-  const ticket = await getTicketByReferenceNumber((c.req.param('referenceNumber') as string));
-  return c.json(await buildTicketResponse(ticket));
+  const ticket = await getTicketByReferenceNumber(c.req.param('referenceNumber') as string);
+  return c.json(toPublicTicketView(await buildFullTicketView(ticket)));
 });
 
-/** The ticket's full history, a page at a time, oldest first. Follow `nextCursor` until it is null. */
-export const listEvents = factory.createHandlers(
-  zValidator('query', EventsQuerySchema),
-  async (c) => {
-    const id = (c.req.param('id') as string);
+/**
+ * Handlers for a ticket's full history, a page at a time, oldest first. Follow `nextCursor`
+ * until it is null. `mapEvent` decides how much of each event the caller may see.
+ */
+export function createEventPageHandlers<E>(mapEvent: (event: TicketEvent) => E) {
+  return factory.createHandlers(zValidator('query', EventsQuerySchema), async (c) => {
+    const id = c.req.param('id') as string;
     const { limit, after } = c.req.valid('query');
 
     let afterSeq: number | undefined;
@@ -165,14 +117,12 @@ export const listEvents = factory.createHandlers(
       afterSeq = decoded;
     }
 
-    await getTicketById(id);
-    const page = await getEventPage(id, { afterSeq, limit });
-    return c.json({
-      events: page.events,
-      nextCursor: page.nextSeq === null ? null : encodeEventCursor(page.nextSeq),
-    });
-  }
-);
+    const page = await getTicketEventPageView(id, { afterSeq, limit });
+    return c.json({ events: page.events.map(mapEvent), nextCursor: page.nextCursor });
+  });
+}
+
+export const listEvents = createEventPageHandlers(toPublicEvent);
 
 export const list = factory.createHandlers(
   zValidator('query', ListQuerySchema),

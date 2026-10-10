@@ -244,9 +244,9 @@ describe('ops organization feed', () => {
     expect(JSON.stringify(mine)).not.toContain(SENTINEL);
   });
 
-  // The other half of the story: the customer's own channel still gets the full output,
-  // and ops, subscribed at the same time, gets none of it.
-  it('delivers full AI output to the customer only, never to ops', async () => {
+  // Neither channel carries AI output: the customer's room gets the event name (the page
+  // refetches the public view), and ops, subscribed at the same time, gets none of it either.
+  it('sends no AI output over the socket, to the customer or to ops', async () => {
     const ticket = await newTicket();
     const ops = await connect();
     const opsGot: unknown[] = [];
@@ -267,8 +267,7 @@ describe('ops organization feed', () => {
 
     await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
     const payload = await completed;
-    expect(payload.draft.customerReply).toBe(DRAFT_RESULT.customerReply);
-    expect(payload.triage.issueSummary).toBe(TRIAGE_RESULT.issueSummary);
+    expect(payload).toEqual({ event: 'ticket.completed', ticketId: ticket.id, occurredAt: expect.any(String) });
 
     await waitFor(
       () => opsGot.filter((p) => (p as OpsEvent).ticketId === ticket.id).length >= 5,

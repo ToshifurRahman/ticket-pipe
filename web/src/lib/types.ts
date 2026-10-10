@@ -22,3 +22,20 @@ export type TicketSummary = {
   status: TicketStatus;
   createdAt: string;
 };
+
+export type TicketPhaseStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+/**
+ * Body of GET /api/tickets/ref/:ref: the public view. It never carries internal AI output or
+ * failure reasons; those are on the ops routes.
+ */
+export type TicketDetail = TicketSummary & {
+  id: string;
+  description: string;
+  events: { event: string; occurredAt: string }[];
+  eventsNextCursor: string | null;
+  phases: {
+    triage: { status: TicketPhaseStatus; output?: { category: string; priority: string } };
+    draft: { status: TicketPhaseStatus; output?: { customerReply: string } };
+  };
+};

@@ -197,14 +197,15 @@ When a ticket runs out of retries, ops also receives `ticket:needs_attention` wi
 `{ ticketId, referenceNumber, reason, occurredAt }`. `reason` is one of `triage_retries_exhausted`,
 `draft_retries_exhausted`, `incomplete_output` or `processing_result_missing`. It is a fixed code, never the
 error message, because error messages can quote AI output or customer content. The full text stays in the
-ticket's event history (`GET /api/tickets/:id`).
+ticket's event history (`GET /api/ops/tickets/:id`).
 
 When ops replays a ticket, the room also receives `ticket:requeued` with
 `{ ticketId, referenceNumber, previousStatus, occurredAt }`, where `previousStatus` is `failed` or `needs_attention`.
 
 **Privacy boundary.** The ops room is visible to every ops subscriber, so only
-`src/services/ops-feed.ts` may publish to it, and only identifiers, codes and timestamps. AI output (triage
-findings and the draft reply) is delivered only to the ticket's own room, which only that customer joins.
+`src/services/ops-feed.ts` may publish to it, and only identifiers, codes and timestamps. The ticket's own
+room, which only that customer joins, gets `ticket:update` with `{ event, ticketId, occurredAt }` and no AI
+output either: the page reads the reply from the public lookup.
 `tests/ops-feed.guard.test.ts` fails if any other file publishes to the ops room.
 
 Every event goes through `recordTicketEvent()` (`src/services/ticket-events.ts`), which writes the
@@ -234,6 +235,33 @@ If `web/dist` has not been built, the API starts normally and logs a warning; on
 
 The form carries a Cloudflare Turnstile check and sends its token as `turnstileToken`. The API does not verify the token yet. Set the site key at build time with `VITE_TURNSTILE_SITE_KEY`; when it is unset, Cloudflare's always-pass test key is used. Each browser remembers its last five submitted references in `localStorage` and lists them on `/new` with their current status.
 
+### Following a ticket (`/t/:ref`)
+
+The ticket page reads `GET /api/tickets/ref/:ref`, joins the ticket's socket room, and refetches on every
+`ticket:update`. It shows the customer's message, a Received → Triaged → Drafted → Replied stepper, and a
+typing indicator ("Reviewing your request…", then "Writing a reply…"). Category and priority appear as soon
+as triage finishes, and the reply arrives as a support message that closes the conversation. `failed` and
+`needs_attention` both show one neutral message with no reason; the page stays connected, so a replay by the
+team brings the indicator back. Only a completed ticket disconnects.
+
+### Public and ops ticket views
+
+The customer routes return a **public view** of a ticket: its subject, description, status, event names and
+times, phase statuses, and from the AI output only `category`, `priority` and `customerReply`. They never
+return `sentiment`, `escalate`, `recommendedTeam`, `issueSummary`, `internalNote`, `nextActions` or event
+`detail` (failure reasons). `src/services/ticket-views.ts` builds the public view field by field, so a new
+field stays private until it is added there on purpose; `tests/api/ticket-redaction.test.ts` checks the exact
+set of keys.
+
+| Route | View |
+|---|---|
+| `GET /api/tickets/:id`, `GET /api/tickets/ref/:ref` | Public |
+| `GET /api/tickets/:id/events` | Public (`event`, `occurredAt`) |
+| `GET /api/ops/tickets/:id` | Full: every stage output and event `detail` |
+| `GET /api/ops/tickets/:id/events` | Full, same paging |
+
+The ops routes are not protected yet; the ops session arrives with story 6.5.
+
 ### Testing without an AI provider
 
 `LLM_MODE=fake` returns canned triage and draft output at the provider boundary, so tickets complete without Portkey or any API key. Everything above that layer still runs for real (retries, validation, `ai_interactions` rows with model `fake`, events, notifications).
@@ -250,6 +278,10 @@ The API and the worker both refuse to start with `LLM_MODE=fake` when `NODE_ENV=
 bun run test:web    # web unit tests (Vitest + Testing Library + MSW)
 bun run test:e2e    # Playwright against the built app; needs `docker compose up -d`, `bun run migrate`, `bun run setup`
 ```
+
+`test:e2e` builds the web app and starts `e2e/stack.ts`: the API and the worker in one process with
+`LLM_MODE=fake`, so submitted tickets really get processed. Stop any dev worker before running it, because it
+reads the same queue and, in real mode, would spend LLM calls on e2e tickets.
 
 ## Ops Email Alerts
 
@@ -355,11 +387,13 @@ otherwise it is `null`. `phases` is always worked out from the whole history, no
 ```bash
 # The rest of the history, a page at a time. Keep passing nextCursor back as `after` until it is null.
 curl "http://localhost:3000/api/tickets/<id>/events?limit=50"
-# { "events": [{ "event": "ticket.submitted", "detail": "TKT-001", "occurredAt": "..." }, ...],
+# { "events": [{ "event": "ticket.submitted", "occurredAt": "..." }, ...],
 #   "nextCursor": "djE6MTIz" }
 curl "http://localhost:3000/api/tickets/<id>/events?limit=50&after=djE6MTIz"
 ```
 
+- The public routes leave out each event's `detail`. `GET /api/ops/tickets/:id/events` pages the same
+  history with `detail` included.
 - `limit` defaults to 50 and is clamped to 1–200. An invalid `after` cursor returns `400`, and an unknown
   ticket returns `404`. Treat cursors as opaque.
 - Events are ordered by `ticket_events.seq`, an identity column, so order is exact even when two events
@@ -438,7 +472,7 @@ ticket-pipe/
 ├── migrations/                  # Database schema migrations
 ├── tests/                       # Test suite (Vitest)
 ├── web/                         # React app (separate package; built to web/dist)
-├── e2e/                         # Playwright smoke tests
+├── e2e/                         # Playwright tests; stack.ts runs API + worker for them
 ├── package.json                 # Dependencies and scripts
 ├── tsconfig.json               # TypeScript configuration
 ├── vitest.config.ts            # Test runner configuration

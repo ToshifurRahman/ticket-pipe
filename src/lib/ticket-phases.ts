@@ -15,6 +15,15 @@ export interface DraftOutput {
   nextActions: string[];
 }
 
+// What a customer may see of each stage's output. Everything else stays on the ops routes.
+export type PublicTriageOutput = Pick<TriageOutput, 'category' | 'priority'>;
+export type PublicDraftOutput = Pick<DraftOutput, 'customerReply'>;
+
+export interface PublicTicketPhases {
+  triage: { status: TicketPhaseStatus; output?: PublicTriageOutput };
+  draft: { status: TicketPhaseStatus; output?: PublicDraftOutput };
+}
+
 export interface TriagePhase {
   status: TicketPhaseStatus;
   output?: TriageOutput;
