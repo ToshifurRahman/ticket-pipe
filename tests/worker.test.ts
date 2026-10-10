@@ -231,12 +231,9 @@ describe('processMessage — ops feed privacy (story 4.5)', () => {
     expect(mockOpsEmit).toHaveBeenCalled();
     expect(everythingOpsReceived()).not.toContain(SENTINEL);
 
-    // The customer's own channel is unchanged: it still gets the full output.
-    const completed = mockEmit.mock.calls
-      .map(([, payload]) => payload as Record<string, any>)
-      .find((p) => p.event === 'ticket.completed');
-    expect(completed?.draft.customerReply).toBe(`reply ${SENTINEL}`);
-    expect(completed?.triage.issueSummary).toBe(`summary ${SENTINEL}`);
+    // The customer's room carries event names only; the page reads the reply from the API.
+    expect(mockEmit.mock.calls.some(([, p]) => (p as Record<string, unknown>).event === 'ticket.completed')).toBe(true);
+    expect(JSON.stringify(mockEmit.mock.calls)).not.toContain(SENTINEL);
   });
 
   it.each([
@@ -345,17 +342,9 @@ describe('processMessage — happy path', () => {
       'ticket.completed',
     ]);
 
-    const lightweightPayloads = payloads.slice(0, 4);
-    lightweightPayloads.forEach((payload) => {
+    // ticket.completed included: no stage output goes to the customer's room.
+    payloads.forEach((payload) => {
       expect(Object.keys(payload).sort()).toEqual(['event', 'occurredAt', 'ticketId']);
-    });
-
-    const completedPayload = payloads[4];
-    expect(completedPayload.triage).toEqual(TRIAGE_RESULT);
-    expect(completedPayload.draft).toEqual({
-      customerReply: DRAFT_ARGS.customer_reply,
-      internalNote: DRAFT_ARGS.internal_note,
-      nextActions: DRAFT_ARGS.next_steps,
     });
   });
 
@@ -870,11 +859,11 @@ describe('ops recovery end to end (story 5.4)', () => {
     expect(mockDraft).toHaveBeenCalledTimes(1);
     expect((await getTicketById(ticket.id)).status).toBe('completed');
     // The customer gets their reply, built on the triage from before the failure.
-    const completed = mockEmit.mock.calls
-      .map(([, payload]) => payload as Record<string, any>)
-      .find(p => p.event === 'ticket.completed');
-    expect(completed?.triage).toEqual(TRIAGE_RESULT);
-    expect(completed?.draft.customerReply).toBe(DRAFT_RESULT.customerReply);
+    expect(mockEmit.mock.calls.some(([, p]) => (p as Record<string, unknown>).event === 'ticket.completed')).toBe(true);
+    expect(await getProcessingResultByTicketId(ticket.id)).toMatchObject({
+      category: TRIAGE_RESULT.category,
+      customerReply: DRAFT_RESULT.customerReply,
+    });
   });
 
   it('re-runs only the draft for a ticket whose draft output was invalid', async () => {

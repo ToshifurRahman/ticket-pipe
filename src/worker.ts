@@ -26,11 +26,8 @@ import { alertNeedsAttention } from './services/ops-alerts.js';
 import { emitTicketUpdate } from './services/ticket-updates.js';
 import { UUID_RE } from './lib/ids.js';
 import {
-  getEmitter,
   warmEmitter,
   shutdown as shutdownSocket,
-  buildTicketCompletedPayload,
-  type TicketCompletedPayload,
 } from './lib/socket.js';
 import { AIService } from './lib/ai-service.js';
 import { assertLlmModeAllowed, getLlmMode } from './lib/llm-client.js';
@@ -38,7 +35,6 @@ import {
   resolveTicketPhases,
   resolveTicketFailureCounts,
   type TriageOutput,
-  type DraftOutput,
   type TicketPhaseStatus,
 } from './lib/ticket-phases.js';
 import {
@@ -72,19 +68,6 @@ class FinalizeError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'FinalizeError';
-  }
-}
-
-// Notification delivery must never affect ticket processing: emitTicketUpdate
-// (src/services/ticket-updates.ts) and the helper below each catch a synchronous throw
-// from the emitter, so it can't propagate into processMessage and be mistaken for a
-// processing failure (see getEmitter() in socket.ts for how the underlying async publish
-// failures are also contained).
-function emitTicketCompleted(payload: TicketCompletedPayload): void {
-  try {
-    getEmitter().to(payload.ticketId).emit('ticket:update', payload);
-  } catch (err) {
-    logger.error({ err, ticketId: payload.ticketId }, 'Failed to emit ticket:update');
   }
 }
 
@@ -366,20 +349,9 @@ async function runPipeline(
     }
 
     await recordTicketEvent(ticket, 'ticket.completed');
-    const triage: TriageOutput = {
-      category: processingResult.category,
-      priority: processingResult.priority,
-      sentiment: processingResult.sentiment,
-      escalate: processingResult.escalate,
-      recommendedTeam: processingResult.recommendedTeam,
-      issueSummary: processingResult.issueSummary,
-    };
-    const draft: DraftOutput = {
-      customerReply: processingResult.customerReply!,
-      internalNote: processingResult.internalNote!,
-      nextActions: processingResult.nextSteps!,
-    };
-    emitTicketCompleted(buildTicketCompletedPayload(ticketId, triage, draft));
+    // Like every other stage, the customer's room gets only the event name. The page
+    // refetches the public view, so no stage output travels over the socket.
+    emitTicketUpdate(ticketId, 'ticket.completed');
   } catch (err) {
     // Not marked failed here: the receive-cap handler in processMessage does that once retries run out.
     throw new FinalizeError((err as Error).message);

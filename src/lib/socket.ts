@@ -4,7 +4,6 @@ import { Emitter } from '@socket.io/redis-emitter';
 import { createClient } from 'redis';
 import type { Server as Engine } from '@socket.io/bun-engine';
 import type { Server as HttpServer } from 'http';
-import type { TriageOutput, DraftOutput } from './ticket-phases.js';
 import { logger } from './logger.js';
 import { isUuid } from './ids.js';
 import { OPS_ROOM } from './rooms.js';
@@ -163,20 +162,4 @@ async function doShutdown(): Promise<void> {
   // allSettled: a client that never connected rejects on quit(), and that must not
   // turn a graceful shutdown into a crash.
   await Promise.allSettled(clients.map((client) => client.quit()));
-}
-
-export interface TicketCompletedPayload {
-  event: 'ticket.completed';
-  ticketId: string;
-  occurredAt: Date;
-  triage: TriageOutput;
-  draft: DraftOutput;
-}
-
-export function buildTicketCompletedPayload(
-  ticketId: string,
-  triage: TriageOutput,
-  draft: DraftOutput
-): TicketCompletedPayload {
-  return { event: 'ticket.completed', ticketId, occurredAt: new Date(), triage, draft };
 }

@@ -2,6 +2,9 @@ import { zValidator } from '@hono/zod-validator';
 import { createFactory } from 'hono/factory';
 import { z } from 'zod';
 import { listAiInteractions, summarizeAiInteractions } from '../repositories/ai-interactions.js';
+import { getTicketById } from '../repositories/tickets.js';
+import { buildFullTicketView } from '../services/ticket-views.js';
+import { createEventPageHandlers } from './tickets.js';
 
 const OPERATIONS = ['triage', 'draft'] as const;
 const PROVIDERS = ['primary', 'backup'] as const;
@@ -45,3 +48,14 @@ export const summarizeAiInteractionsHandler = factory.createHandlers(
     return c.json({ since, until, summary });
   }
 );
+
+// TODO(6.5): require the ops session. Until then these are as open as the rest of /api/ops.
+// The ops console's view of one ticket: every stage output and the event detail that the
+// customer routes leave out.
+export const getTicketHandler = factory.createHandlers(async (c) => {
+  const ticket = await getTicketById(c.req.param('id') as string);
+  return c.json(await buildFullTicketView(ticket));
+});
+
+// TODO(6.5): require the ops session.
+export const listTicketEventsHandler = createEventPageHandlers((event) => event);

@@ -46,6 +46,7 @@ describe('GET /api/tickets/:id', () => {
       id: ticketId,
       referenceNumber,
       subject: 'Shape test',
+      description: 'Checking response shape',
       status: 'queued',
     });
     expect(typeof res.body.createdAt).toBe('string');
@@ -134,14 +135,7 @@ describe('GET /api/tickets/:id', () => {
     expect(res.body.phases).toEqual({
       triage: {
         status: 'completed',
-        output: {
-          category: 'technical',
-          priority: 'high',
-          sentiment: 'negative',
-          escalate: true,
-          recommendedTeam: 'engineering',
-          issueSummary: 'Service outage reported',
-        },
+        output: { category: 'technical', priority: 'high' },
       },
       draft: { status: 'failed' },
     });
