@@ -9,7 +9,7 @@ import opsRequest from '../helpers/ops-session.js';
 import { app } from '../../src/app.js';
 import { pool } from '../../src/lib/db.js';
 import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
-import { insertTicket, updateTicketStatus, type Ticket } from '../../src/repositories/tickets.js';
+import { insertTicket, markTicketFailed, updateTicketStatus, type Ticket } from '../../src/repositories/tickets.js';
 import { insertEvent } from '../../src/repositories/events.js';
 import { insertProcessingResult } from '../../src/repositories/processing.js';
 
@@ -149,6 +149,8 @@ describe('ops ticket view', () => {
     const res = await opsRequest(app).get(`/api/ops/tickets/${completed.id}`);
 
     expect(res.status).toBe(200);
+    // Ops-only: the failure columns are on the full view and never on the public one.
+    expect(res.body).toMatchObject({ failureReason: null, failedAt: null });
     expect(res.body.phases).toEqual({
       triage: {
         status: 'completed',
@@ -175,6 +177,21 @@ describe('ops ticket view', () => {
       detail: 'reused stored output',
       occurredAt: expect.any(String),
     });
+  });
+
+  it('shows ops why a ticket failed, which the public view never says', async () => {
+    // beforeAll set it to `failed` directly; the real transition starts from processing.
+    await updateTicketStatus(failed.id, 'processing');
+    await markTicketFailed(failed.id, 'draft_retries_exhausted');
+
+    const ops = await opsRequest(app).get(`/api/ops/tickets/${failed.id}`);
+    expect(ops.body).toMatchObject({ status: 'failed', failureReason: 'draft_retries_exhausted' });
+    expect(ops.body.failedAt).toBeTruthy();
+
+    const publicView = await request(app).get(`/api/tickets/${failed.id}`);
+    expect(JSON.stringify(publicView.body)).not.toContain('draft_retries_exhausted');
+    expect(publicView.body).not.toHaveProperty('failureReason');
+    expect(publicView.body).not.toHaveProperty('failedAt');
   });
 
   it('pages events with detail', async () => {

@@ -23,7 +23,7 @@ import {
   getTicketById,
   updateTicketStatus,
 } from '../../src/repositories/tickets.js';
-import { getAllEventsByTicketId } from '../../src/repositories/events.js';
+import { getAllEventsByTicketId, insertEvent } from '../../src/repositories/events.js';
 import { enqueueTicket } from '../../src/lib/queue.js';
 
 // Every emit as [room, eventName, payload].
@@ -43,6 +43,7 @@ afterEach(async () => {
   vi.mocked(enqueueTicket).mockReset().mockResolvedValue(undefined);
   if (createdIds.length) {
     await purgeTicketEvents(createdIds);
+    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
     await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
     createdIds.length = 0;
   }
@@ -50,6 +51,66 @@ afterEach(async () => {
 
 afterAll(async () => {
   await pool.end();
+});
+
+describe('ticket list for the ops console (story 6.6)', () => {
+  it('carries the triage verdict and latest-event time, and null until triage has run', async () => {
+    const triaged = await insertTicket('TICK-API-LIST-1', 'Sub', 'Desc');
+    const fresh = await insertTicket('TICK-API-LIST-2', 'Sub', 'Desc');
+    createdIds.push(triaged.id, fresh.id);
+    await pool.query(
+      `INSERT INTO ticket_processing (ticket_id, category, priority, sentiment, escalate, recommended_team, issue_summary, customer_reply, internal_note, next_steps)
+       VALUES ($1, 'billing', 'high', 'frustrated', true, 'billing-team', 's', 'r', 'n', ARRAY['a'])`,
+      [triaged.id]
+    );
+    await insertEvent(triaged.id, 'triage.completed');
+
+    const res = await request(app).get('/api/tickets?limit=100&sort=updatedAt&order=desc');
+
+    expect(res.status).toBe(200);
+    const byId = (id: string) => res.body.tickets.find((t: { id: string }) => t.id === id);
+    expect(byId(triaged.id)).toMatchObject({ category: 'billing', priority: 'high' });
+    expect(byId(fresh.id)).toMatchObject({ category: null, priority: null });
+    const ids = res.body.tickets.map((t: { id: string }) => t.id);
+    // The event is newer than the other ticket's creation, so this one is "updated" later.
+    expect(ids.indexOf(triaged.id)).toBeLessThan(ids.indexOf(fresh.id));
+    expect(new Date(byId(triaged.id).updatedAt).getTime()).toBeGreaterThanOrEqual(
+      new Date(byId(triaged.id).createdAt).getTime()
+    );
+  });
+
+  it('counts every status whatever the status filter says', async () => {
+    const t = await insertTicket('TICK-API-LIST-3', 'Sub', 'Desc');
+    createdIds.push(t.id);
+    await markTicketFailed(t.id, 'triage_retries_exhausted');
+
+    const res = await request(app).get('/api/tickets?status=completed&limit=5');
+
+    // The rows are narrowed to completed tickets; the tab counts are not.
+    expect(res.body.tickets.every((x: { status: string }) => x.status === 'completed')).toBe(true);
+    expect(res.body.counts.failed).toBeGreaterThanOrEqual(1);
+    expect(Object.values(res.body.counts).every((n) => typeof n === 'number')).toBe(true);
+  });
+
+  it('breaks ties by id, so a page boundary cannot repeat or skip a row', async () => {
+    const ids: string[] = [];
+    for (let i = 0; i < 3; i++) ids.push((await insertTicket(`TICK-API-LIST-P${i}`, 'Sub', 'Desc')).id);
+    createdIds.push(...ids);
+    // Same created_at, no events: identical sort keys, whichever column is sorted on.
+    await pool.query("UPDATE tickets SET created_at = '1999-01-01T00:00:00Z' WHERE id = ANY($1::uuid[])", [ids]);
+
+    for (const sort of ['createdAt', 'updatedAt']) {
+      const res = await request(app).get(`/api/tickets?limit=100&sort=${sort}&order=asc`);
+      const mine = res.body.tickets.map((t: { id: string }) => t.id).filter((id: string) => ids.includes(id));
+      expect(mine).toEqual([...ids].sort());
+    }
+  });
+
+  it('keeps createdAt as the default sort for existing callers', async () => {
+    const res = await request(app).get('/api/tickets?limit=100&order=asc');
+    const times = res.body.tickets.map((t: { createdAt: string }) => Date.parse(t.createdAt));
+    expect(times).toEqual([...times].sort((a: number, b: number) => a - b));
+  });
 });
 
 describe('failed tickets in the API (story 5.2)', () => {

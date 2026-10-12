@@ -67,6 +67,8 @@ describe('GET /api/ops/ai-interactions/summary', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('since');
     expect(res.body).toHaveProperty('until');
+    // This test's own ticket was created inside the window.
+    expect(res.body.ticketsInWindow).toBeGreaterThanOrEqual(1);
     expect(Array.isArray(res.body.summary)).toBe(true);
     const primaryTriage = res.body.summary.find(
       (s: { provider: string; operation: string }) => s.provider === 'primary' && s.operation === 'triage'

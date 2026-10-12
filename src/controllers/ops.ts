@@ -2,7 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { createFactory } from 'hono/factory';
 import { z } from 'zod';
 import { listAiInteractions, summarizeAiInteractions } from '../repositories/ai-interactions.js';
-import { getTicketById } from '../repositories/tickets.js';
+import { countTicketsCreatedSince, getTicketById } from '../repositories/tickets.js';
 import { buildFullTicketView } from '../services/ticket-views.js';
 import { createEventPageHandlers } from './tickets.js';
 
@@ -44,8 +44,11 @@ export const summarizeAiInteractionsHandler = factory.createHandlers(
     const query = c.req.valid('query');
     const until = query.until ?? new Date();
     const since = query.since ?? new Date(until.getTime() - DEFAULT_SUMMARY_WINDOW_MS);
-    const summary = await summarizeAiInteractions({ since, until });
-    return c.json({ since, until, summary });
+    const [summary, ticketsInWindow] = await Promise.all([
+      summarizeAiInteractions({ since, until }),
+      countTicketsCreatedSince(since, until),
+    ]);
+    return c.json({ since, until, ticketsInWindow, summary });
   }
 );
 

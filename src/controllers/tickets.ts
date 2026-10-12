@@ -129,7 +129,8 @@ export const list = factory.createHandlers(
   async (c) => {
     const { page, limit, status: statusParam, sort: sortParam, order: orderParam } = c.req.valid('query');
     const status = statusParam ? statusParam.split(',').filter((s) => s) : undefined;
-    const sort = sortParam === 'status' || sortParam === 'failedAt' ? sortParam : 'createdAt';
+    const sort =
+      sortParam === 'status' || sortParam === 'failedAt' || sortParam === 'updatedAt' ? sortParam : 'createdAt';
     const order = orderParam === 'asc' ? 'asc' : 'desc';
 
     try {

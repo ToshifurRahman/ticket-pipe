@@ -23,6 +23,9 @@ export interface FullTicketView {
   description: string;
   status: string;
   createdAt: Date;
+  /** Ops only: why a failed ticket gave up, and when. Null for every other status. */
+  failureReason: string | null;
+  failedAt: Date | null;
   events: TicketEvent[];
   eventsNextCursor: string | null;
   phases: TicketPhases;
@@ -100,6 +103,8 @@ export async function buildFullTicketView(ticket: Ticket): Promise<FullTicketVie
     description: ticket.description,
     status: ticket.status,
     createdAt: ticket.createdAt,
+    failureReason: ticket.failureReason,
+    failedAt: ticket.failedAt,
     events: firstPage.events,
     eventsNextCursor: firstPage.nextSeq === null ? null : encodeEventCursor(firstPage.nextSeq),
     phases: buildTicketPhases(allEvents, processing),
