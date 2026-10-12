@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { opsCookie } from './helpers/ops-session';
 import { removeTicket } from './helpers/cleanup-ticket';
 import { stripFakeMarkers } from './helpers/strip-fake-marker';
 import { stubTurnstile } from './helpers/turnstile';
@@ -66,7 +67,9 @@ test('a ticket that needs a closer look picks up live after the team replays it'
 
   // The team fixes the cause and replays the ticket; the customer's page is still open.
   await stripFakeMarkers(ticketId);
-  const replay = await request.post(`/api/tickets/${ticketId}/replay`);
+  const replay = await request.post(`/api/tickets/${ticketId}/replay`, {
+    headers: { cookie: await opsCookie(request) },
+  });
   expect(replay.status()).toBe(200);
 
   await expect(page.getByText(WITH_TEAM)).toBeHidden({ timeout: 10_000 });

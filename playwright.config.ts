@@ -19,6 +19,6 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
     // A short fake delay keeps the typing indicator on screen long enough to see.
-    env: { PORT: String(PORT), LLM_MODE: 'fake', LLM_FAKE_DELAY_MS: '400' },
+    env: { PORT: String(PORT), LLM_MODE: 'fake', LLM_FAKE_DELAY_MS: '400', OPS_TOKEN: 'e2e-ops-token' },
   },
 });
