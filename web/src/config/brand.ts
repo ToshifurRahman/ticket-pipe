@@ -3,6 +3,9 @@
 export const brand = {
   name: 'Relay',
   tagline: 'AI help desk',
+  headline: 'Every ticket arrives already understood.',
+  subline:
+    'Relay reads each request the moment it lands, sorts it by category and urgency, and drafts a reply — while your customer watches it happen.',
   footer: 'a portfolio project',
   isWorkingName: true,
 } as const;
