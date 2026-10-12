@@ -13,25 +13,27 @@ type TicketThreadProps = {
   description: string;
   createdAt: string;
   support: SupportSide;
+  /** The landing-page sample: no live region, no "closed" footer, a generic author caption. */
+  demo?: boolean;
 };
 
 // A read-only conversation: the customer's message, then whatever support has to say.
-export function TicketThread({ description, createdAt, support }: TicketThreadProps) {
+export function TicketThread({ description, createdAt, support, demo = false }: TicketThreadProps) {
   return (
     <div className="flex flex-col gap-6">
       <figure className="flex flex-col items-end gap-1.5">
         <blockquote className="max-w-[min(100%,40rem)] rounded-2xl rounded-br-md bg-foreground px-4 py-3 whitespace-pre-wrap break-words text-background">
           {description}
         </blockquote>
-        <figcaption className="text-xs text-muted-foreground">You · {relativeTime(createdAt)}</figcaption>
+        <figcaption className="text-xs text-muted-foreground">{demo ? 'Customer' : `You · ${relativeTime(createdAt)}`}</figcaption>
       </figure>
 
       {/* The support side changes in place, so screen readers hear each stage and the reply. */}
-      <div aria-live="polite" className="flex flex-col gap-6">
+      <div aria-live={demo ? undefined : 'polite'} className="flex flex-col gap-6">
         <SupportMessage support={support} />
       </div>
 
-      {support.kind === 'replied' && (
+      {support.kind === 'replied' && !demo && (
         <footer className="flex flex-col items-center gap-3 border-t border-border pt-6 text-center">
           <p className="text-sm text-muted-foreground">
             This conversation is closed. Need more help? Open a new ticket.
