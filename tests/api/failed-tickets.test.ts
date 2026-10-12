@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, afterAll } from 'vitest';
-import request from '../helpers/request.js';
+import request from '../helpers/ops-session.js';
 
 const mockEmit = vi.hoisted(() => vi.fn());
 const mockTo = vi.hoisted(() => vi.fn((_room: string) => ({ emit: mockEmit })));

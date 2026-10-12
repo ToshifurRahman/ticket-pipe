@@ -10,6 +10,7 @@
 import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest';
 import { createServer, type Server as HttpServer } from 'http';
 import { io as ioClient, type Socket } from 'socket.io-client';
+import { createClient } from 'redis';
 import type { AddressInfo } from 'net';
 import type { AIService } from '../src/lib/ai-service.js';
 
@@ -20,7 +21,9 @@ vi.mock('../src/lib/queue.js', async (importOriginal) => {
 
 import { pool } from '../src/lib/db.js';
 import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
-import { init as initSocket, shutdown as shutdownSocket, getIo } from '../src/lib/socket.js';
+import { newOpsCookie } from './helpers/ops-session.js';
+import { destroySession, hashSessionId } from '../src/lib/ops-session.js';
+import { init as initSocket, shutdown as shutdownSocket, getIo, revokeOpsSockets } from '../src/lib/socket.js';
 import { insertTicket } from '../src/repositories/tickets.js';
 import { getAllEventsByTicketId, insertEvent } from '../src/repositories/events.js';
 import { processMessage } from '../src/worker.js';
@@ -91,14 +94,23 @@ async function newTicket() {
   return ticket;
 }
 
-async function connect(): Promise<Socket> {
-  const client = ioClient(url, { transports: ['websocket'], reconnection: false });
+async function connect(cookie?: string): Promise<Socket> {
+  const client = ioClient(url, {
+    transports: ['websocket'],
+    reconnection: false,
+    ...(cookie ? { extraHeaders: { cookie } } : {}),
+  });
   openClients.push(client);
   await new Promise<void>((resolve, reject) => {
     client.once('connect', () => resolve());
     client.once('connect_error', reject);
   });
   return client;
+}
+
+// A socket whose handshake carries a live ops session, as the signed-in console's would.
+async function connectOps(): Promise<Socket> {
+  return connect(await newOpsCookie());
 }
 
 async function subscribeToOps(client: Socket): Promise<OpsEvent[]> {
@@ -137,7 +149,7 @@ async function waitFor(check: () => boolean | Promise<boolean>, message: string)
 describe('ops organization feed', () => {
   it('delivers every ticket event over real Redis to a subscribed ops client, status only', async () => {
     const ticket = await newTicket();
-    const ops = await connect();
+    const ops = await connectOps();
     const received = await subscribeToOps(ops);
 
     await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
@@ -171,7 +183,7 @@ describe('ops organization feed', () => {
 
   it('does not let a customer socket read the feed by joining the "ops" room', async () => {
     const ticket = await newTicket();
-    const ops = await connect();
+    const ops = await connectOps();
     const received = await subscribeToOps(ops);
 
     const attacker = await connect();
@@ -194,6 +206,83 @@ describe('ops organization feed', () => {
     await waitFor(() => eventsFor(received, ticket.id).length === 5, 'ops client never received the feed');
 
     expect(attackerGot).toEqual([]);
+  });
+
+  // Story 6.5: the ops room needs a live session in the handshake.
+  it('refuses ops:subscribe without a session and gives that socket no feed', async () => {
+    const ticket = await newTicket();
+    const stranger = await connect();
+    const got: unknown[] = [];
+    stranger.onAny((_name, payload) => got.push(payload));
+
+    const ack = await stranger.timeout(5000).emitWithAck('ops:subscribe');
+    expect(ack).toEqual({ ok: false, error: 'unauthorized' });
+    expect(await opsRoomSize()).toBe(0);
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+    await new Promise((r) => setTimeout(r, 300));
+    expect(got).toEqual([]);
+  });
+
+  it('refuses ops:subscribe with a session cookie that was never issued or already ended', async () => {
+    const forged = await connect('ops_session=not-a-real-session');
+    expect(await forged.timeout(5000).emitWithAck('ops:subscribe')).toEqual({ ok: false, error: 'unauthorized' });
+
+    const cookie = await newOpsCookie();
+    await destroySession(cookie.split('=')[1]);
+    const ended = await connect(cookie);
+    expect(await ended.timeout(5000).emitWithAck('ops:subscribe')).toEqual({ ok: false, error: 'unauthorized' });
+    expect(await opsRoomSize()).toBe(0);
+  });
+
+  it('evicts a subscribed socket when its session is revoked, and stops its feed', async () => {
+    const ticket = await newTicket();
+    const cookie = await newOpsCookie();
+    const ops = await connect(cookie);
+    const received = await subscribeToOps(ops);
+    const revoked = new Promise<void>((resolve) => ops.once('ops:revoked', () => resolve()));
+    // Sign-out: the session is destroyed, then its sockets are removed from the room.
+    const hash = await destroySession(cookie.split('=')[1]);
+    await revokeOpsSockets(hash);
+    await revoked;
+    expect(await opsRoomSize()).toBe(0);
+
+    await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
+    await new Promise((r) => setTimeout(r, 300));
+    expect(eventsFor(received, ticket.id)).toEqual([]);
+  });
+
+  it('evicts a socket when its session expires, without anyone signing out', async () => {
+    // A session with a one-second life, written the way createSession() writes it.
+    const redis = createClient({ url: process.env.REDIS_URL });
+    await redis.connect();
+    const id = `expiring-${Date.now()}`;
+    await redis.set(`ops:session:${hashSessionId(id)}`, '{}', { EX: 1 });
+    await redis.quit();
+
+    const ops = await connect(`ops_session=${id}`);
+    await subscribeToOps(ops);
+    expect(await opsRoomSize()).toBe(1);
+
+    await new Promise<void>((resolve) => ops.once('ops:revoked', () => resolve()));
+    expect(await opsRoomSize()).toBe(0);
+  });
+
+  it('only evicts the sockets of the session that signed out', async () => {
+    const a = await connect(await newOpsCookie());
+    const bCookie = await newOpsCookie();
+    const b = await connect(bCookie);
+    await subscribeToOps(a);
+    await subscribeToOps(b);
+    expect(await opsRoomSize()).toBe(2);
+
+    const aRevoked = new Promise<void>((resolve) => a.once('ops:revoked', () => resolve()));
+    // `a` signs out; find its hash from the server-side socket.
+    const serverA = (await getIo()!.local.fetchSockets()).find((s) => s.id === a.id)!;
+    await revokeOpsSockets(serverA.data.opsSessionHash);
+    await aRevoked;
+    expect(await opsRoomSize()).toBe(1);
+    expect(hashSessionId(bCookie.split('=')[1])).toBeTruthy();
   });
 
   it('ignores join requests that are not ticket ids', async () => {
@@ -230,7 +319,7 @@ describe('ops organization feed', () => {
       draft: vi.fn(),
     } as unknown as AIService;
 
-    const ops = await connect();
+    const ops = await connectOps();
     await subscribeToOps(ops);
     const alerts: Record<string, unknown>[] = [];
     ops.on('ticket:failed', (p) => alerts.push(p));
@@ -248,7 +337,7 @@ describe('ops organization feed', () => {
   // refetches the public view), and ops, subscribed at the same time, gets none of it either.
   it('sends no AI output over the socket, to the customer or to ops', async () => {
     const ticket = await newTicket();
-    const ops = await connect();
+    const ops = await connectOps();
     const opsGot: unknown[] = [];
     ops.onAny((_name, payload) => opsGot.push(payload));
     await subscribeToOps(ops);

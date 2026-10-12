@@ -298,7 +298,7 @@ Ticket ID: 3f6c…
 Reason:    incomplete_output
 Time:      2026-10-08T12:34:56.000Z
 
-Replay it with POST /tickets/3f6c…/replay once the cause is fixed.
+Replay it from the ops console (or POST /api/tickets/3f6c…/replay with an ops session) once the cause is fixed.
 ```
 
 **What SNS is used for, and what it isn't.** SNS fans a message out to servers and people (email, SMS,
@@ -334,14 +334,39 @@ Set `SNS_TOPIC_ARN` to it. LocalStack doesn't send email, so subscribe a queue t
 (as `tests/ops-alerts.localstack.test.ts` does). In production the topic, the email subscription (the recipient
 must click the confirmation link) and `sns:Publish` on that topic for the app's IAM user are set up by hand.
 
+## Ops sign-in
+
+Everything staff-only sits behind a session: the ticket list (`GET /api/tickets`), replay, all of
+`/api/ops/*` and the `ops:subscribe` socket room. Customers need nothing: submitting a ticket, reading it by id or
+reference, and its live updates stay public.
+
+| Endpoint | Behaviour |
+| --- | --- |
+| `POST /api/ops/session` `{ "token": "…" }` | `200` and a session cookie when the token matches `OPS_TOKEN`. `401` for a wrong one, `429` after 5 wrong tries from one address in 15 minutes, `503` when `OPS_TOKEN` is not set. |
+| `GET /api/ops/session` | `{ "signedIn": true, "expiresAt": "…" }` or `{ "signedIn": false }`. Never `401`. |
+| `DELETE /api/ops/session` | `204`. Ends the session on the server and disconnects its live ops sockets (`ops:revoked`). |
+
+The cookie is `HttpOnly; Secure; SameSite=Strict` and holds a random 256-bit id. The server keeps only its SHA-256
+in Redis (`ops:session:<hash>`) with a fixed 12 hour life, so signing out really ends the session, and a copied
+cookie is useless afterwards. `SameSite=Strict` on one origin is the CSRF protection; the token never reaches
+browser storage. `ops:subscribe` reads the same cookie from the socket handshake and acks
+`{ ok: false, error: 'unauthorized' }` without one; a subscribed socket is removed from the room when its session
+is signed out or expires.
+
+`OPS_TOKEN` is required in production and must be at least 32 characters (`openssl rand -base64 32`). The
+brute-force counter uses the last `X-Forwarded-For` hop, which is the address the hosting proxy saw.
+
 ## Ticket Recovery
 
 Ops can send a ticket that ended `failed` or `needs_attention` back through processing. The customer does
 nothing: their open ticket page gets a `ticket:update` with `ticket.requeued` and then follows the new
 attempt live.
 
+Replay is staff-only: sign in first (see [Ops sign-in](#ops-sign-in)).
+
 ```bash
-curl -X POST http://localhost:3000/api/tickets/<ticket-id>/replay
+curl -c jar -H 'content-type: application/json' -d '{"token":"<OPS_TOKEN>"}' http://localhost:3000/api/ops/session
+curl -b jar -X POST http://localhost:3000/api/tickets/<ticket-id>/replay
 # 200 { "success": true, "status": "queued", "previousStatus": "failed" }
 ```
 

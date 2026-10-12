@@ -5,6 +5,7 @@
  */
 import { describe, it, expect, afterAll, beforeAll } from 'vitest';
 import request from '../helpers/request.js';
+import opsRequest from '../helpers/ops-session.js';
 import { app } from '../../src/app.js';
 import { pool } from '../../src/lib/db.js';
 import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
@@ -145,7 +146,7 @@ describe('public ticket view', () => {
 
 describe('ops ticket view', () => {
   it('returns every stage output and the event detail', async () => {
-    const res = await request(app).get(`/api/ops/tickets/${completed.id}`);
+    const res = await opsRequest(app).get(`/api/ops/tickets/${completed.id}`);
 
     expect(res.status).toBe(200);
     expect(res.body.phases).toEqual({
@@ -177,13 +178,13 @@ describe('ops ticket view', () => {
   });
 
   it('pages events with detail', async () => {
-    const res = await request(app).get(`/api/ops/tickets/${failed.id}/events`).query({ limit: 2 });
+    const res = await opsRequest(app).get(`/api/ops/tickets/${failed.id}/events`).query({ limit: 2 });
 
     expect(res.status).toBe(200);
     expect(res.body.events).toHaveLength(2);
     expect(typeof res.body.nextCursor).toBe('string');
 
-    const rest = await request(app).get(`/api/ops/tickets/${failed.id}/events`).query({ after: res.body.nextCursor });
+    const rest = await opsRequest(app).get(`/api/ops/tickets/${failed.id}/events`).query({ after: res.body.nextCursor });
     expect(rest.body.events).toContainEqual({
       event: 'ticket.failed',
       detail: 'secret provider error',
@@ -192,10 +193,10 @@ describe('ops ticket view', () => {
   });
 
   it('returns 404 for an unknown ticket and 400 for a bad cursor', async () => {
-    const missing = await request(app).get('/api/ops/tickets/00000000-0000-0000-0000-000000000000');
+    const missing = await opsRequest(app).get('/api/ops/tickets/00000000-0000-0000-0000-000000000000');
     expect(missing.status).toBe(404);
 
-    const badCursor = await request(app).get(`/api/ops/tickets/${failed.id}/events`).query({ after: 'nope' });
+    const badCursor = await opsRequest(app).get(`/api/ops/tickets/${failed.id}/events`).query({ after: 'nope' });
     expect(badCursor.status).toBe(400);
   });
 });

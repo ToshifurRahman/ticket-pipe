@@ -6,6 +6,7 @@ import type { Server as Engine } from '@socket.io/bun-engine';
 import type { Server as HttpServer } from 'http';
 import { logger } from './logger.js';
 import { isUuid } from './ids.js';
+import { closeOpsSessionStore, lookupSession, sessionIdFromCookieHeader } from './ops-session.js';
 import { OPS_ROOM } from './rooms.js';
 
 if (!process.env.REDIS_URL) throw new Error('REDIS_URL environment variable is required');
@@ -65,18 +66,53 @@ export async function init(httpServer?: HttpServer): Promise<Server> {
       socket.join(ticketId);
     });
 
-    // Ops staff subscribe to the organization-wide feed (`ops:ticket_event`). The ack lets
-    // the client know it is subscribed before any events are expected.
-    // TODO(7.6): reject here unless the socket presents a valid ops token.
-    socket.on('ops:subscribe', (ack?: (response: { ok: true }) => void) => {
-      socket.join(OPS_ROOM);
-      if (typeof ack === 'function') ack({ ok: true });
+    // Ops staff subscribe to the organization-wide feed (`ops:ticket_event`). Only a socket
+    // whose handshake carries a live ops session may join; the ack tells the client which.
+    // The session is revoked in two ways: sign-out evicts its sockets (revokeOpsSockets),
+    // and a timer at its expiry covers a tab left open.
+    socket.on('ops:subscribe', async (ack?: (response: { ok: boolean; error?: string }) => void) => {
+      const reply = typeof ack === 'function' ? ack : () => {};
+      try {
+        const session = await lookupSession(sessionIdFromCookieHeader(socket.handshake.headers.cookie));
+        if (!session) return reply({ ok: false, error: 'unauthorized' });
+        if (socket.disconnected) return;
+
+        clearTimeout(socket.data.opsExpiry);
+        socket.data.opsSessionHash = session.hash;
+        socket.join(OPS_ROOM);
+        socket.data.opsExpiry = setTimeout(() => evict(socket), Math.max(session.expiresAt.getTime() - Date.now(), 0));
+        reply({ ok: true });
+      } catch (err) {
+        logger.error({ err, socketId: socket.id }, 'ops:subscribe failed');
+        reply({ ok: false, error: 'unavailable' });
+      }
     });
+    socket.on('disconnect', () => clearTimeout(socket.data.opsExpiry));
   });
   // The API publishes `ticket.submitted` to the ops feed, so it needs a connected emitter
   // before the first request. Redis is already known to be up at this point.
   await warmEmitter();
   return io;
+}
+
+function evict(socket: { leave: (room: string) => unknown; emit: (event: string) => unknown; data: Record<string, unknown> }): void {
+  clearTimeout(socket.data.opsExpiry as NodeJS.Timeout | undefined);
+  delete socket.data.opsSessionHash;
+  socket.leave(OPS_ROOM);
+  socket.emit('ops:revoked');
+}
+
+// Sign-out: remove every socket, on any API process, that subscribed with this session.
+// fetchSockets() goes through the Redis adapter, so it reaches sockets on other processes
+// too (remote sockets are proxies; leave/emit work on them).
+export async function revokeOpsSockets(sessionHash: string): Promise<void> {
+  if (!io) return;
+  for (const socket of await io.in(OPS_ROOM).fetchSockets()) {
+    if (socket.data.opsSessionHash === sessionHash) {
+      socket.leave(OPS_ROOM);
+      socket.emit('ops:revoked');
+    }
+  }
 }
 
 export function getIo(): Server | null {
@@ -162,4 +198,5 @@ async function doShutdown(): Promise<void> {
   // allSettled: a client that never connected rejects on quit(), and that must not
   // turn a graceful shutdown into a crash.
   await Promise.allSettled(clients.map((client) => client.quit()));
+  await closeOpsSessionStore();
 }
