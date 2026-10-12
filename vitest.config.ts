@@ -21,7 +21,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
-    env: { NODE_ENV: 'test', PORTKEY_API_KEY: 'test-portkey-key', ...parseEnvFile('.env'), SQS_QUEUE_NAME: 'ticket-processing-test' },
+    env: { NODE_ENV: 'test', PORTKEY_API_KEY: 'test-portkey-key', ...parseEnvFile('.env'), OPS_TOKEN: 'test-ops-token', SQS_QUEUE_NAME: 'ticket-processing-test' },
     testTimeout: 30000,
   },
 });

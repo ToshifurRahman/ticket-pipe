@@ -30,7 +30,7 @@ export function buildAlertMessage(alert: OpsNeedsAttention): AlertMessage {
       `Reason:    ${reason}`,
       `Time:      ${alert.occurredAt.toISOString()}`,
       '',
-      `Replay it with POST /tickets/${ticketId}/replay once the cause is fixed.`,
+      `Replay it from the ops console (or POST /api/tickets/${ticketId}/replay with an ops session) once the cause is fixed.`,
     ].join('\n'),
   };
 }

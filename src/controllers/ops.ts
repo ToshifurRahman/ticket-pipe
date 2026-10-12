@@ -49,7 +49,6 @@ export const summarizeAiInteractionsHandler = factory.createHandlers(
   }
 );
 
-// TODO(6.5): require the ops session. Until then these are as open as the rest of /api/ops.
 // The ops console's view of one ticket: every stage output and the event detail that the
 // customer routes leave out.
 export const getTicketHandler = factory.createHandlers(async (c) => {
@@ -57,5 +56,4 @@ export const getTicketHandler = factory.createHandlers(async (c) => {
   return c.json(await buildFullTicketView(ticket));
 });
 
-// TODO(6.5): require the ops session.
 export const listTicketEventsHandler = createEventPageHandlers((event) => event);

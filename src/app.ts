@@ -10,6 +10,7 @@ import { getEngine } from './lib/socket.js';
 import { mountWebApp } from './lib/web-app.js';
 import { healthRouter } from './routes/health.js';
 import { opsRouter } from './routes/ops.js';
+import { opsSessionRouter } from './routes/ops-session.js';
 import { ticketsRouter } from './routes/tickets.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -36,6 +37,8 @@ app.all('/socket.io/', (c) => {
 
 app.route('/health', healthRouter);
 app.route('/api/tickets', ticketsRouter);
+// Mounted before /api/ops so sign-in is reachable without a session.
+app.route('/api/ops/session', opsSessionRouter);
 app.route('/api/ops', opsRouter);
 mountWebApp(app, path.join(__dirname, '../web/dist'));
 
