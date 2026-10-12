@@ -1,5 +1,5 @@
 import { describe, it, expect, afterAll } from 'vitest';
-import request from '../helpers/request.js';
+import request from '../helpers/ops-session.js';
 import { app } from '../../src/app.js';
 import { pool } from '../../src/lib/db.js';
 

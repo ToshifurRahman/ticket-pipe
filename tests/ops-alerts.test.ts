@@ -46,7 +46,7 @@ describe('buildAlertMessage', () => {
         'Reason:    incomplete_output',
         'Time:      2026-10-08T12:34:56.000Z',
         '',
-        'Replay it with POST /tickets/00000000-0000-0000-0000-000000000001/replay once the cause is fixed.',
+        'Replay it from the ops console (or POST /api/tickets/00000000-0000-0000-0000-000000000001/replay with an ops session) once the cause is fixed.',
       ].join('\n')
     );
   });

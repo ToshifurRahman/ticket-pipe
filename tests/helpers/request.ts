@@ -17,7 +17,8 @@ class TestRequest implements PromiseLike<TestResponse> {
   constructor(
     private readonly app: Hono<any>,
     private readonly method: string,
-    private readonly path: string
+    private readonly path: string,
+    private readonly defaults?: () => Promise<Record<string, string>>
   ) {}
 
   set(name: string, value: string): this {
@@ -38,7 +39,7 @@ class TestRequest implements PromiseLike<TestResponse> {
   private async exec(): Promise<TestResponse> {
     const qs = this.params.toString();
     const url = qs ? `${this.path}${this.path.includes('?') ? '&' : '?'}${qs}` : this.path;
-    const init: RequestInit = { method: this.method, headers: { ...this.headers } };
+    const init: RequestInit = { method: this.method, headers: { ...(await this.defaults?.()), ...this.headers } };
     if (this.payload !== undefined) {
       const headers = init.headers as Record<string, string>;
       if (typeof this.payload === 'string') {
@@ -67,11 +68,11 @@ class TestRequest implements PromiseLike<TestResponse> {
   }
 }
 
-export default function request(app: Hono<any>) {
+export default function request(app: Hono<any>, defaults?: () => Promise<Record<string, string>>) {
   return {
-    get: (path: string) => new TestRequest(app, 'GET', path),
-    post: (path: string) => new TestRequest(app, 'POST', path),
-    put: (path: string) => new TestRequest(app, 'PUT', path),
-    delete: (path: string) => new TestRequest(app, 'DELETE', path),
+    get: (path: string) => new TestRequest(app, 'GET', path, defaults),
+    post: (path: string) => new TestRequest(app, 'POST', path, defaults),
+    put: (path: string) => new TestRequest(app, 'PUT', path, defaults),
+    delete: (path: string) => new TestRequest(app, 'DELETE', path, defaults),
   };
 }
