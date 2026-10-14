@@ -260,7 +260,27 @@ set of keys.
 | `GET /api/ops/tickets/:id` | Full: every stage output and event `detail` |
 | `GET /api/ops/tickets/:id/events` | Full, same paging |
 
-The ops routes are not protected yet; the ops session arrives with story 6.5.
+The ops routes need an ops session (see [Ops sign-in](#ops-sign-in)).
+
+### Ops console (`/ops`)
+
+One page for staff. Signed out, it shows only the sign-in card (a token field that posts to `POST /api/ops/session`);
+a `401` from any console request sends the operator back to it, and **Sign out** ends the session.
+
+- **KPI strip**: tickets in the last 24 hours, AI success rate, average latency and fallback rate, from `GET /api/ops/ai-interactions/summary`.
+- **Ticket table**: All / Needs attention / Failed / Completed tabs with counts, sorting by updated or created time, and
+  20 rows a page, from `GET /api/tickets`. The tab, sort, page and open ticket live in the URL, so a reload keeps your place.
+- **Live updates**: the console joins the ops room and re-reads the list, counts, KPIs and any open drawer when it hears
+  `ops:ticket_event`, `ticket:requeued`, `ticket:failed` or `ticket:needs_attention`, so rows change with no reload.
+  The header shows whether the feed is connected. `ticket:needs_attention` and `ticket:failed` also raise a toast with an **Open** action.
+- **Detail drawer** (click a row): the full triage (category, priority, sentiment, escalate, team, summary), the customer's
+  message, the drafted reply, internal note and next actions, the event timeline (paged with **Load more**), and every AI
+  call for the ticket (step, model, latency, whether the backup provider answered, outcome).
+- **Replay**: offered for `failed` and `needs_attention` tickets, and asks once because a replay spends AI calls. It resumes at
+  the stage that did not finish. A `409` (something already moved the ticket) and a `503` (it could not be requeued and was left as it was) show as plain toasts.
+
+`web/src/pages/ops.test.tsx` and `web/src/components/ops/ticket-drawer.test.tsx` cover the console; `e2e/ops-console.spec.ts`
+signs in, filters to a `needs_attention` ticket made with `[fake:invalid-draft]`, replays it and watches the row complete.
 
 ### Testing without an AI provider
 
