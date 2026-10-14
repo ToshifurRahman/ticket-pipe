@@ -20,7 +20,7 @@ export function brandHtml(siteUrl: string | undefined): Plugin {
 
   return {
     name: 'brand-html',
-    transformIndexHtml() {
+    transformIndexHtml(_html, ctx) {
       if (!base && !warned) {
         warned = true;
         console.warn('[brand-html] VITE_SITE_URL is not set: og:image / og:url will be relative paths.');
@@ -28,7 +28,13 @@ export function brandHtml(siteUrl: string | undefined): Plugin {
       const title = `${brand.name} — ${brand.tagline}`;
       const meta = (attrs: Record<string, string>) => ({ tag: 'meta', attrs, injectTo: 'head' as const });
       const link = (attrs: Record<string, string>) => ({ tag: 'link', attrs, injectTo: 'head' as const });
+      // The body font is only discovered once the CSS is parsed; preloading the Latin subset
+      // removes the late font swap that moves the largest paint on a throttled phone.
+      const inter = Object.keys(ctx.bundle ?? {}).find((name) => /inter-latin-wght-normal-.*\.woff2$/.test(name));
       return [
+        ...(inter
+          ? [link({ rel: 'preload', as: 'font', type: 'font/woff2', href: `/${inter}`, crossorigin: '' })]
+          : []),
         { tag: 'title', children: escapeAttr(title), injectTo: 'head' as const },
         meta({ name: 'description', content: brand.description }),
         meta({ name: 'theme-color', content: brand.themeColor }),

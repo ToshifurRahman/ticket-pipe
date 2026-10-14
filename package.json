@@ -15,7 +15,8 @@
     "web:dev": "cd web && bun run dev",
     "test:web": "cd web && bun run test",
     "test:e2e": "playwright test",
-    "brand:assets": "bun scripts/render-brand-assets.ts"
+    "brand:assets": "bun scripts/render-brand-assets.ts",
+    "lighthouse": "bun scripts/lighthouse.ts"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx}": "eslint --fix"
@@ -39,6 +40,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.22.0",
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "1.64.0",
     "@types/bun": "^1.4.2",
     "@types/pg": "^8.11.11",

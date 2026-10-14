@@ -55,11 +55,8 @@ async function drainMessage(ticketId: string): Promise<void> {
       for (const m of Messages) {
         const mine = (JSON.parse(m.Body ?? '{}') as { ticketId?: string }).ticketId === ticketId;
         found ||= mine;
-        await sqs.send(
-          mine
-            ? new DeleteMessageCommand({ QueueUrl, ReceiptHandle: m.ReceiptHandle })
-            : new ChangeMessageVisibilityCommand({ QueueUrl, ReceiptHandle: m.ReceiptHandle, VisibilityTimeout: 0 })
-        );
+        if (mine) await sqs.send(new DeleteMessageCommand({ QueueUrl, ReceiptHandle: m.ReceiptHandle }));
+        else await sqs.send(new ChangeMessageVisibilityCommand({ QueueUrl, ReceiptHandle: m.ReceiptHandle, VisibilityTimeout: 0 }));
       }
       if (found) return;
     }
