@@ -22,6 +22,7 @@ import {
   type NeedsAttentionReason,
   type FailureReason,
 } from './services/ops-feed.js';
+import { startRetentionSweep } from './services/ticket-retention.js';
 import { alertNeedsAttention } from './services/ops-alerts.js';
 import { emitTicketUpdate } from './services/ticket-updates.js';
 import { UUID_RE } from './lib/ids.js';
@@ -435,11 +436,13 @@ if (import.meta.main) {
   // The worker has no Socket.IO server, but it does own the emitter's Redis client —
   // without this it never gets closed. Guarded so a repeated signal is a no-op.
   let closing = false;
+  const stopRetentionSweep = startRetentionSweep();
   for (const signal of ['SIGTERM', 'SIGINT'] as const) {
     process.on(signal, () => {
       if (closing) return;
       closing = true;
       logger.info({ signal }, 'Worker shutting down');
+      stopRetentionSweep();
       void shutdownSocket()
         .catch(err => logger.error({ err }, 'Error shutting down Redis emitter'))
         .finally(() => process.exit(0));
