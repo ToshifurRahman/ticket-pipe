@@ -7,5 +7,7 @@ export const brand = {
   subline:
     'Relay reads each request the moment it lands, sorts it by category and urgency, and drafts a reply — while your customer watches it happen.',
   footer: 'a portfolio project',
+  // Where the legal pages point people who have a question. Update with the repo rename (7.12).
+  repoUrl: 'https://github.com/ToshifurRahman/ticket-pipe',
   isWorkingName: true,
 } as const;
