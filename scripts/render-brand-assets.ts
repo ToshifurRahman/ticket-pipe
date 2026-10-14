@@ -1,7 +1,7 @@
 import { chromium } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { brand } from '../web/src/config/brand';
+import { brand } from '../web/src/config/brand.js';
 
 // Renders the PNG favicons and the 1200x630 social card from web/public/favicon.svg and
 // web/src/config/brand.ts. Output is committed (web/public/), so builds never need a browser.
@@ -43,7 +43,7 @@ try {
     <div class="brand">${svg}<span>${brand.name}</span></div>
     <div><h1>${brand.headline}</h1><p>${brand.tagline} &middot; ${brand.footer}</p></div>
   </div></body></html>`);
-  await card.evaluate(() => document.fonts.ready);
+  await card.evaluate('document.fonts.ready');
   await writeFile(path.join(publicDir, 'og-image.png'), await card.screenshot());
 } finally {
   await browser.close();
