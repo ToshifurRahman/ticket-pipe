@@ -39,9 +39,10 @@ describe('routes', () => {
     expect(await screen.findByTestId('ticket-reference')).toHaveTextContent(TICKET_REF);
   });
 
-  it('renders the ops route in the ops layout, without the track field or footer', () => {
+  it('renders the ops route in the ops layout, without the track field or footer', async () => {
+    server.use(http.get('/api/ops/session', () => HttpResponse.json({ signedIn: false })));
     renderAt('/ops');
-    expect(screen.getByRole('heading', { name: 'Ops console' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Ops console' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Ticket reference')).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Privacy' })).not.toBeInTheDocument();
   });

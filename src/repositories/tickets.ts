@@ -135,15 +135,25 @@ export interface ListTicketsOptions {
   page: number;
   limit: number;
   status?: string[];
-  sort: 'createdAt' | 'status' | 'failedAt';
+  sort: 'createdAt' | 'updatedAt' | 'status' | 'failedAt';
   order: 'asc' | 'desc';
 }
 
+// A ticket as the ops table lists it: the triage verdict (null until triage has finished)
+// and the time of its latest event.
+export interface ListedTicket extends Ticket {
+  category: string | null;
+  priority: string | null;
+  updatedAt: Date;
+}
+
 export interface ListTicketsResult {
-  tickets: Ticket[];
+  tickets: ListedTicket[];
   total: number;
   page: number;
   limit: number;
+  /** Tickets per status across the whole table, whatever the status filter says. */
+  counts: Record<string, number>;
 }
 
 export async function listTickets(options: ListTicketsOptions): Promise<ListTicketsResult> {
@@ -162,26 +172,43 @@ export async function listTickets(options: ListTicketsOptions): Promise<ListTick
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   const orderBy =
-    sort === 'status' ? 'status' : sort === 'failedAt' ? 'failed_at' : 'created_at';
+    sort === 'status' ? 't.status' : sort === 'failedAt' ? 't.failed_at' : sort === 'updatedAt' ? 'updated_at' : 't.created_at';
   const orderDir = order.toUpperCase() + (sort === 'failedAt' ? ' NULLS LAST' : '');
 
-  const countQuery = `SELECT COUNT(*) FROM tickets ${whereClause}`;
-  const dataQuery = `SELECT * FROM tickets ${whereClause} ORDER BY ${orderBy} ${orderDir} LIMIT $${paramIndex++} OFFSET $${paramIndex}`;
+  const countQuery = `SELECT COUNT(*) FROM tickets t ${whereClause}`;
+  // `t.id` breaks ties so a page boundary never repeats or skips a row.
+  const dataQuery = `
+    SELECT t.*, p.category, p.priority,
+           COALESCE((SELECT MAX(e.occurred_at) FROM ticket_events e WHERE e.ticket_id = t.id), t.created_at) AS updated_at
+    FROM tickets t
+    LEFT JOIN ticket_processing p ON p.ticket_id = t.id
+    ${whereClause}
+    ORDER BY ${orderBy} ${orderDir}, t.id
+    LIMIT $${paramIndex++} OFFSET $${paramIndex}`;
 
-  const countResult = await pool.query(countQuery, params);
-  const total = Number(countResult.rows[0].count);
-
-  const dataResult = await pool.query(
-    dataQuery,
-    [...params, limit, offset]
-  );
+  const [countResult, dataResult, countsResult] = await Promise.all([
+    pool.query(countQuery, params),
+    pool.query(dataQuery, [...params, limit, offset]),
+    pool.query<{ status: string; count: string }>('SELECT status, COUNT(*) FROM tickets GROUP BY status'),
+  ]);
 
   return {
-    tickets: dataResult.rows.map(mapRow),
-    total,
+    tickets: dataResult.rows.map((row) => ({
+      ...mapRow(row),
+      category: row.category ?? null,
+      priority: row.priority ?? null,
+      updatedAt: row.updated_at,
+    })),
+    total: Number(countResult.rows[0].count),
     page,
     limit,
+    counts: Object.fromEntries(countsResult.rows.map((r) => [r.status, Number(r.count)])),
   };
+}
+
+export async function countTicketsCreatedSince(since: Date, until: Date): Promise<number> {
+  const result = await pool.query('SELECT COUNT(*) FROM tickets WHERE created_at >= $1 AND created_at <= $2', [since, until]);
+  return Number(result.rows[0].count);
 }
 
 function mapRow(row: TicketRow): Ticket {
