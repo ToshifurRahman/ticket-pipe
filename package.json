@@ -16,7 +16,8 @@
     "test:web": "cd web && bun run test",
     "test:e2e": "playwright test",
     "brand:assets": "bun scripts/render-brand-assets.ts",
-    "lighthouse": "bun scripts/lighthouse.ts"
+    "lighthouse": "bun scripts/lighthouse.ts",
+    "screenshots": "bun scripts/screenshots.ts"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx}": "eslint --fix"
