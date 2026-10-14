@@ -3,6 +3,8 @@
 interface ImportMetaEnv {
   /** Cloudflare Turnstile site key. Unset → Cloudflare's always-pass test key. */
   readonly VITE_TURNSTILE_SITE_KEY?: string;
+  /** Cloudflare Web Analytics token. Unset → no beacon, even in a production build. */
+  readonly VITE_CF_ANALYTICS_TOKEN?: string;
 }
 
 interface ImportMeta {
