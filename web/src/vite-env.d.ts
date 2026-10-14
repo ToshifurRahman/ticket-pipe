@@ -5,6 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_TURNSTILE_SITE_KEY?: string;
   /** Cloudflare Web Analytics token. Unset → no beacon, even in a production build. */
   readonly VITE_CF_ANALYTICS_TOKEN?: string;
+  /** Public origin of the deployed site. Build-time only: makes og:image / og:url absolute. */
+  readonly VITE_SITE_URL?: string;
 }
 
 interface ImportMeta {
