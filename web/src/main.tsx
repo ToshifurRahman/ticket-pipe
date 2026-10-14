@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import { createQueryClient } from '@/lib/query-client';
+import { Analytics } from '@/components/analytics';
 import { AppRoutes } from './routes';
 
 const queryClient = createQueryClient();
@@ -15,6 +16,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <Analytics />
         <AppRoutes />
       </BrowserRouter>
     </QueryClientProvider>

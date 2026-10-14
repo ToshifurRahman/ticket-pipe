@@ -47,6 +47,15 @@ describe('routes', () => {
     expect(screen.queryByRole('link', { name: 'Privacy' })).not.toBeInTheDocument();
   });
 
+  it('reaches the legal pages from the footer', async () => {
+    const user = userEvent.setup();
+    renderAt('/new');
+    await user.click(screen.getByRole('link', { name: 'Privacy' }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Privacy' })).toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: 'Terms' }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Terms' })).toBeInTheDocument();
+  });
+
   it('shows landing links only on /', () => {
     const { unmount } = renderAt('/');
     expect(screen.getByRole('link', { name: 'Pricing' })).toBeInTheDocument();

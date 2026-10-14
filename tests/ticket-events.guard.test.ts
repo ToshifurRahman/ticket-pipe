@@ -10,6 +10,9 @@ import path from 'path';
 const ROOT = path.resolve(__dirname, '..');
 const DIRS = ['src', 'scripts', 'migrations'].map((dir) => path.join(ROOT, dir));
 const ALLOWED = path.join(ROOT, 'migrations', '008_ticket_events_append_only.sql');
+// The retention purge (the privacy page's 30-day promise) is the one application path that may
+// delete history. It opts in per transaction, like the test helper.
+const RETENTION = path.join(ROOT, 'src', 'repositories', 'ticket-retention.ts');
 const MUTATION = /\b(DELETE\s+FROM|UPDATE|TRUNCATE(\s+TABLE)?)\s+ticket_events\b/i;
 
 function files(dir: string): string[] {
@@ -22,11 +25,15 @@ function files(dir: string): string[] {
 describe('ticket history is append-only', () => {
   it('no application code, script or later migration changes or removes ticket_events rows', () => {
     const offenders = DIRS.flatMap(files)
-      .filter((file) => file !== ALLOWED)
+      .filter((file) => file !== ALLOWED && file !== RETENTION)
       .filter((file) => MUTATION.test(readFileSync(file, 'utf8')))
       .map((file) => path.relative(ROOT, file));
 
     expect(offenders).toEqual([]);
+  });
+
+  it('the retention purge is the only application code allowed to delete events', () => {
+    expect(readFileSync(RETENTION, 'utf8')).toMatch(MUTATION);
   });
 
   it('the pattern really matches a mutation (the guard is not vacuous)', () => {
