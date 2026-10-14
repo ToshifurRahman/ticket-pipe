@@ -3,6 +3,12 @@ import { cleanup } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import { server } from './server';
 
+// jsdom has no pointer capture; Sonner (and some Radix parts) call it on a click.
+for (const method of ['setPointerCapture', 'releasePointerCapture'] as const) {
+  Element.prototype[method] ??= () => {};
+}
+Element.prototype.hasPointerCapture ??= () => false;
+
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 
 afterEach(() => {
