@@ -25,3 +25,10 @@ playwright-report/
 
 # Lighthouse
 .lighthouseci/
+
+# Impeccable scratch (decision hands, review captures, build state)
+.impeccable/mocks/
+.impeccable/review/
+.impeccable/build/
+.impeccable/questions/
+.ds-receipts/
