@@ -12,6 +12,7 @@ import { NotFoundPage } from '@/pages/not-found';
 // The layout is lazy too: it holds the toaster and the sign-out control.
 const OpsLayout = lazy(() => import('@/layouts/ops-layout').then((m) => ({ default: m.OpsLayout })));
 const OpsPage = lazy(() => import('@/pages/ops').then((m) => ({ default: m.OpsPage })));
+const ConfirmPage = lazy(() => import('@/pages/confirm').then((m) => ({ default: m.ConfirmPage })));
 const TicketPage = lazy(() => import('@/pages/ticket').then((m) => ({ default: m.TicketPage })));
 
 export function AppRoutes() {
@@ -25,6 +26,12 @@ export function AppRoutes() {
           element={
             <Suspense fallback={<TicketSkeleton />}>
               <TicketPage />
+            </Suspense>
+          }
+        />
+        <Route path="confirm/:token" element={
+            <Suspense fallback={<TicketSkeleton />}>
+              <ConfirmPage />
             </Suspense>
           }
         />

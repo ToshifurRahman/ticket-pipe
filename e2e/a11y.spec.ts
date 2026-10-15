@@ -1,6 +1,8 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import { removeTicket } from './helpers/cleanup-ticket';
+import { asClient } from './helpers/client-ip';
+import { linkIn, uniqueAddress, waitForMail } from './helpers/mailpit';
 import { E2E_OPS_TOKEN, opsCookie } from './helpers/ops-session';
 import { stubTurnstile } from './helpers/turnstile';
 
@@ -55,6 +57,18 @@ test.afterAll(async () => {
   for (const id of created) await removeTicket(id);
 });
 
+// A ticket that ends needs_attention (so it stays open to email opt-in) with a pending opt-in.
+async function optedInTicket(page: Page) {
+  const res = await page.request.post('/api/tickets', {
+    data: { subject: 'Accessibility check, email', description: 'The totals on my invoice do not add up. [fake:invalid-triage]' },
+  });
+  const { ticketId, referenceNumber } = (await res.json()) as { ticketId: string; referenceNumber: string };
+  created.push(ticketId);
+  const address = uniqueAddress();
+  expect((await page.request.post(`/api/tickets/${ticketId}/notification`, { data: { email: address }, headers: asClient() })).status()).toBe(201);
+  return { ref: referenceNumber, address };
+}
+
 async function useTheme(page: Page, theme: (typeof THEMES)[number]) {
   await page.addInitScript((value) => localStorage.setItem('theme', value), theme);
 }
@@ -95,7 +109,31 @@ const visits: Visit[] = [
     },
   },
   { name: 'ticket completed', open: async (p) => { await p.goto(`/t/${completed.ref}`); await expect(p.getByText(/^Reply from support/)).toBeVisible(); } },
-  { name: 'ticket needs attention', open: async (p) => { await p.goto(`/t/${attention.ref}`); await expect(p.getByText(/closer look/)).toBeVisible(); } },
+  { name: 'ticket needs attention', open: async (p) => { await p.goto(`/t/${attention.ref}`); await expect(p.getByText(/closer look/)).toBeVisible(); await expect(p.getByLabel('Email address')).toBeVisible(); } },
+  {
+    name: 'ticket with the email card pending',
+    open: async (p) => {
+      const { ref } = await optedInTicket(p);
+      await p.goto(`/t/${ref}`);
+      await expect(p.getByRole('heading', { name: 'Check your inbox' })).toBeVisible();
+    },
+  },
+  {
+    name: 'confirm email',
+    open: async (p) => {
+      const { address } = await optedInTicket(p);
+      const [mail] = await waitForMail(address);
+      await p.goto(linkIn(mail!, '/confirm/'));
+      await expect(p.getByRole('button', { name: 'Confirm' })).toBeVisible();
+    },
+  },
+  {
+    name: 'confirm email, expired link',
+    open: async (p) => {
+      await p.goto('/confirm/not-a-real-token');
+      await expect(p.getByRole('heading', { name: /expired or was already used/ })).toBeVisible();
+    },
+  },
   { name: 'ticket not found', open: async (p) => { await p.goto(`/t/${UNKNOWN_REF}`); await expect(p.getByRole('heading', { name: /couldn't find that ticket/ })).toBeVisible(); } },
   { name: 'privacy', open: async (p) => { await p.goto('/privacy'); await expect(p.getByRole('heading', { level: 1 })).toBeVisible(); } },
   { name: 'terms', open: async (p) => { await p.goto('/terms'); await expect(p.getByRole('heading', { level: 1 })).toBeVisible(); } },

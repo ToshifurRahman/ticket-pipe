@@ -9,9 +9,9 @@ export type LegalDoc = {
 };
 
 // Keep these pages true:
-//  - Story 6.9 adds an email field: update "What we collect" and "What we don't" below.
-//  - The company list names the real providers (src/lib/llm-client.ts, Render, Neon, Upstash,
-//    AWS, Cloudflare). Change a provider, change the list.
+//  - The company list names the real providers (src/lib/llm-client.ts, src/lib/mailer.ts, Render,
+//    Neon, Upstash, AWS, Cloudflare, Brevo). Change a provider, change the list.
+//  - The email promises (what is sent, what is kept) match src/services/customer-notifications.ts.
 //  - RETENTION_DAYS in src/services/ticket-retention.ts is the number promised here.
 export const RETENTION_DAYS_TEXT = '30 days';
 
@@ -27,12 +27,13 @@ export const PRIVACY: LegalDoc = {
       body: [
         'The subject and description you put in a ticket, and nothing else you type.',
         'We also keep the ticket’s progress (received, triaged, drafted, replied) and the AI’s answer.',
+        'If you ask us to email you, your email address. We use it only to send that ticket’s confirmation link, a “reply is ready” notice and, if something goes wrong, one “we’re looking into it” notice.',
       ],
     },
     {
       heading: 'What we don’t collect',
       body: [
-        'No accounts, no passwords and no email address. Anyone with a ticket’s reference can open it, so keep the reference to yourself.',
+        'No accounts or passwords. We only ask for your email if you want a notification. Anyone with a ticket’s reference can open it, so keep the reference to yourself.',
         'No advertising or tracking cookies.',
       ],
     },
@@ -41,12 +42,16 @@ export const PRIVACY: LegalDoc = {
       body: [
         'Your ticket text is sent to AI providers (Groq, and Google as a backup) through Portkey, so they can sort it and draft a reply.',
         'Cloudflare checks that you’re not a bot (Turnstile) and counts visits without cookies (Web Analytics). The site runs on Render, Neon (database), Upstash (cache) and AWS (queue and staff alerts).',
+        'Brevo sends the notification emails. It sees your address, the ticket’s subject and its reference, never the description or the reply.',
         'These companies handle data under their own terms and may keep their own logs. Please don’t send anything sensitive.',
       ],
     },
     {
       heading: 'How long we keep it',
-      body: [`Tickets, replies and their history are deleted ${RETENTION_DAYS_TEXT} after you send them. We may also wipe the demo sooner.`],
+      body: [
+        `Tickets, replies and their history are deleted ${RETENTION_DAYS_TEXT} after you send them. We may also wipe the demo sooner.`,
+        `Your email address is deleted with the ticket, ${RETENTION_DAYS_TEXT} after you send it.`,
+      ],
     },
     {
       heading: 'Stored in your browser',
@@ -62,7 +67,10 @@ export const PRIVACY: LegalDoc = {
     },
     {
       heading: 'Questions',
-      body: [`Open an issue on the project’s GitHub page: ${brand.repoUrl}/issues`],
+      body: [
+        `Open an issue on the project’s GitHub page: ${brand.repoUrl}/issues`,
+        'Didn’t ask for an email from us? Ignore it. Nothing is sent unless the link is confirmed.',
+      ],
     },
   ],
 };
@@ -86,6 +94,7 @@ export const TERMS: LegalDoc = {
       heading: 'What to send',
       body: [
         'Test tickets only. Please don’t submit personal, confidential or sensitive information.',
+        'Only enter an email address that’s yours.',
         'Don’t use the site to attack it, spam it or send anything unlawful.',
       ],
     },
