@@ -13,18 +13,12 @@ import {
   recordFailedSignIn,
   SESSION_TTL_S,
 } from '../lib/ops-session.js';
+import { clientIp } from '../lib/client-ip.js';
 import { revokeOpsSockets } from '../lib/socket.js';
 
 export const opsSessionRouter = new Hono();
 
 const SignInSchema = z.object({ token: z.string().max(512) });
-
-// Behind Render's proxy the caller's address is the last hop it appended to X-Forwarded-For;
-// earlier hops are client-supplied. Locally there is no proxy and the header is absent.
-function clientIp(c: { req: { header: (name: string) => string | undefined } }): string {
-  const hops = (c.req.header('x-forwarded-for') ?? '').split(',').map((hop) => hop.trim()).filter(Boolean);
-  return hops.at(-1) ?? 'local';
-}
 
 opsSessionRouter.post('/', zValidator('json', SignInSchema, (result, c) => (result.success ? undefined : c.json({ error: 'Invalid request body' }, 400))), async (c) => {
   if (!isOpsSignInConfigured()) return c.json({ error: 'Ops sign-in is not configured' }, 503);

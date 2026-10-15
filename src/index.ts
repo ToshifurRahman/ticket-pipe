@@ -1,4 +1,5 @@
 import { logger } from './lib/logger.js';
+import { assertMailConfigured } from './lib/mailer.js';
 import { assertLlmModeAllowed } from './lib/llm-client.js';
 import { assertOpsTokenConfigured } from './lib/ops-session.js';
 import { init as initSocket, shutdown as shutdownSocket } from './lib/socket.js';
@@ -29,6 +30,7 @@ function installShutdownHandlers(server: ReturnType<typeof startServer>): void {
 
 if (import.meta.main) {
   assertLlmModeAllowed();
+  assertMailConfigured();
   assertOpsTokenConfigured();
   const port = Number(process.env.PORT ?? 3000);
   initSocket()

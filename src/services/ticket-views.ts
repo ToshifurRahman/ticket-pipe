@@ -1,6 +1,8 @@
 import { getProcessingResultByTicketId } from '../repositories/processing.js';
 import { getAllEventsByTicketId, getEventPage, type TicketEvent } from '../repositories/events.js';
 import { getTicketById, type Ticket } from '../repositories/tickets.js';
+import { getNotificationStatus, type NotificationState } from '../repositories/notifications.js';
+import { maskEmail } from '../lib/mask-email.js';
 import { encodeEventCursor } from '../lib/event-cursor.js';
 import {
   resolveTicketPhases,
@@ -29,6 +31,8 @@ export interface FullTicketView {
   events: TicketEvent[];
   eventsNextCursor: string | null;
   phases: TicketPhases;
+  /** Ops only, and masked: the customer's email opt-in, if any. */
+  notification: { state: NotificationState; maskedEmail: string | null };
 }
 
 export interface PublicTicketEvent {
@@ -90,10 +94,11 @@ function buildTicketPhases(
  * `eventsNextCursor` (null when there is nothing more) continues it at the events route.
  */
 export async function buildFullTicketView(ticket: Ticket): Promise<FullTicketView> {
-  const [allEvents, firstPage, processing] = await Promise.all([
+  const [allEvents, firstPage, processing, notification] = await Promise.all([
     getAllEventsByTicketId(ticket.id),
     getEventPage(ticket.id, { limit: EVENTS_DEFAULT_LIMIT }),
     getProcessingResultByTicketId(ticket.id),
+    getNotificationStatus(ticket.id),
   ]);
 
   return {
@@ -108,8 +113,12 @@ export async function buildFullTicketView(ticket: Ticket): Promise<FullTicketVie
     events: firstPage.events,
     eventsNextCursor: firstPage.nextSeq === null ? null : encodeEventCursor(firstPage.nextSeq),
     phases: buildTicketPhases(allEvents, processing),
+    notification: { state: notification.state, maskedEmail: notification.email ? maskEmail(notification.email) : null },
   };
 }
+
+/** Customer-facing history leaves out notification bookkeeping; ops sees all of it. */
+export const isPublicEvent = (event: { event: string }) => !event.event.startsWith('notification.');
 
 export function toPublicEvent(event: TicketEvent): PublicTicketEvent {
   return { event: event.event, occurredAt: event.occurredAt };
@@ -137,7 +146,7 @@ export function toPublicTicketView(full: FullTicketView): PublicTicketView {
     description: full.description,
     status: full.status,
     createdAt: full.createdAt,
-    events: full.events.map(toPublicEvent),
+    events: full.events.filter(isPublicEvent).map(toPublicEvent),
     eventsNextCursor: full.eventsNextCursor,
     phases: toPublicPhases(full.phases),
   };

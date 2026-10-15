@@ -125,3 +125,20 @@ export type OpsSummary = { since: string; until: string; ticketsInWindow: number
 
 /** Body of a 200 from POST /api/tickets/:id/replay. */
 export type ReplayResponse = { success: true; status: 'queued'; previousStatus: TicketStatus };
+
+// ---- Email notifications (6.9) ----
+
+export type NotificationState = 'none' | 'pending' | 'confirmed' | 'sent';
+
+/** GET /api/tickets/:id/notification. `available` is false when email is off or not offered. */
+export type NotificationView = {
+  available: boolean;
+  state: NotificationState;
+  maskedEmail?: string;
+};
+
+/** GET /api/notifications/confirm/:token. Read-only; nothing changes until the POST. */
+export type ConfirmPreview = { valid: boolean; referenceNumber?: string; maskedEmail?: string };
+
+/** Body of a 200 from POST /api/notifications/confirm. */
+export type ConfirmResult = { referenceNumber: string; status: TicketStatus; maskedEmail: string };

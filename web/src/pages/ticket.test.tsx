@@ -24,6 +24,7 @@ beforeEach(() => {
   fakeSocket.current = createFakeSocket();
   lookups = 0;
   server.use(
+    http.get('/api/tickets/:id/notification', () => HttpResponse.json({ available: false, state: 'none' })),
     http.get('/api/tickets/ref/:ref', () => {
       lookups++;
       return HttpResponse.json(current);

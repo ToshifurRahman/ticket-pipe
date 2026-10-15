@@ -6,6 +6,7 @@ import type { Server as Engine } from '@socket.io/bun-engine';
 import type { Server as HttpServer } from 'http';
 import { logger } from './logger.js';
 import { isUuid } from './ids.js';
+import { closeCounters } from './counters.js';
 import { closeOpsSessionStore, lookupSession, sessionIdFromCookieHeader } from './ops-session.js';
 import { OPS_ROOM } from './rooms.js';
 
@@ -199,4 +200,5 @@ async function doShutdown(): Promise<void> {
   // turn a graceful shutdown into a crash.
   await Promise.allSettled(clients.map((client) => client.quit()));
   await closeOpsSessionStore();
+  await closeCounters();
 }

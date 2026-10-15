@@ -10,6 +10,7 @@ import {
   EVENTS_DEFAULT_LIMIT,
   buildFullTicketView,
   getTicketEventPageView,
+  isPublicEvent,
   toPublicEvent,
   toPublicTicketView,
 } from '../services/ticket-views.js';
@@ -105,7 +106,10 @@ export const getByRef = factory.createHandlers(async (c) => {
  * Handlers for a ticket's full history, a page at a time, oldest first. Follow `nextCursor`
  * until it is null. `mapEvent` decides how much of each event the caller may see.
  */
-export function createEventPageHandlers<E>(mapEvent: (event: TicketEvent) => E) {
+export function createEventPageHandlers<E>(
+  mapEvent: (event: TicketEvent) => E,
+  include: (event: TicketEvent) => boolean = () => true
+) {
   return factory.createHandlers(zValidator('query', EventsQuerySchema), async (c) => {
     const id = c.req.param('id') as string;
     const { limit, after } = c.req.valid('query');
@@ -118,11 +122,11 @@ export function createEventPageHandlers<E>(mapEvent: (event: TicketEvent) => E) 
     }
 
     const page = await getTicketEventPageView(id, { afterSeq, limit });
-    return c.json({ events: page.events.map(mapEvent), nextCursor: page.nextCursor });
+    return c.json({ events: page.events.filter(include).map(mapEvent), nextCursor: page.nextCursor });
   });
 }
 
-export const listEvents = createEventPageHandlers(toPublicEvent);
+export const listEvents = createEventPageHandlers(toPublicEvent, isPublicEvent);
 
 export const list = factory.createHandlers(
   zValidator('query', ListQuerySchema),

@@ -24,6 +24,8 @@ import {
 } from './services/ops-feed.js';
 import { startRetentionSweep } from './services/ticket-retention.js';
 import { alertNeedsAttention } from './services/ops-alerts.js';
+import { notifyIfDue } from './services/customer-notifications.js';
+import { assertMailConfigured } from './lib/mailer.js';
 import { emitTicketUpdate } from './services/ticket-updates.js';
 import { UUID_RE } from './lib/ids.js';
 import { TicketNotFoundError } from './lib/errors.js';
@@ -48,6 +50,7 @@ import {
 } from './lib/validate-output.js';
 
 assertLlmModeAllowed();
+assertMailConfigured();
 if (getLlmMode() === 'real') {
   if (!process.env.GOOGLE_API_KEY) throw new Error('GOOGLE_API_KEY environment variable is required');
   if (!process.env.PORTKEY_API_KEY) throw new Error('PORTKEY_API_KEY environment variable is required');
@@ -109,6 +112,7 @@ async function setFailed(
   await recordTicketEvent(ticket, 'ticket.failed', detail);
   emitTicketUpdate(ticketId, 'ticket.failed');
   publishTicketFailed(ticket, reason);
+  void notifyIfDue(ticketId);
   await deleteMessage(receiptHandle);
   logger.warn({ ticketId, reason }, 'Ticket failed permanently');
 }
@@ -133,6 +137,7 @@ async function setNeedsAttention(
   emitTicketUpdate(ticketId, 'ticket.needs_attention');
   publishNeedsAttention(ticket, reason);
   if (marked) {
+    void notifyIfDue(ticketId);
     alertNeedsAttention({ ticketId, referenceNumber: ticket.referenceNumber, reason, occurredAt: new Date() });
   }
   await deleteMessage(receiptHandle);
@@ -370,6 +375,7 @@ async function runPipeline(
     // Like every other stage, the customer's room gets only the event name. The page
     // refetches the public view, so no stage output travels over the socket.
     emitTicketUpdate(ticketId, 'ticket.completed');
+    void notifyIfDue(ticketId);
   } catch (err) {
     // Not marked failed here: the receive-cap handler in processMessage does that once retries run out.
     throw new FinalizeError((err as Error).message);
