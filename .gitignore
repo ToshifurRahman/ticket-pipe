@@ -22,3 +22,6 @@ AI Ticket Pipeline — Design Concept.html
 # Playwright
 test-results/
 playwright-report/
+
+# Lighthouse
+.lighthouseci/

@@ -30,6 +30,17 @@ function loadScript(): Promise<void> {
   return scriptPromise;
 }
 
+// Cloudflare's script is third-party work that competes with the first paint. Waiting for the
+// browser to go idle keeps it off the critical path; a visitor needs seconds to fill the form.
+function whenIdle(callback: () => void): () => void {
+  if (typeof window.requestIdleCallback === 'function') {
+    const id = window.requestIdleCallback(callback, { timeout: 1500 });
+    return () => window.cancelIdleCallback(id);
+  }
+  const id = window.setTimeout(callback, 0);
+  return () => window.clearTimeout(id);
+}
+
 type TurnstileProps = {
   /** Called with a fresh token, or null when the token expires, errors or is reset. */
   onToken: (token: string | null) => void;
@@ -58,24 +69,27 @@ export function Turnstile({ onToken, ref }: TurnstileProps) {
   // Re-rendered on a theme flip: Turnstile has no API to restyle a live widget.
   useEffect(() => {
     let cancelled = false;
-    loadScript().then(
-      () => {
-        if (cancelled || !container.current || !window.turnstile) return;
-        setFailed(false);
-        widgetId.current = window.turnstile.render(container.current, {
-          sitekey: TURNSTILE_SITE_KEY,
-          theme,
-          callback: (token) => onTokenRef.current(token),
-          'expired-callback': () => onTokenRef.current(null),
-          'error-callback': () => onTokenRef.current(null),
-        });
-      },
-      () => {
-        if (!cancelled) setFailed(true);
-      }
-    );
+    const cancelIdle = whenIdle(() => {
+      loadScript().then(
+        () => {
+          if (cancelled || !container.current || !window.turnstile) return;
+          setFailed(false);
+          widgetId.current = window.turnstile.render(container.current, {
+            sitekey: TURNSTILE_SITE_KEY,
+            theme,
+            callback: (token) => onTokenRef.current(token),
+            'expired-callback': () => onTokenRef.current(null),
+            'error-callback': () => onTokenRef.current(null),
+          });
+        },
+        () => {
+          if (!cancelled) setFailed(true);
+        }
+      );
+    });
     return () => {
       cancelled = true;
+      cancelIdle();
       if (widgetId.current && window.turnstile) window.turnstile.remove(widgetId.current);
       widgetId.current = null;
       onTokenRef.current(null);
