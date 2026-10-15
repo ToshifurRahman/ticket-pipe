@@ -17,6 +17,7 @@ export async function deleteExpiredTicketBatch(cutoff: Date, batchSize: number):
     );
     const ids = rows.map((row) => row.id);
     if (ids.length > 0) {
+      await client.query('DELETE FROM ticket_notifications WHERE ticket_id = ANY($1::uuid[])', [ids]);
       await client.query('DELETE FROM ticket_events WHERE ticket_id = ANY($1::uuid[])', [ids]);
       await client.query('DELETE FROM ai_interactions WHERE ticket_id = ANY($1::uuid[])', [ids]);
       await client.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [ids]);
