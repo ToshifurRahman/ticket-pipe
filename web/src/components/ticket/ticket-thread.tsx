@@ -93,7 +93,7 @@ function SupportRow({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <BrandMark className="size-8 shrink-0 rounded-lg shadow-[0_0_16px]" />
+      <BrandMark className="size-8 shrink-0" />
       <div className="flex min-w-0 flex-col items-start gap-2">
         {badges && <TriageBadgeList badges={badges} />}
         {children}
