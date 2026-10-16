@@ -52,7 +52,7 @@ async function advance(next: TicketDetail, event: string) {
 
 const indicator = () => screen.findByRole('status');
 
-describe('ticket page — live thread', () => {
+describe('ticket page: live thread', () => {
   it('follows a ticket from queued to the reply without reloading', async () => {
     current = ticketAt('queued');
     renderAt();
@@ -135,7 +135,7 @@ describe('ticket page — live thread', () => {
   });
 });
 
-describe('ticket page — other states', () => {
+describe('ticket page: other states', () => {
   it('shows a skeleton while loading', async () => {
     current = ticketAt('queued');
     renderAt();

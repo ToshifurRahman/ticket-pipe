@@ -45,8 +45,8 @@ describe('computeKpis', () => {
 
 describe('formatting', () => {
   it('shows a dash for no data', () => {
-    expect(formatPercent(null)).toBe('—');
-    expect(formatSeconds(null)).toBe('—');
+    expect(formatPercent(null)).toBe('n/a');
+    expect(formatSeconds(null)).toBe('n/a');
     expect(formatPercent(0.965)).toBe('96.5%');
     expect(formatSeconds(4800)).toBe('4.8 s');
   });
