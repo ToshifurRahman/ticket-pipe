@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildTokensCss, OUTPUT, resolveToken } from '../scripts/build-tokens';
 import { brand } from '../web/src/config/brand';
@@ -10,6 +11,20 @@ import { brand } from '../web/src/config/brand';
 
 it('tokens.css is up to date with web/tokens (run `bun run tokens`)', () => {
   expect(readFileSync(OUTPUT, 'utf8')).toBe(buildTokensCss());
+});
+
+// Courier Prime ships at 400 only (web/src/main.tsx); a bold ref would be synthesised.
+it('never sets the figures face in a heavier weight', () => {
+  const SRC = path.resolve(import.meta.dirname, '../web/src');
+  const files = (function walk(dir: string): string[] {
+    return readdirSync(dir).flatMap((name) => {
+      const full = path.join(dir, name);
+      return statSync(full).isDirectory() ? walk(full) : name.endsWith('.tsx') ? [full] : [];
+    });
+  })(SRC);
+  const BOLD_MONO = /['"`][^'"`]*\bfont-mono\b[^'"`]*\bfont-(medium|semibold|bold)\b|['"`][^'"`]*\bfont-(medium|semibold|bold)\b[^'"`]*\bfont-mono\b/;
+  const offenders = files.filter((f) => BOLD_MONO.test(readFileSync(f, 'utf8')));
+  expect(offenders.map((f) => path.relative(SRC, f))).toEqual([]);
 });
 
 it('the browser theme colour is the carbon ground token', () => {

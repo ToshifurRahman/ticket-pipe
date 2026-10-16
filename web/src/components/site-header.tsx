@@ -25,7 +25,7 @@ export function SiteHeader() {
                 <a
                   key={link.href}
                   href={link.href}
-                  className="label-caps text-sm text-muted-foreground no-underline transition-colors duration-(--duration-fast) hover:text-foreground"
+                  className="label-caps text-sm text-muted-foreground no-underline hover:text-foreground"
                 >
                   {link.label}
                 </a>

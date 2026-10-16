@@ -4,16 +4,19 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 // Printed caps on square stock. Primary is inverted ink, never red: red is kept for what is
-// live or urgent. Focus is the global ink outline (index.css), offset off the button.
+// live or urgent. States change in one step, like a stamp, never with a fade. Disabled is a
+// muted hairline outline (not ready yet), not a dimmed slab. Focus is the global ink outline
+// (index.css), offset off the button.
 const buttonVariants = cva(
-  'label-caps inline-flex shrink-0 items-center justify-center gap-2 border border-transparent text-sm whitespace-nowrap transition-colors duration-(--duration-fast) disabled:pointer-events-none disabled:opacity-(--opacity-disabled) [&_svg]:size-4 [&_svg]:shrink-0',
+  'label-caps inline-flex shrink-0 items-center justify-center gap-2 border border-transparent text-sm whitespace-nowrap disabled:cursor-not-allowed disabled:border-input disabled:bg-transparent disabled:text-muted-foreground [&_svg]:size-4 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/85 active:bg-primary/75',
-        outline: 'border-input bg-transparent text-foreground hover:border-foreground hover:bg-accent active:bg-secondary',
+        default: 'bg-primary text-primary-foreground hover:bg-primary/85 active:bg-primary/70',
+        outline:
+          'border-input bg-transparent text-foreground hover:border-foreground hover:bg-accent active:border-primary active:bg-primary active:text-primary-foreground',
         secondary: 'border-border bg-secondary text-secondary-foreground hover:border-input active:border-foreground',
-        ghost: 'text-foreground hover:border-border hover:bg-accent active:border-input',
+        ghost: 'text-foreground hover:border-border hover:bg-accent active:border-foreground',
       },
       size: {
         default: 'h-(--control-height) px-4',

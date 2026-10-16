@@ -6,7 +6,7 @@ export function Input({ className, ...props }: React.ComponentProps<'input'>) {
   return (
     <input
       className={cn(
-        'h-(--control-height) w-full min-w-0 border border-input bg-background px-3 text-sm transition-colors duration-(--duration-fast) placeholder:text-muted-foreground hover:border-foreground focus-visible:border-foreground disabled:opacity-(--opacity-disabled) aria-invalid:border-destructive',
+        'h-(--control-height) w-full min-w-0 border border-input bg-background px-3 text-sm placeholder:text-muted-foreground hover:border-foreground focus-visible:border-foreground disabled:opacity-(--opacity-disabled) aria-invalid:border-destructive',
         className
       )}
       {...props}
