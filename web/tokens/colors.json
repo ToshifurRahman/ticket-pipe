@@ -1,0 +1,109 @@
+{
+  "$description": "Relay colour tokens (Carbon Set / Red Rule). Three tiers: primitive -> semantic (paper side, the light theme) -> component; 'dark' overrides semantic paths for the carbon theme, which is the default. Each semantic and component token names the CSS custom properties it emits in $extensions.relay.css. Edit here, then run `bun run tokens`.",
+  "primitive": {
+    "color": {
+      "carbon": { "$type": "color", "$value": "#111111", "$description": "Carbon ground and printing ink." },
+      "carbon-2": { "$type": "color", "$value": "#1A1A1A" },
+      "carbon-3": { "$type": "color", "$value": "#222222" },
+      "hair": { "$type": "color", "$value": "#2C2C2C", "$description": "Form ruling on carbon (decorative)." },
+      "rule-carbon": { "$type": "color", "$value": "#6B6B67", "$description": "Control boundary on carbon, 3:1+." },
+      "white": { "$type": "color", "$value": "#ECECEA", "$description": "White ply / ink on carbon." },
+      "grey-ply": { "$type": "color", "$value": "#BDBDBA" },
+      "grey-light": { "$type": "color", "$value": "#E2E2DE" },
+      "mute": { "$type": "color", "$value": "#8E8E8A", "$description": "Secondary text on carbon." },
+      "red": { "$type": "color", "$value": "#F2524C", "$description": "Form red on carbon. Tuned up from the sketch #E5322D, which was 4.34:1 on carbon." },
+      "ground": { "$type": "color", "$value": "#FAFAF8", "$description": "The paper side's ground." },
+      "paper": { "$type": "color", "$value": "#F2F2F0", "$description": "Paper ply (Replied)." },
+      "paper-2": { "$type": "color", "$value": "#EAEAE7" },
+      "hair-paper": { "$type": "color", "$value": "#D6D6D2", "$description": "Form ruling on paper (decorative)." },
+      "rule-paper": { "$type": "color", "$value": "#85857F", "$description": "Control boundary on paper, 3:1+." },
+      "mute-ink": { "$type": "color", "$value": "#5C5C58", "$description": "Secondary text on paper." },
+      "red-ink": { "$type": "color", "$value": "#C42520", "$description": "Form red on paper, darkened for AA on white." }
+    }
+  },
+  "semantic": {
+    "surface": {
+      "page": { "$type": "color", "$value": "{primitive.color.ground}", "$extensions": { "relay.css": ["background"] } },
+      "card": { "$type": "color", "$value": "{primitive.color.paper}", "$extensions": { "relay.css": ["card"] } },
+      "raised": { "$type": "color", "$value": "{primitive.color.paper-2}", "$extensions": { "relay.css": ["secondary", "muted", "accent"] } },
+      "popover": { "$type": "color", "$value": "{primitive.color.ground}", "$extensions": { "relay.css": ["popover"] } },
+      "overlay": { "$type": "color", "$value": "{primitive.color.carbon}", "$extensions": { "relay.css": ["overlay"] } }
+    },
+    "text": {
+      "primary": {
+        "$type": "color",
+        "$value": "{primitive.color.carbon}",
+        "$extensions": { "relay.css": ["foreground", "card-foreground", "popover-foreground", "secondary-foreground", "accent-foreground", "success"] }
+      },
+      "secondary": { "$type": "color", "$value": "{primitive.color.mute-ink}", "$extensions": { "relay.css": ["muted-foreground"] } },
+      "tertiary": { "$type": "color", "$value": "{primitive.color.mute-ink}", "$extensions": { "relay.css": ["tertiary-foreground"] } },
+      "link": { "$type": "color", "$value": "{primitive.color.carbon}", "$extensions": { "relay.css": ["link"] } },
+      "on-action": { "$type": "color", "$value": "{primitive.color.ground}", "$extensions": { "relay.css": ["primary-foreground"] } },
+      "on-urgent": { "$type": "color", "$value": "{primitive.color.ground}", "$extensions": { "relay.css": ["destructive-foreground"] } }
+    },
+    "action": {
+      "primary": { "$type": "color", "$value": "{primitive.color.carbon}", "$extensions": { "relay.css": ["primary"] } },
+      "urgent": {
+        "$type": "color",
+        "$value": "{primitive.color.red-ink}",
+        "$description": "Form red: live or urgent only. Field errors count as urgent (they need the visitor's action now).",
+        "$extensions": { "relay.css": ["destructive", "warning", "stamp-urgent"] }
+      }
+    },
+    "border": {
+      "default": { "$type": "color", "$value": "{primitive.color.hair-paper}", "$extensions": { "relay.css": ["border", "rule"] } },
+      "strong": { "$type": "color", "$value": "{primitive.color.rule-paper}", "$extensions": { "relay.css": ["input"] } },
+      "focus": { "$type": "color", "$value": "{primitive.color.carbon}", "$extensions": { "relay.css": ["ring"] } }
+    },
+    "ply": {
+      "received": { "$type": "color", "$value": "{primitive.color.grey-light}", "$extensions": { "relay.css": ["ply-received"] } },
+      "received-text": { "$type": "color", "$value": "{primitive.color.carbon}", "$extensions": { "relay.css": ["ply-received-foreground"] } },
+      "triaged": { "$type": "color", "$value": "{primitive.color.grey-ply}", "$extensions": { "relay.css": ["ply-triaged"] } },
+      "triaged-text": { "$type": "color", "$value": "{primitive.color.carbon}", "$extensions": { "relay.css": ["ply-triaged-foreground"] } },
+      "live": { "$type": "color", "$value": "{primitive.color.red-ink}", "$extensions": { "relay.css": ["ply-live"] } },
+      "live-text": { "$type": "color", "$value": "{primitive.color.ground}", "$extensions": { "relay.css": ["ply-live-foreground"] } },
+      "replied": { "$type": "color", "$value": "{primitive.color.carbon}", "$extensions": { "relay.css": ["ply-replied"] } },
+      "replied-text": { "$type": "color", "$value": "{primitive.color.ground}", "$extensions": { "relay.css": ["ply-replied-foreground"] } },
+      "on-hold": { "$type": "color", "$value": "{primitive.color.paper-2}", "$extensions": { "relay.css": ["ply-on-hold"] } },
+      "on-hold-text": { "$type": "color", "$value": "{primitive.color.mute-ink}", "$extensions": { "relay.css": ["ply-on-hold-foreground"] } }
+    }
+  },
+  "dark": {
+    "surface": {
+      "page": { "$value": "{primitive.color.carbon}" },
+      "card": { "$value": "{primitive.color.carbon-2}" },
+      "raised": { "$value": "{primitive.color.carbon-3}" },
+      "popover": { "$value": "{primitive.color.carbon-2}" },
+      "overlay": { "$value": "{primitive.color.carbon}" }
+    },
+    "text": {
+      "primary": { "$value": "{primitive.color.white}" },
+      "secondary": { "$value": "{primitive.color.mute}" },
+      "tertiary": { "$value": "{primitive.color.mute}" },
+      "link": { "$value": "{primitive.color.white}" },
+      "on-action": { "$value": "{primitive.color.carbon}" },
+      "on-urgent": { "$value": "{primitive.color.carbon}" }
+    },
+    "action": {
+      "primary": { "$value": "{primitive.color.white}" },
+      "urgent": { "$value": "{primitive.color.red}" }
+    },
+    "border": {
+      "default": { "$value": "{primitive.color.hair}" },
+      "strong": { "$value": "{primitive.color.rule-carbon}" },
+      "focus": { "$value": "{primitive.color.white}" }
+    },
+    "ply": {
+      "received": { "$value": "{primitive.color.white}" },
+      "received-text": { "$value": "{primitive.color.carbon}" },
+      "triaged": { "$value": "{primitive.color.grey-ply}" },
+      "triaged-text": { "$value": "{primitive.color.carbon}" },
+      "live": { "$value": "{primitive.color.red}" },
+      "live-text": { "$value": "{primitive.color.carbon}" },
+      "replied": { "$value": "{primitive.color.paper}" },
+      "replied-text": { "$value": "{primitive.color.carbon}" },
+      "on-hold": { "$value": "{primitive.color.carbon-3}" },
+      "on-hold-text": { "$value": "{primitive.color.mute}" }
+    }
+  }
+}
