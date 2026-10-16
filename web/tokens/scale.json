@@ -49,8 +49,8 @@
       "fast": { "$type": "duration", "$value": "120ms", "$description": "Hover and press colour changes.", "$extensions": { "relay.css": ["duration-fast"] } }
     },
     "opacity": {
-      "overlay": { "$type": "number", "$value": "0.8", "$extensions": { "relay.css": ["opacity-overlay"] } },
-      "disabled": { "$type": "number", "$value": "0.5", "$extensions": { "relay.css": ["opacity-disabled"] } }
+      "overlay": { "$type": "number", "$value": "80%", "$extensions": { "relay.css": ["opacity-overlay"] } },
+      "disabled": { "$type": "number", "$value": "50%", "$extensions": { "relay.css": ["opacity-disabled"] } }
     }
   },
   "component": {

@@ -66,8 +66,8 @@
   --duration-stamp: 90ms;
   --ease-stamp: steps(2, jump-none);
   --duration-fast: 120ms;
-  --opacity-overlay: 0.8;
-  --opacity-disabled: 0.5;
+  --opacity-overlay: 80%;
+  --opacity-disabled: 50%;
   --control-height: 2.5rem;
   --control-height-sm: 2rem;
   --focus-width: 2px;
