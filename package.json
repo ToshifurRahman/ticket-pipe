@@ -15,6 +15,7 @@
     "web:dev": "cd web && bun run dev",
     "test:web": "cd web && bun run test",
     "test:e2e": "playwright test",
+    "tokens": "bun scripts/build-tokens.ts",
     "brand:assets": "bun scripts/render-brand-assets.ts",
     "lighthouse": "bun scripts/lighthouse.ts",
     "screenshots": "bun scripts/screenshots.ts"
