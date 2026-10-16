@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { buildTokensCss, OUTPUT, resolveToken } from '../scripts/build-tokens';
+import { brand } from '../web/src/config/brand';
 
 // web/tokens/*.json is the design system's source of truth; web/src/styles/tokens.css is
 // generated from it and committed. These guard the two things that drift silently: a hand
@@ -9,6 +10,10 @@ import { buildTokensCss, OUTPUT, resolveToken } from '../scripts/build-tokens';
 
 it('tokens.css is up to date with web/tokens (run `bun run tokens`)', () => {
   expect(readFileSync(OUTPUT, 'utf8')).toBe(buildTokensCss());
+});
+
+it('the browser theme colour is the carbon ground token', () => {
+  expect(brand.themeColor).toBe(resolveToken('colors.json', 'semantic.surface.page', 'dark'));
 });
 
 function luminance(hex: string): number {

@@ -1,8 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="8" fill="#7c3aed"/>
-  <g transform="translate(5.33 5.33) scale(0.8889)" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="5" cy="12" r="2"/>
-    <circle cx="19" cy="12" r="2"/>
-    <path d="M7 12h3l2-4 2 8 2-4h1"/>
+  <!-- The ply-stack mark (web/src/components/brand-mark.tsx) in the carbon theme. Literal
+       values of web/tokens/colors.json: primitive.color.carbon, rule-carbon, white,
+       grey-ply, red, paper. A static asset cannot read CSS variables. -->
+  <rect width="32" height="32" fill="#111111"/>
+  <rect x="0.5" y="0.5" width="31" height="31" fill="none" stroke="#6B6B67"/>
+  <g transform="translate(4 4)">
+    <rect x="2" y="3" width="17" height="3.5" fill="#ECECEA"/>
+    <rect x="3.5" y="8" width="17" height="3.5" fill="#BDBDBA"/>
+    <rect x="5" y="13" width="17" height="3.5" fill="#F2524C"/>
+    <rect x="6.5" y="18" width="17" height="3.5" fill="#F2F2F0"/>
   </g>
 </svg>

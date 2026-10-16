@@ -10,8 +10,9 @@ export const brand = {
   // Meta description and social-card copy (also the OG image text).
   description:
     'Relay reads each support request the moment it lands, sorts it by category and urgency, and drafts a reply while your customer watches.',
-  // Browser UI colour (violet-600, the dark-theme --primary).
-  themeColor: '#7c3aed',
+  // Browser UI colour: the carbon ground (primitive.color.carbon in web/tokens/colors.json).
+  // A meta tag needs a literal; tests/web-tokens.guard.test.ts keeps it equal to the token.
+  themeColor: '#111111', // ds-allow-hardcode: <meta name="theme-color"> cannot read CSS variables
   footer: 'a portfolio project',
   // Where the legal pages point people who have a question. Update with the repo rename (7.12).
   repoUrl: 'https://github.com/ToshifurRahman/ticket-pipe',
