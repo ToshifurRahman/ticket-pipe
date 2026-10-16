@@ -16,11 +16,11 @@ export function SheetContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content>) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 data-[state=closed]:animate-[overlay-out_120ms_ease-in] data-[state=open]:animate-[overlay-in_150ms_ease-out]" />
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-overlay/(--opacity-overlay) data-[state=closed]:animate-[overlay-out_var(--duration-fast)_ease-in] data-[state=open]:animate-[overlay-in_var(--duration-fast)_ease-out]" />
       <DialogPrimitive.Content
         className={cn(
-          'fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-border bg-background shadow-2xl outline-none sm:max-w-2xl',
-          'data-[state=closed]:animate-[sheet-out_150ms_ease-in] data-[state=open]:animate-[sheet-in_200ms_ease-out]',
+          'fixed inset-y-0 right-0 z-50 flex w-full flex-col border border-input bg-background outline-none sm:max-w-2xl',
+          'data-[state=closed]:animate-[sheet-out_var(--duration-fast)_ease-in] data-[state=open]:animate-[sheet-in_var(--duration-fast)_ease-out]',
           className
         )}
         {...props}
@@ -28,7 +28,7 @@ export function SheetContent({
         {children}
         <DialogPrimitive.Close
           aria-label="Close"
-          className="absolute top-4 right-4 rounded-md p-1.5 text-muted-foreground outline-none hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="absolute top-4 right-4 border border-transparent p-1.5 text-muted-foreground transition-colors duration-(--duration-fast) hover:border-border hover:text-foreground"
         >
           <X className="size-4" />
         </DialogPrimitive.Close>
