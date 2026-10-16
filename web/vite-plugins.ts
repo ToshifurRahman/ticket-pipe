@@ -30,10 +30,10 @@ export function brandHtml(siteUrl: string | undefined): Plugin {
       const link = (attrs: Record<string, string>) => ({ tag: 'link', attrs, injectTo: 'head' as const });
       // The body font is only discovered once the CSS is parsed; preloading the Latin subset
       // removes the late font swap that moves the largest paint on a throttled phone.
-      const inter = Object.keys(ctx.bundle ?? {}).find((name) => /inter-latin-wght-normal-.*\.woff2$/.test(name));
+      const body = Object.keys(ctx.bundle ?? {}).find((name) => /public-sans-latin-wght-normal-.*\.woff2$/.test(name));
       return [
-        ...(inter
-          ? [link({ rel: 'preload', as: 'font', type: 'font/woff2', href: `/${inter}`, crossorigin: '' })]
+        ...(body
+          ? [link({ rel: 'preload', as: 'font', type: 'font/woff2', href: `/${body}`, crossorigin: '' })]
           : []),
         { tag: 'title', children: escapeAttr(title), injectTo: 'head' as const },
         meta({ name: 'description', content: brand.description }),
