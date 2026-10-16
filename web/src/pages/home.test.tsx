@@ -32,6 +32,8 @@ function stubMotion(reduce: boolean) {
   }));
 }
 
+beforeEach(() => sessionStorage.clear());
+
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
@@ -98,6 +100,42 @@ describe('landing page', () => {
     expect(screen.queryByRole('button', { name: /replay/i })).not.toBeInTheDocument();
   });
 
+  it('marks the demo seen only once it reaches the reply', () => {
+    vi.useFakeTimers();
+    renderHome();
+    act(() => void vi.advanceTimersByTime(2_000));
+    expect(sessionStorage.getItem('demo-seen')).toBeNull();
+
+    playDemo();
+    expect(sessionStorage.getItem('demo-seen')).toBe('1');
+  });
+
+  it('skips the autoplay once the demo was seen this session, and still offers a replay', () => {
+    vi.useFakeTimers();
+    sessionStorage.setItem('demo-seen', '1');
+    renderHome();
+    expect(screen.getByText('Reply from support')).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain('Reviewing your request');
+
+    act(() => screen.getByRole('button', { name: /replay/i }).click());
+    expect(document.body.textContent).toContain('Reviewing your request');
+  });
+
+  it('autoplays as usual when session storage is unavailable', () => {
+    vi.useFakeTimers();
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    renderHome();
+    expect(document.body.textContent).toContain('Reviewing your request');
+    playDemo();
+    expect(screen.getByText('Reply from support')).toBeInTheDocument();
+    vi.restoreAllMocks();
+  });
+
   it('makes no network request while the demo plays', () => {
     vi.useFakeTimers();
     const fetchSpy = vi.fn();
@@ -115,5 +153,6 @@ describe('landing page with reduced motion', () => {
     expect(screen.getByText('Reply from support')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /replay/i })).not.toBeInTheDocument();
     expect(document.body.textContent).not.toContain('Reviewing your request');
+    expect(sessionStorage.getItem('demo-seen')).toBeNull();
   });
 });
