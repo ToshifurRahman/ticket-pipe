@@ -4,14 +4,16 @@ import { TicketSkeleton } from '@/components/ticket/ticket-states';
 import { PublicLayout } from '@/layouts/public-layout';
 import { HomePage } from '@/pages/home';
 import { PrivacyPage, TermsPage } from '@/pages/legal';
-import { NewTicketPage } from '@/pages/new-ticket';
 import { NotFoundPage } from '@/pages/not-found';
 
+// The submit page brings react-hook-form and zod; keeping them out of the main bundle keeps
+// its evaluation off every other page's first load.
 // The ticket page brings the socket.io client; load both only when a ticket is opened.
 // The ops console brings the drawer, toasts and the whole staff UI; visitors never load it.
 // The layout is lazy too: it holds the toaster and the sign-out control.
 const OpsLayout = lazy(() => import('@/layouts/ops-layout').then((m) => ({ default: m.OpsLayout })));
 const OpsPage = lazy(() => import('@/pages/ops').then((m) => ({ default: m.OpsPage })));
+const NewTicketPage = lazy(() => import('@/pages/new-ticket').then((m) => ({ default: m.NewTicketPage })));
 const ConfirmPage = lazy(() => import('@/pages/confirm').then((m) => ({ default: m.ConfirmPage })));
 const TicketPage = lazy(() => import('@/pages/ticket').then((m) => ({ default: m.TicketPage })));
 
@@ -20,7 +22,14 @@ export function AppRoutes() {
     <Routes>
       <Route element={<PublicLayout />}>
         <Route index element={<HomePage />} />
-        <Route path="new" element={<NewTicketPage />} />
+        <Route
+          path="new"
+          element={
+            <Suspense fallback={<div className="min-h-screen" />}>
+              <NewTicketPage />
+            </Suspense>
+          }
+        />
         <Route
           path="t/:ref"
           element={
