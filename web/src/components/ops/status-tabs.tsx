@@ -33,7 +33,7 @@ export function StatusTabs({ tab, counts, onChange }: StatusTabsProps) {
             aria-selected={selected}
             onClick={() => onChange(value)}
             className={cn(
-              'inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+              'inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium',
               selected ? 'border-primary bg-primary/15 text-foreground' : 'border-border text-muted-foreground hover:text-foreground'
             )}
           >

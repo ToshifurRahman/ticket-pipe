@@ -97,7 +97,7 @@ export function Turnstile({ onToken, ref }: TurnstileProps) {
   }, [theme]);
 
   return (
-    <div className="min-h-[65px]">
+    <div className="min-h-(--captcha-height)">
       <div ref={container} />
       {failed && (
         <p role="alert" className="text-xs text-destructive">

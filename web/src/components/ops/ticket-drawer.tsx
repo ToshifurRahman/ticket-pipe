@@ -238,7 +238,7 @@ function AiCalls({ ticketId }: { ticketId: string }) {
                   <td className="py-2 pr-3 font-mono text-xs">
                     {call.model}
                     {call.provider === 'backup' && (
-                      <span className="ml-2 rounded border border-border px-1.5 py-0.5 font-sans text-[10px] text-muted-foreground">fallback</span>
+                      <span className="ml-2 border border-border px-1.5 py-0.5 font-sans text-xs text-muted-foreground">fallback</span>
                     )}
                   </td>
                   <td className="py-2 pr-3 tabular-nums">{(call.durationMs / 1000).toFixed(1)}s</td>
