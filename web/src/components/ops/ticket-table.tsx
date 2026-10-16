@@ -91,9 +91,9 @@ export function TicketTable({ data, params, loading, failed, onSort, onPage, onO
                   </button>
                 </td>
                 <td className="max-w-(--cell-max) truncate px-3 py-2.5">{ticket.subject}</td>
-                <td className="px-3 py-2.5 text-muted-foreground">{ticket.category ? humanize(ticket.category) : '—'}</td>
+                <td className="px-3 py-2.5 text-muted-foreground">{ticket.category ? humanize(ticket.category) : 'Not yet'}</td>
                 <td className={cn('px-3 py-2.5', ticket.priority && URGENT.has(ticket.priority) ? 'text-warning' : 'text-muted-foreground')}>
-                  {ticket.priority ? humanize(ticket.priority) : '—'}
+                  {ticket.priority ? humanize(ticket.priority) : 'Not yet'}
                 </td>
                 <td className="px-3 py-2.5"><OpsStatusBadge status={ticket.status} /></td>
                 <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">{relativeTime(ticket.updatedAt)}</td>
@@ -113,7 +113,7 @@ export function TicketTable({ data, params, loading, failed, onSort, onPage, onO
         <p className="px-3 py-10 text-center text-sm text-muted-foreground">No tickets here.</p>
       )}
       <div className="flex items-center justify-between gap-3 border-t border-border px-3 py-2 text-xs text-muted-foreground">
-        <span aria-live="polite">{data ? `${from}–${to} of ${data.total}` : ''}</span>
+        <span aria-live="polite">{data ? `${from} to ${to} of ${data.total}` : ''}</span>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" disabled={!data || data.page <= 1} onClick={() => onPage(params.page - 1)}>
             Previous

@@ -78,7 +78,7 @@ afterEach(() => {
   localStorage.clear();
 });
 
-describe('NewTicketPage — validation', () => {
+describe('NewTicketPage: validation', () => {
   it('flags a too-short subject once the field is left, and clears it as the user fixes it', async () => {
     const user = userEvent.setup();
     renderPage();
@@ -169,7 +169,7 @@ describe('NewTicketPage — validation', () => {
   });
 });
 
-describe('NewTicketPage — success', () => {
+describe('NewTicketPage: success', () => {
   it('sends trimmed values with the Turnstile token and shows the reference', async () => {
     const user = userEvent.setup();
     const posted = acceptTickets();
@@ -261,7 +261,7 @@ describe('NewTicketPage — success', () => {
   });
 });
 
-describe('NewTicketPage — recent tickets', () => {
+describe('NewTicketPage: recent tickets', () => {
   function seed(...refs: string[]) {
     localStorage.setItem(
       'recent-tickets',

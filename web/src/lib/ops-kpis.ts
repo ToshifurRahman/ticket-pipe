@@ -2,7 +2,7 @@ import type { OpsSummary } from './types';
 
 export type OpsKpis = {
   tickets: number;
-  /** 0–1, or null before the first AI call. */
+  /** 0 to 1, or null before the first AI call. */
   successRate: number | null;
   avgLatencyMs: number | null;
   fallbackRate: number | null;
@@ -21,5 +21,5 @@ export function computeKpis(summary: OpsSummary): OpsKpis {
   };
 }
 
-export const formatPercent = (rate: number | null) => (rate === null ? '—' : `${(rate * 100).toFixed(1)}%`);
-export const formatSeconds = (ms: number | null) => (ms === null ? '—' : `${(ms / 1000).toFixed(1)} s`);
+export const formatPercent = (rate: number | null) => (rate === null ? 'n/a' : `${(rate * 100).toFixed(1)}%`);
+export const formatSeconds = (ms: number | null) => (ms === null ? 'n/a' : `${(ms / 1000).toFixed(1)} s`);

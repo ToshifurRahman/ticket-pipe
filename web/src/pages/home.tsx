@@ -7,7 +7,7 @@ import { brand } from '@/config/brand';
 
 export function HomePage() {
   useEffect(() => {
-    document.title = `${brand.name} — ${brand.tagline}`;
+    document.title = `${brand.name} · ${brand.tagline}`;
   }, []);
 
   return (

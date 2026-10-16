@@ -25,7 +25,7 @@ export function brandHtml(siteUrl: string | undefined): Plugin {
         warned = true;
         console.warn('[brand-html] VITE_SITE_URL is not set: og:image / og:url will be relative paths.');
       }
-      const title = `${brand.name} — ${brand.tagline}`;
+      const title = `${brand.name} · ${brand.tagline}`;
       const meta = (attrs: Record<string, string>) => ({ tag: 'meta', attrs, injectTo: 'head' as const });
       const link = (attrs: Record<string, string>) => ({ tag: 'link', attrs, injectTo: 'head' as const });
       // The body font is only discovered once the CSS is parsed; preloading the Latin subset

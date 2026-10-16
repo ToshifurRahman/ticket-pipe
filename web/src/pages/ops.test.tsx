@@ -153,7 +153,7 @@ describe('the ticket table', () => {
     expect(rows[0]).toHaveTextContent('Needs attention');
     // Not triaged yet: dashes, and the real status rather than "With our team".
     expect(rows[1]).toHaveTextContent('Processing');
-    expect(rows[1].textContent?.match(/—/g)).toHaveLength(2);
+    expect(rows[1].textContent?.match(/Not yet/g)).toHaveLength(2);
 
     const kpis = within(await screen.findByLabelText('Last 24 hours'));
     expect(await kpis.findByText('142')).toBeInTheDocument();
@@ -216,13 +216,13 @@ describe('the ticket table', () => {
     list = { ...ticketList([listedTicket()], undefined, 45), page: 1 };
     renderConsole();
 
-    expect(await screen.findByText('1–20 of 45')).toBeInTheDocument();
+    expect(await screen.findByText('1 to 20 of 45')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
 
     list = { ...list, page: 2 };
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await waitFor(() => expect(listRequests.at(-1)!.get('page')).toBe('2'));
-    expect(await screen.findByText('21–40 of 45')).toBeInTheDocument();
+    expect(await screen.findByText('21 to 40 of 45')).toBeInTheDocument();
   });
 
   it('says when a tab is empty', async () => {
