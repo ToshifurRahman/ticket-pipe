@@ -31,7 +31,7 @@ function SortHeader({ label, column, params, onSort, className }: {
   const Icon = !active ? ChevronsUpDown : params.order === 'asc' ? ArrowUp : ArrowDown;
   return (
     <th scope="col" aria-sort={active ? (params.order === 'asc' ? 'ascending' : 'descending') : 'none'} className={cn('px-3 py-2 font-medium', className)}>
-      <button type="button" onClick={() => onSort(column)} className="inline-flex items-center gap-1 rounded outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50">
+      <button type="button" onClick={() => onSort(column)} className="inline-flex items-center gap-1 hover:text-foreground">
         {label}
         <Icon aria-hidden className="size-3.5" />
       </button>
@@ -58,7 +58,7 @@ export function TicketTable({ data, params, loading, failed, onSort, onPage, onO
   return (
     <div className="rounded-xl border border-border bg-card/70">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-(--table-min) text-left text-sm">
           <thead className="border-b border-border text-xs text-muted-foreground">
             <tr>
               <th scope="col" className="px-3 py-2 font-medium">Ref</th>
@@ -85,12 +85,12 @@ export function TicketTable({ data, params, loading, failed, onSort, onPage, onO
                       onOpen(ticket.id);
                     }}
                     aria-label={`Open ${ticket.referenceNumber}`}
-                    className="rounded text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    className="text-left"
                   >
                     {ticket.referenceNumber}
                   </button>
                 </td>
-                <td className="max-w-[24rem] truncate px-3 py-2.5">{ticket.subject}</td>
+                <td className="max-w-(--cell-max) truncate px-3 py-2.5">{ticket.subject}</td>
                 <td className="px-3 py-2.5 text-muted-foreground">{ticket.category ? humanize(ticket.category) : '—'}</td>
                 <td className={cn('px-3 py-2.5', ticket.priority && URGENT.has(ticket.priority) ? 'text-warning' : 'text-muted-foreground')}>
                   {ticket.priority ? humanize(ticket.priority) : '—'}

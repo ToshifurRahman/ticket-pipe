@@ -37,7 +37,7 @@ export function TrackForm({ onDone, autoFocus = false }: { onDone?: () => void; 
           setValue(e.target.value);
           setInvalid(false);
         }}
-        className="h-10 font-mono text-[13px]"
+        className="font-mono"
       />
       {invalid && (
         <span id="track-hint" role="alert" className="text-xs text-destructive">

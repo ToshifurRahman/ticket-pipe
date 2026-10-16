@@ -47,7 +47,7 @@ export function RecentTickets({ tickets, onForget }: RecentTicketsProps) {
             <li key={t.ref}>
               <Link
                 to={`/t/${t.ref}`}
-                className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 no-underline transition-colors hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 no-underline transition-colors hover:bg-accent"
               >
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate text-sm font-medium text-foreground">{t.subject}</span>

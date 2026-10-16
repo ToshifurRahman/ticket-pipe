@@ -5,7 +5,7 @@ import { SiteHeader } from '@/components/site-header';
 
 export function PublicLayout() {
   return (
-    <div className="space flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col">
       <SkipLink />
       <SiteHeader />
       <main id="main" tabIndex={-1} className="outline-none mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6">
