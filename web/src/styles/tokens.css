@@ -15,7 +15,6 @@
   --accent-foreground: #111111;
   --success: #111111;
   --muted-foreground: #5C5C58;
-  --tertiary-foreground: #5C5C58;
   --link: #111111;
   --primary-foreground: #FAFAF8;
   --destructive-foreground: #FAFAF8;
@@ -65,7 +64,6 @@
   --radius: 0;
   --duration-stamp: 90ms;
   --ease-stamp: steps(2, jump-none);
-  --duration-fast: 120ms;
   --opacity-overlay: 80%;
   --opacity-disabled: 50%;
   --control-height: 2.5rem;
@@ -92,7 +90,6 @@
   --accent-foreground: #ECECEA;
   --success: #ECECEA;
   --muted-foreground: #8E8E8A;
-  --tertiary-foreground: #8E8E8A;
   --link: #ECECEA;
   --primary-foreground: #111111;
   --destructive-foreground: #111111;
@@ -104,7 +101,7 @@
   --rule: #2C2C2C;
   --input: #6B6B67;
   --ring: #ECECEA;
-  --ply-received: #ECECEA;
+  --ply-received: #D8D8D4;
   --ply-live: #F2524C;
   --ply-live-foreground: #111111;
   --ply-replied: #F2F2F0;

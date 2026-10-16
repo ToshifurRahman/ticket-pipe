@@ -45,8 +45,7 @@
     },
     "motion": {
       "stamp-duration": { "$type": "duration", "$value": "90ms", "$extensions": { "relay.css": ["duration-stamp"] } },
-      "stamp-easing": { "$type": "cubicBezier", "$value": "steps(2, jump-none)", "$description": "Two hard frames, no easing.", "$extensions": { "relay.css": ["ease-stamp"] } },
-      "fast": { "$type": "duration", "$value": "120ms", "$description": "Hover and press colour changes.", "$extensions": { "relay.css": ["duration-fast"] } }
+      "stamp-easing": { "$type": "cubicBezier", "$value": "steps(2, jump-none)", "$description": "Two hard frames, no easing. Carbon Set's only motion: hover and press change in one step.", "$extensions": { "relay.css": ["ease-stamp"] } }
     },
     "opacity": {
       "overlay": { "$type": "number", "$value": "80%", "$extensions": { "relay.css": ["opacity-overlay"] } },

@@ -7,7 +7,8 @@
       "carbon-3": { "$type": "color", "$value": "#222222" },
       "hair": { "$type": "color", "$value": "#2C2C2C", "$description": "Form ruling on carbon (decorative)." },
       "rule-carbon": { "$type": "color", "$value": "#6B6B67", "$description": "Control boundary on carbon, 3:1+." },
-      "white": { "$type": "color", "$value": "#ECECEA", "$description": "White ply / ink on carbon." },
+      "white": { "$type": "color", "$value": "#ECECEA", "$description": "Ink on carbon." },
+      "white-ply": { "$type": "color", "$value": "#D8D8D4", "$description": "The Received ply on carbon: one step below paper so it never reads as the Replied ply." },
       "grey-ply": { "$type": "color", "$value": "#BDBDBA" },
       "grey-light": { "$type": "color", "$value": "#E2E2DE" },
       "mute": { "$type": "color", "$value": "#8E8E8A", "$description": "Secondary text on carbon." },
@@ -36,7 +37,7 @@
         "$extensions": { "relay.css": ["foreground", "card-foreground", "popover-foreground", "secondary-foreground", "accent-foreground", "success"] }
       },
       "secondary": { "$type": "color", "$value": "{primitive.color.mute-ink}", "$extensions": { "relay.css": ["muted-foreground"] } },
-      "tertiary": { "$type": "color", "$value": "{primitive.color.mute-ink}", "$extensions": { "relay.css": ["tertiary-foreground"] } },
+      "tertiary": { "$type": "color", "$value": "{primitive.color.mute-ink}", "$description": "Kept for the contrast validator; the app has one secondary text tone (muted-foreground), so it emits no CSS." },
       "link": { "$type": "color", "$value": "{primitive.color.carbon}", "$extensions": { "relay.css": ["link"] } },
       "on-action": { "$type": "color", "$value": "{primitive.color.ground}", "$extensions": { "relay.css": ["primary-foreground"] } },
       "on-urgent": { "$type": "color", "$value": "{primitive.color.ground}", "$extensions": { "relay.css": ["destructive-foreground"] } }
@@ -94,7 +95,7 @@
       "focus": { "$value": "{primitive.color.white}" }
     },
     "ply": {
-      "received": { "$value": "{primitive.color.white}" },
+      "received": { "$value": "{primitive.color.white-ply}" },
       "received-text": { "$value": "{primitive.color.carbon}" },
       "triaged": { "$value": "{primitive.color.grey-ply}" },
       "triaged-text": { "$value": "{primitive.color.carbon}" },
