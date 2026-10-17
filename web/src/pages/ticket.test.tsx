@@ -3,7 +3,7 @@ import { act, render, screen, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { WITH_TEAM_MESSAGE } from '@/components/ticket/ticket-thread';
+import { ON_HOLD_MESSAGE } from '@/components/ticket/ticket-thread';
 import { createQueryClient } from '@/lib/query-client';
 import type { TicketDetail } from '@/lib/types';
 import { createFakeSocket } from '@/test/fake-socket';
@@ -60,7 +60,7 @@ describe('ticket page: live thread', () => {
     const article = (await screen.findByRole('heading', { name: 'Charged twice in March' })).closest('article')!;
     expect(screen.getByText('My card was charged twice for the March invoice.')).toBeInTheDocument();
     expect(await indicator()).toHaveTextContent('Reviewing your request…');
-    expect(screen.queryByRole('list', { name: 'Triage' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Billing')).not.toBeInTheDocument();
 
     // It joins its ticket's room once connected.
     expect(socket().emit).toHaveBeenCalledWith('join', TICKET_ID);
@@ -74,13 +74,13 @@ describe('ticket page: live thread', () => {
     const badges = screen.getByRole('list', { name: 'Triage' });
     expect(within(badges).getByText('Billing')).toBeInTheDocument();
     expect(within(badges).getByText('High priority')).toBeInTheDocument();
-    expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Drafted');
+    expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Drafting');
 
     await advance(ticketAt('replied'), 'ticket.completed');
     expect(await screen.findByText('We refunded the duplicate charge.')).toBeInTheDocument();
     expect(screen.getByText(/^Reply from support/)).toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    expect(within(article.querySelector('header')!).getByText('Replied')).toBeInTheDocument();
+    expect(within(screen.getByRole('list', { name: 'Progress' })).getByText('Replied')).toBeInTheDocument();
     expect(screen.getByText(/This conversation is closed/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Open a new ticket/ })).toHaveAttribute('href', '/new');
 
@@ -90,23 +90,25 @@ describe('ticket page: live thread', () => {
   });
 
   it.each(['failed', 'needs_attention'] as const)(
-    'shows one neutral message for %s, stays connected, and resumes on a replay',
+    'puts %s on hold with one neutral message, stays connected, and resumes on a replay',
     async (stage) => {
       current = ticketAt(stage);
       renderAt();
 
-      expect(await screen.findByText(WITH_TEAM_MESSAGE)).toBeInTheDocument();
+      expect(await screen.findByText(ON_HOLD_MESSAGE)).toBeInTheDocument();
       expect(screen.queryByRole('status')).not.toBeInTheDocument();
-      // No badges and no hint of which stage went wrong.
-      expect(screen.queryByRole('list', { name: 'Triage' })).not.toBeInTheDocument();
+      // Nothing is live; the stopped ply says so and the claim of an alert is gone.
       expect(screen.queryByRole('listitem', { current: 'step' })).not.toBeInTheDocument();
-      expect(screen.getByText('With our team')).toBeInTheDocument();
+      const progress = screen.getByRole('list', { name: 'Progress' });
+      expect(within(progress).getByText(/Draft/)).toHaveTextContent(/on hold/);
+      expect(screen.queryByText(/notified/)).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Office use' })).toBeInTheDocument();
       expect(screen.queryByText(/closed/)).not.toBeInTheDocument();
       expect(socket().disconnect).not.toHaveBeenCalled();
 
       await advance(ticketAt('writing', { status: 'queued' }), 'ticket.requeued');
       expect(await screen.findByText('Writing a reply…')).toBeInTheDocument();
-      expect(screen.queryByText(WITH_TEAM_MESSAGE)).not.toBeInTheDocument();
+      expect(screen.queryByText(ON_HOLD_MESSAGE)).not.toBeInTheDocument();
 
       await advance(ticketAt('replied'), 'ticket.completed');
       expect(await screen.findByText('We refunded the duplicate charge.')).toBeInTheDocument();
@@ -147,6 +149,7 @@ describe('ticket page: other states', () => {
     server.use(http.get('/api/tickets/ref/:ref', () => HttpResponse.json({ error: 'Ticket not found' }, { status: 404 })));
     renderAt();
     expect(await screen.findByRole('heading', { name: "We couldn't find that ticket" })).toBeInTheDocument();
+    expect(screen.getByText(/Not on file/)).toBeInTheDocument();
     expect(screen.getByLabelText('Ticket reference')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open a new ticket' })).toHaveAttribute('href', '/new');
   });

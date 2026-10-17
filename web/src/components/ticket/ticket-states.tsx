@@ -1,58 +1,78 @@
-import { RotateCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { TrackForm } from '@/components/track-ticket-field';
 import { Button } from '@/components/ui/button';
 import { REF_EXAMPLE } from '@/lib/ticket-ref';
+import { TicketFormHeader } from './ticket-form-header';
 
-// The ticket page's non-thread states: loading, unknown ticket, and a load that failed.
+// The ticket page's other states, printed on the same form: loading, unknown, load failed.
 
-export function TicketSkeleton() {
+const PLY_NAMES = ['Received', 'Triage', 'Draft', 'Reply'];
+
+export function TicketSkeleton({ reference = '-' }: { reference?: string }) {
   return (
-    <div aria-busy="true" aria-label="Loading ticket" className="flex animate-pulse flex-col gap-6">
-      <div className="flex flex-col gap-3">
-        <div className="h-8 w-2/3 rounded-lg bg-muted" />
-        <div className="h-4 w-56 rounded bg-muted" />
+    <article aria-busy="true" aria-label="Loading ticket" className="flex flex-col gap-8">
+      <TicketFormHeader copyLine="Customer copy" title="Loading…" referenceNumber={reference} copyable={false} />
+      <ol aria-hidden className="ruled grid grid-cols-4">
+        {PLY_NAMES.map((name, i) => (
+          <li key={name} className="flex flex-col gap-1 border-l border-rule px-2 py-3 first:border-l-0 sm:px-4 sm:py-4">
+            <span className="font-mono text-xs">{i + 1}</span>
+            <span className="label-caps text-xs text-muted-foreground sm:text-sm">{name}</span>
+          </li>
+        ))}
+      </ol>
+      <div aria-hidden className="flex flex-col gap-4">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="border-b border-rule pb-4" />
+        ))}
       </div>
-      <div className="h-24 rounded-xl bg-muted/60" />
-      <div className="ml-auto h-20 w-3/4 rounded-2xl bg-muted" />
-      <div className="flex items-start gap-3">
-        <div className="size-8 rounded-lg bg-muted" />
-        <div className="h-10 w-48 rounded-full bg-muted" />
-      </div>
-    </div>
+    </article>
   );
 }
 
-export function TicketNotFound() {
+export function TicketNotFound({ reference }: { reference?: string }) {
   return (
-    <section className="mx-auto flex max-w-lg flex-col gap-5 rounded-xl border border-border bg-card/60 p-6 sm:p-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">We couldn't find that ticket</h1>
+    <article className="flex flex-col gap-8">
+      <TicketFormHeader
+        copyLine="Not on file"
+        title="We couldn't find that ticket"
+        referenceNumber={reference || '-'}
+        copyable={false}
+      />
+      <section className="ruled flex max-w-lg flex-col gap-5 p-5 sm:p-6">
         <p className="text-muted-foreground">
           Check the reference and try again. It looks like <span className="font-mono text-sm">{REF_EXAMPLE}</span>.
         </p>
-      </div>
-      <TrackForm />
-      <p className="text-sm text-muted-foreground">
-        Don't have one? <Link to="/new">Open a new ticket</Link>.
-      </p>
-    </section>
+        <TrackForm />
+        <p className="text-sm text-muted-foreground">
+          Don't have one? <Link to="/new">Open a new ticket</Link>.
+        </p>
+      </section>
+    </article>
   );
 }
 
-export function TicketLoadError({ onRetry, retrying }: { onRetry: () => void; retrying: boolean }) {
+export function TicketLoadError({
+  reference,
+  onRetry,
+  retrying,
+}: {
+  reference: string;
+  onRetry: () => void;
+  retrying: boolean;
+}) {
   return (
-    <section
-      role="alert"
-      className="mx-auto flex max-w-lg flex-col items-start gap-4 rounded-xl border border-border bg-card/60 p-6 sm:p-8"
-    >
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-tight">We couldn't load this ticket right now</h1>
+    <article role="alert" className="flex flex-col gap-8">
+      <TicketFormHeader
+        copyLine="Could not load"
+        title="We couldn't load this ticket right now"
+        referenceNumber={reference}
+      />
+      <section className="ruled flex max-w-lg flex-col items-start gap-4 p-5 sm:p-6">
         <p className="text-muted-foreground">Your ticket is safe. Check your connection and try again.</p>
-      </div>
-      <Button onClick={onRetry} disabled={retrying}>
-        <RotateCw className={retrying ? 'animate-spin' : undefined} /> Try again
-      </Button>
-    </section>
+        <Button onClick={onRetry} disabled={retrying}>
+          {retrying ? 'Trying…' : 'Try again'}
+        </Button>
+      </section>
+    </article>
   );
 }

@@ -1,6 +1,6 @@
 import { RotateCcw } from 'lucide-react';
 import { StatusPill } from '@/components/new-ticket/status-pill';
-import { TicketStepper } from '@/components/ticket/ticket-stepper';
+import { PlyRow } from '@/components/ticket/ply-row';
 import { TicketThread } from '@/components/ticket/ticket-thread';
 import { Button } from '@/components/ui/button';
 import { DEMO_MESSAGE, DEMO_REFERENCE, DEMO_REPLY, DEMO_SUBJECT } from './demo-script';
@@ -28,7 +28,7 @@ export function DemoTicket() {
           </div>
           <StatusPill status={done ? 'completed' : 'processing'} />
         </header>
-        <TicketStepper steps={frame.steps} />
+        <PlyRow plies={frame.plies} />
         <TicketThread demo description={DEMO_MESSAGE} createdAt={new Date(0).toISOString()} support={frame.support} />
       </div>
       {canReplay && (

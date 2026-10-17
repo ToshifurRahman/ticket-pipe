@@ -1,40 +1,75 @@
 import { ArrowRight } from 'lucide-react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BrandMark } from '@/components/brand-mark';
 import { Button } from '@/components/ui/button';
-import { relativeTime } from '@/lib/relative-time';
+import { printedTime } from '@/lib/relative-time';
 import { humanize, type SupportSide, type TriageBadges } from '@/lib/ticket-thread';
 import { cn } from '@/lib/utils';
+import { stampProps, useStampOnChange } from './use-stamp-on-change';
 
-export const WITH_TEAM_MESSAGE =
-  'Your request needs a closer look. Our team has been notified and will follow up here.';
+/** Shown when failed or needs_attention. It claims no alert: only a person picking it up moves it. */
+export const ON_HOLD_MESSAGE =
+  'Your request needs a person to look at it, so it’s waiting in our team’s queue. This page updates by itself when it moves again. You can leave and come back with your reference.';
+const ON_HOLD_WITH_EMAIL = ON_HOLD_MESSAGE.replace(/ reference\.$/, ' reference, or get an email when it changes.');
+
+const WORKING_NOTE = 'You can leave this page. It keeps your place, and your reference brings you back.';
+const WORKING_NOTE_WITH_EMAIL =
+  'You can leave this page. It keeps your place, and your reference brings you back, or get an email when it’s ready.';
 
 type TicketThreadProps = {
   description: string;
   createdAt: string;
   support: SupportSide;
+  /** The API says an email can be offered, so the working and on-hold notes mention it. */
+  emailOffered?: boolean;
   /** The landing-page sample: no live region, no "closed" footer, a generic author caption. */
   demo?: boolean;
 };
 
-// A read-only conversation: the customer's message, then whatever support has to say.
-export function TicketThread({ description, createdAt, support, demo = false }: TicketThreadProps) {
+// The thread sits on the form: the customer's text on the white ply, then whatever the
+// office has to say, each on its own ply.
+export function TicketThread({ description, createdAt, support, emailOffered = false, demo = false }: TicketThreadProps) {
+  const [expanded, setExpanded] = useState(false);
+  const counts = useStampOnChange({ support: support.kind });
+  const stamp = stampProps(counts, 'support');
+  const long = description.length > 140 || description.split('\n').length > 4;
+
   return (
     <div className="flex flex-col gap-6">
       <figure className="flex flex-col items-end gap-1.5">
-        <blockquote className="max-w-[min(100%,40rem)] rounded-2xl rounded-br-md bg-foreground px-4 py-3 whitespace-pre-wrap break-words text-background">
+        <blockquote
+          className={cn(
+            'ruled max-w-[min(100%,40rem)] bg-ply-received px-4 py-3 whitespace-pre-wrap break-words text-ply-received-foreground',
+            !expanded && 'line-clamp-4 sm:line-clamp-none'
+          )}
+        >
           {description}
         </blockquote>
-        <figcaption className="text-xs text-muted-foreground">{demo ? 'Customer' : `You · ${relativeTime(createdAt)}`}</figcaption>
+        {long && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs sm:hidden"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {expanded ? 'Show less' : 'Show full message'}
+          </Button>
+        )}
+        <figcaption className="label-caps text-xs text-muted-foreground">
+          {demo ? 'Customer' : `You · ${printedTime(createdAt)}`}
+        </figcaption>
       </figure>
 
       {/* The support side changes in place, so screen readers hear each stage and the reply. */}
       <div aria-live={demo ? undefined : 'polite'} className="flex flex-col gap-6">
-        <SupportMessage support={support} />
+        <div key={stamp.key} className={stamp.className}>
+          <SupportMessage support={support} emailOffered={emailOffered} demo={demo} />
+        </div>
       </div>
 
       {support.kind === 'replied' && !demo && (
-        <footer className="flex flex-col items-center gap-3 border-t border-border pt-6 text-center">
+        <footer className="flex flex-col items-start gap-3 border-t border-rule pt-6">
           <p className="text-sm text-muted-foreground">
             This conversation is closed. Need more help? Open a new ticket.
           </p>
@@ -49,100 +84,55 @@ export function TicketThread({ description, createdAt, support, demo = false }: 
   );
 }
 
-function SupportMessage({ support }: { support: SupportSide }) {
+function SupportMessage({ support, emailOffered, demo }: { support: SupportSide; emailOffered: boolean; demo: boolean }) {
   if (support.kind === 'working') {
     return (
-      <SupportRow badges={support.badges}>
-        <div
-          role="status"
-          className="inline-flex items-center gap-3 rounded-full border border-border bg-card/70 px-4 py-2 text-sm"
-        >
-          <TypingDots />
-          {support.stage === 'reviewing' ? 'Reviewing your request…' : 'Writing a reply…'}
+      <div className="flex flex-col gap-3">
+        {demo && support.badges && <TriageBadgeList badges={support.badges} />}
+        <div className="flex flex-col gap-2 border border-dashed border-ply-live p-4">
+          <p role="status" className="label-caps text-sm text-ply-live">
+            {support.stage === 'reviewing' ? 'Reviewing your request…' : 'Writing a reply…'}
+          </p>
+          <p className="text-sm text-muted-foreground">{emailOffered ? WORKING_NOTE_WITH_EMAIL : WORKING_NOTE}</p>
         </div>
-      </SupportRow>
-    );
-  }
-
-  if (support.kind === 'with-team') {
-    return (
-      <SupportRow caption="Support">
-        <Bubble>{WITH_TEAM_MESSAGE}</Bubble>
-      </SupportRow>
-    );
-  }
-
-  return (
-    <SupportRow
-      badges={support.badges}
-      caption={`Reply from support${support.repliedAt ? ` · ${relativeTime(support.repliedAt)}` : ''}`}
-    >
-      <Bubble>{support.reply}</Bubble>
-    </SupportRow>
-  );
-}
-
-function SupportRow({
-  badges,
-  caption,
-  children,
-}: {
-  badges?: TriageBadges | null;
-  caption?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <BrandMark className="size-8 shrink-0" />
-      <div className="flex min-w-0 flex-col items-start gap-2">
-        {badges && <TriageBadgeList badges={badges} />}
-        {children}
-        {caption && <span className="text-xs text-muted-foreground">{caption}</span>}
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-function Bubble({ children }: { children: React.ReactNode }) {
+  if (support.kind === 'on-hold') {
+    return (
+      <div className="ruled flex flex-col gap-2 bg-ply-on-hold p-4 text-ply-on-hold-foreground">
+        <p className="label-caps text-sm">On hold</p>
+        <p>{emailOffered ? ON_HOLD_WITH_EMAIL : ON_HOLD_MESSAGE}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-[min(100%,40rem)] rounded-2xl rounded-tl-md border border-border bg-card/80 px-4 py-3 whitespace-pre-wrap break-words">
-      {children}
+    <div className="flex flex-col gap-1.5">
+      {demo && support.badges && <TriageBadgeList badges={support.badges} />}
+      <div className="ruled bg-ply-replied px-4 py-3 whitespace-pre-wrap break-words text-ply-replied-foreground">
+        {support.reply}
+      </div>
+      <span className="label-caps text-xs text-muted-foreground">
+        Reply from support{support.repliedAt ? ` · ${printedTime(support.repliedAt)}` : ''}
+      </span>
     </div>
   );
 }
 
-const URGENT = new Set(['high', 'critical']);
-
+// Only the landing sample shows badges inline; the real page stamps them in Office use.
 function TriageBadgeList({ badges }: { badges: TriageBadges }) {
   return (
     <ul aria-label="Triage" className="flex flex-wrap gap-2">
-      <li className="rounded-full border border-border bg-card/70 px-2.5 py-0.5 text-xs font-medium">
+      <li className="ruled label-caps px-2 py-0.5 text-xs">
         <span className="sr-only">Category: </span>
         {humanize(badges.category)}
       </li>
-      <li
-        className={cn(
-          'rounded-full border px-2.5 py-0.5 text-xs font-medium',
-          URGENT.has(badges.priority) ? 'border-warning/40 text-warning' : 'border-border text-muted-foreground'
-        )}
-      >
+      <li className="ruled label-caps px-2 py-0.5 text-xs text-muted-foreground">
         <span className="sr-only">Priority: </span>
         {humanize(badges.priority)} priority
       </li>
     </ul>
-  );
-}
-
-function TypingDots() {
-  return (
-    <span aria-hidden className="flex gap-1">
-      {[0, 150, 300].map((delay) => (
-        <span
-          key={delay}
-          className="size-1.5 animate-bounce rounded-full bg-primary/70"
-          style={{ animationDelay: `${delay}ms` }}
-        />
-      ))}
-    </span>
   );
 }

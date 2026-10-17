@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, LoaderCircle, MailCheck } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
 import { Turnstile, type TurnstileHandle } from '@/components/turnstile';
 import { Button } from '@/components/ui/button';
@@ -15,6 +14,12 @@ const ERROR_COPY: Record<number, string> = {
   409: 'An email address is already set for this ticket.',
   429: 'Too many requests. Please try again later.',
 };
+
+/** Whether the thread may offer an email; shares the card's query, so it costs no request. */
+export function useEmailOffered(ticketId: string): boolean {
+  const { data } = useQuery({ queryKey: notificationQueryKey(ticketId), queryFn: () => getNotification(ticketId) });
+  return !!data?.available && data.state === 'none';
+}
 
 /** "Email me when it's ready". Hidden when email is off or the ticket already has its reply. */
 export function NotifyCard({ ticketId }: { ticketId: string }) {
@@ -34,7 +39,7 @@ export function NotifyCard({ ticketId }: { ticketId: string }) {
 
   if (data.state === 'pending') {
     return (
-      <Card icon={<MailCheck className="size-5" aria-hidden />} title="Check your inbox">
+      <Card title="Check your inbox">
         <p role="status">
           We sent a confirmation link to <span className="font-medium text-foreground">{data.maskedEmail}</span>. Open it to
           confirm. The link works for 24 hours.
@@ -45,7 +50,7 @@ export function NotifyCard({ ticketId }: { ticketId: string }) {
 
   if (data.state === 'confirmed' || data.state === 'sent') {
     return (
-      <Card icon={<MailCheck className="size-5" aria-hidden />} title="You’ll get an email">
+      <Card title="You’ll get an email">
         <p role="status">
           {data.state === 'sent' ? 'We emailed' : 'We’ll email'}{' '}
           <span className="font-medium text-foreground">{data.maskedEmail}</span>{' '}
@@ -74,7 +79,7 @@ export function NotifyCard({ ticketId }: { ticketId: string }) {
   }
 
   return (
-    <Card icon={<Bell className="size-5" aria-hidden />} title="Don’t want to wait?">
+    <Card title="Don’t want to wait?">
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
         <p>We’ll email you when your reply is ready. You’ll confirm your address first.</p>
         <div className="flex flex-col gap-2">
@@ -94,13 +99,11 @@ export function NotifyCard({ ticketId }: { ticketId: string }) {
             </p>
           )}
         </div>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col items-start gap-4">
           <Turnstile ref={turnstile} onToken={setToken} />
           <Button type="submit" disabled={!token || mutation.isPending}>
             {mutation.isPending ? (
-              <>
-                <LoaderCircle className="animate-spin" /> Sending…
-              </>
+              'Sending…'
             ) : (
               'Notify me'
             )}
@@ -111,13 +114,10 @@ export function NotifyCard({ ticketId }: { ticketId: string }) {
   );
 }
 
-function Card({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section aria-label="Email notification" className="flex flex-col gap-3 rounded-xl border border-border bg-card/60 p-5 text-sm text-muted-foreground">
-      <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
-        {icon}
-        {title}
-      </h2>
+    <section aria-label="Email notification" className="ruled flex flex-col gap-3 p-4 text-sm text-muted-foreground">
+      <h2 className="label-caps text-sm text-foreground">{title}</h2>
       {children}
     </section>
   );

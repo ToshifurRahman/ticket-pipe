@@ -6,11 +6,11 @@ describe('demo script', () => {
   it('ends replied with every step done', () => {
     const last = DEMO_FRAMES[FINAL_FRAME];
     expect(last.support.kind).toBe('replied');
-    expect(last.steps.every((s) => s.state === 'done')).toBe(true);
+    expect(last.plies.every((s) => s.state === 'done')).toBe(true);
   });
 
   it('never goes backwards', () => {
-    const doneCounts = DEMO_FRAMES.map((f) => f.steps.filter((s) => s.state === 'done').length);
+    const doneCounts = DEMO_FRAMES.map((f) => f.plies.filter((s) => s.state === 'done').length);
     expect(doneCounts).toEqual([...doneCounts].sort((a, b) => a - b));
   });
 
