@@ -18,3 +18,10 @@ export function relativeTime(iso: string, now: number = Date.now()): string {
   }
   return 'just now';
 }
+
+/** "14:02:07" in the viewer's time zone, for the time printed on a ply. */
+export function printedTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleTimeString('en-GB', { hour12: false });
+}

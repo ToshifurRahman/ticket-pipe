@@ -1,8 +1,8 @@
-import type { Step, SupportSide } from '@/lib/ticket-thread';
+import type { Ply, SupportSide } from '@/lib/ticket-thread';
 
 // A scripted sample ticket for the landing page. Each frame is a state the real ticket page
 // can be in; nothing here touches the API.
-export type DemoFrame = { steps: Step[]; support: SupportSide; holdMs: number };
+export type DemoFrame = { plies: Ply[]; support: SupportSide; holdMs: number };
 
 export const DEMO_SUBJECT = 'Charged twice for October';
 export const DEMO_REFERENCE = 'TICK-1760000000000-7A4D2C9E';
@@ -12,19 +12,35 @@ export const DEMO_REPLY =
 
 const BADGES = { category: 'billing', priority: 'high' };
 
-function steps(done: number, active: number | null): Step[] {
-  return ['Received', 'Triaged', 'Drafted', 'Replied'].map((label, i) => ({
-    label,
-    state: i < done ? 'done' : i === active ? 'active' : 'idle',
-  }));
+// Fixed sample times, so the landing page prints the same form for every visitor.
+const TIMES = ['2026-01-01T14:02:07Z', '2026-01-01T14:02:09Z', '2026-01-01T14:02:14Z', '2026-01-01T14:02:15Z'];
+const KEYS = ['received', 'triage', 'draft', 'reply'] as const;
+const LABELS = [
+  ['Received', 'Received', 'Received'],
+  ['Triage', 'Triaging', 'Triaged'],
+  ['Draft', 'Drafting', 'Drafted'],
+  ['Reply', 'Reply', 'Replied'],
+];
+
+function plies(done: number, live: number | null): Ply[] {
+  return KEYS.map((key, i) => {
+    const state = i < done ? 'done' : i === live ? 'live' : 'waiting';
+    return {
+      n: (i + 1) as Ply['n'],
+      key,
+      state,
+      label: LABELS[i][state === 'done' ? 2 : state === 'live' ? 1 : 0],
+      time: state === 'done' ? TIMES[i] : null,
+    };
+  });
 }
 
 export const DEMO_FRAMES: DemoFrame[] = [
-  { steps: steps(1, 1), support: { kind: 'working', stage: 'reviewing', badges: null }, holdMs: 1800 },
-  { steps: steps(2, 2), support: { kind: 'working', stage: 'writing', badges: BADGES }, holdMs: 2400 },
-  { steps: steps(3, 3), support: { kind: 'working', stage: 'writing', badges: BADGES }, holdMs: 1400 },
+  { plies: plies(1, 1), support: { kind: 'working', stage: 'reviewing', badges: null }, holdMs: 1800 },
+  { plies: plies(2, 2), support: { kind: 'working', stage: 'writing', badges: BADGES }, holdMs: 2400 },
+  { plies: plies(3, 3), support: { kind: 'working', stage: 'writing', badges: BADGES }, holdMs: 1400 },
   {
-    steps: steps(4, null),
+    plies: plies(4, null),
     support: { kind: 'replied', reply: DEMO_REPLY, badges: BADGES, repliedAt: null },
     holdMs: 0,
   },

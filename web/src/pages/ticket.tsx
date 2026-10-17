@@ -1,10 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-import { NotifyCard } from '@/components/ticket/notify-card';
-import { TicketHeader } from '@/components/ticket/ticket-header';
+import { useEmailOffered } from '@/components/ticket/notify-card';
+import { OfficeUse } from '@/components/ticket/office-use';
+import { PlyRow } from '@/components/ticket/ply-row';
+import { TicketFormHeader } from '@/components/ticket/ticket-form-header';
 import { TicketLoadError, TicketNotFound, TicketSkeleton } from '@/components/ticket/ticket-states';
-import { TicketStepper } from '@/components/ticket/ticket-stepper';
 import { TicketThread } from '@/components/ticket/ticket-thread';
 import { brand } from '@/config/brand';
 import { useSocketInvalidation, type InvalidationMap } from '@/hooks/use-socket-invalidation';
@@ -12,14 +13,15 @@ import { ApiError } from '@/lib/api';
 import type { getSocket } from '@/lib/socket';
 import { notificationQueryKey } from '@/lib/notifications-api';
 import { isValidRef, normalizeRef } from '@/lib/ticket-ref';
-import { supportSide, ticketSteps } from '@/lib/ticket-thread';
+import { supportSide, ticketPlies } from '@/lib/ticket-thread';
+import type { TicketDetail } from '@/lib/types';
 import { getTicketByRef, ticketQueryKey } from '@/lib/tickets-api';
 
 export function TicketPage() {
   const raw = useParams().ref ?? '';
   const ref = normalizeRef(raw);
 
-  if (!isValidRef(ref)) return <TicketNotFound />;
+  if (!isValidRef(ref)) return <TicketNotFound reference={raw.trim().toUpperCase().slice(0, 40)} />;
   // A lowercase or padded ref is the same ticket; keep one canonical URL.
   if (ref !== raw) return <Navigate to={`/t/${ref}`} replace />;
   return <LiveTicket key={ref} reference={ref} />;
@@ -57,16 +59,34 @@ function LiveTicket({ reference }: { reference: string }) {
   // replay by the team (`ticket.requeued`) brings the thread back to life.
   useSocketInvalidation(map, { onConnect, enabled: !!ticketId && ticket?.status !== 'completed' });
 
-  if (error instanceof ApiError && error.status === 404) return <TicketNotFound />;
-  if (!ticket && error) return <TicketLoadError onRetry={() => void refetch()} retrying={isFetching} />;
-  if (!ticket) return <TicketSkeleton />;
+  if (error instanceof ApiError && error.status === 404) return <TicketNotFound reference={reference} />;
+  if (!ticket && error) return <TicketLoadError reference={reference} onRetry={() => void refetch()} retrying={isFetching} />;
+  if (!ticket) return <TicketSkeleton reference={reference} />;
+
+  return <TicketForm ticket={ticket} />;
+}
+
+function TicketForm({ ticket }: { ticket: TicketDetail }) {
+  const emailOffered = useEmailOffered(ticket.id);
+  const plies = ticketPlies(ticket);
+  const support = supportSide(ticket);
+  const badges = support.kind === 'working' || support.kind === 'replied' || support.kind === 'on-hold' ? support.badges : null;
 
   return (
-    <article className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-      <TicketHeader subject={ticket.subject} referenceNumber={ticket.referenceNumber} status={ticket.status} />
-      <TicketStepper steps={ticketSteps(ticket)} />
-      <TicketThread description={ticket.description} createdAt={ticket.createdAt} support={supportSide(ticket)} />
-      <NotifyCard ticketId={ticket.id} />
+    <article className="grid w-full gap-8 lg:grid-cols-12 lg:gap-10">
+      <div className="flex min-w-0 flex-col gap-8 lg:col-span-8">
+        <TicketFormHeader copyLine="Customer copy" title={ticket.subject} referenceNumber={ticket.referenceNumber} />
+        <PlyRow plies={plies} />
+        <TicketThread
+          description={ticket.description}
+          createdAt={ticket.createdAt}
+          support={support}
+          emailOffered={emailOffered}
+        />
+      </div>
+      <div className="lg:col-span-4">
+        <OfficeUse ticket={ticket} plies={plies} badges={badges} />
+      </div>
     </article>
   );
 }
