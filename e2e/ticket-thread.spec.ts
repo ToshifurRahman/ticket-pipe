@@ -7,7 +7,7 @@ import { stubTurnstile } from './helpers/turnstile';
 // The thread follows a ticket live, against the real API, worker, queue and socket, with the
 // fake LLM (category "general", priority "medium"). No test reloads the page after submitting.
 
-const WITH_TEAM = 'Your request needs a closer look. Our team has been notified and will follow up here.';
+const ON_HOLD = /waiting in our team.s queue/;
 const created: string[] = [];
 
 test.afterAll(async () => {
@@ -61,9 +61,9 @@ test('a ticket that needs a closer look picks up live after the team replays it'
     'The totals on my invoice do not add up. [fake:invalid-draft]'
   );
 
-  await expect(page.getByText(WITH_TEAM)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(ON_HOLD)).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('status')).toHaveCount(0);
-  await expect(page.getByRole('list', { name: 'Triage' })).toHaveCount(0);
+  await expect(page.locator('[aria-current="step"]')).toHaveCount(0);
 
   // The team fixes the cause and replays the ticket; the customer's page is still open.
   await stripFakeMarkers(ticketId);
@@ -72,7 +72,7 @@ test('a ticket that needs a closer look picks up live after the team replays it'
   });
   expect(replay.status()).toBe(200);
 
-  await expect(page.getByText(WITH_TEAM)).toBeHidden({ timeout: 10_000 });
+  await expect(page.getByText(ON_HOLD)).toBeHidden({ timeout: 10_000 });
   await expectReply(page);
 });
 

@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('a deep link renders the app, not a server 404', async ({ page }) => {
   await page.goto('/t/TICK-1759993412345-A1B2C3D4');
   await expect(page.getByRole('heading', { name: 'Ticket' })).toBeVisible();
-  await expect(page.getByText('TICK-1759993412345-A1B2C3D4')).toBeVisible();
+  await expect(page.getByText('TICK-1759993412345-A1B2C3D4').first()).toBeVisible();
 });
 
 test('an unknown route shows the 404 page', async ({ page }) => {
