@@ -8,7 +8,7 @@ export const DEMO_SUBJECT = 'Charged twice for October';
 export const DEMO_REFERENCE = 'TICK-1760000000000-7A4D2C9E';
 export const DEMO_MESSAGE = 'My card was charged twice for the October invoice. Can you refund the duplicate?';
 export const DEMO_REPLY =
-  'Sorry about that — a duplicate charge shouldn’t happen. We’ve flagged the second October payment for a refund to the same card. You’ll see it back within a few business days, and we’ll confirm here once it’s issued.';
+  'Sorry about that, a duplicate charge shouldn’t happen. We’ve flagged the second October payment for a refund to the same card. You’ll see it back within a few business days, and we’ll confirm here once it’s issued.';
 
 const BADGES = { category: 'billing', priority: 'high' };
 
