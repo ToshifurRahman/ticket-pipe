@@ -7,7 +7,7 @@ export function SiteFooter() {
     <footer className="border-t bg-background">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-muted-foreground sm:px-6">
         <span className="label-caps text-xs">
-          © {brand.name} · {brand.footer}
+          © {brand.name} · {brand.tagline}
         </span>
         <nav className="flex gap-5" aria-label="Legal">
           <Link to="/privacy" className="label-caps text-xs text-muted-foreground no-underline hover:text-foreground">
