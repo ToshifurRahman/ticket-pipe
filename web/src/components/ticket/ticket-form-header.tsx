@@ -1,5 +1,6 @@
 import { Check, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useCopy } from '@/hooks/use-copy';
 
 type Props = {
@@ -9,19 +10,23 @@ type Props = {
   /** The reference in the No. cell; "-" when there is none to show. */
   referenceNumber: string;
   copyable?: boolean;
+  /** The title's heading level; the landing demo sits under the page's own h1. */
+  as?: 'h1' | 'h2';
+  /** Ink instead of the live red, for a copy that isn't a real ticket. */
+  neutral?: boolean;
   /** Headings other than the subject, e.g. the not-found message, are not truncated. */
   children?: React.ReactNode;
 };
 
 // The head of the service form: printed caps, the subject, and the ruled No. cell.
-export function TicketFormHeader({ copyLine, title, referenceNumber, copyable = true, children }: Props) {
+export function TicketFormHeader({ copyLine, title, referenceNumber, copyable = true, as: Title = 'h1', neutral = false, children }: Props) {
   const [copy, copyText] = useCopy();
 
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
       <div className="flex min-w-0 flex-col gap-2">
-        <p className="label-caps text-xs text-ply-live sm:text-sm">Service ticket · {copyLine}</p>
-        <h1 className="text-2xl font-semibold tracking-tight break-words sm:text-3xl">{title}</h1>
+        <p className={cn('label-caps text-xs sm:text-sm', neutral ? 'text-muted-foreground' : 'text-ply-live')}>Service ticket · {copyLine}</p>
+        <Title className="text-2xl font-semibold tracking-tight break-words sm:text-3xl">{title}</Title>
         {children}
       </div>
       <div className="ruled flex shrink-0 items-center gap-3 self-start px-3 py-2">
