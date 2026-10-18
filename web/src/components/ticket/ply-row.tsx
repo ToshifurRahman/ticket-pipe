@@ -47,7 +47,7 @@ export function PlyRow({ plies }: { plies: Ply[] }) {
             data-state={ply.state}
             aria-current={ply.state === 'live' ? 'step' : undefined}
             className={cn(
-              'flex min-w-0 flex-col gap-1 px-2 py-3 sm:gap-2 sm:px-4 sm:py-4',
+              'flex min-w-0 flex-col gap-1 px-1.5 py-3 sm:gap-2 sm:px-4 sm:py-4',
               ply.n > 1 && 'border-l border-rule',
               STATE_SURFACE[ply.state] ?? SURFACE[ply.key],
               stamp.className
@@ -58,7 +58,7 @@ export function PlyRow({ plies }: { plies: Ply[] }) {
             </span>
             <span
               className={cn(
-                'label-caps text-xs break-words sm:text-sm',
+                'label-caps text-xs tracking-normal sm:text-sm sm:tracking-(--tracking-label)',
                 ply.state === 'on-hold' && 'line-through decoration-2'
               )}
             >
