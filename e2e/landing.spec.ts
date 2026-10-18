@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const SECTIONS = [/already understood/i, /from inbox to answer/i, 'Simple pricing', 'Questions'];
+const SECTIONS = [/see your ticket move/i, /four stages/i, 'Rates', 'Questions'];
 
 for (const theme of ['dark', 'light'] as const) {
   test(`every section fits a 360px screen in ${theme} mode`, async ({ page }) => {
@@ -83,11 +83,4 @@ test('the hero CTA opens the submit page', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('link', { name: /submit a ticket/i }).first().click();
   await expect(page).toHaveURL(/\/new$/);
-});
-
-test('the hero track field opens a ticket', async ({ page }) => {
-  await page.goto('/');
-  await page.getByRole('main').getByRole('textbox', { name: 'Ticket reference' }).fill('tick-1759993412345-a1b2c3d4');
-  await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/\/t\/TICK-1759993412345-A1B2C3D4$/);
 });

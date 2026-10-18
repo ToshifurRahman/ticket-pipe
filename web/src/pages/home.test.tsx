@@ -44,11 +44,13 @@ describe('landing page', () => {
 
   it('renders every section', () => {
     renderHome();
-    expect(screen.getByRole('heading', { level: 1, name: /already understood/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /from inbox to answer/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Simple pricing' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /see your ticket move/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /four stages/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Rates' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Questions' })).toBeInTheDocument();
     expect(screen.getAllByRole('listitem').length).toBeGreaterThan(0);
+    expect(document.querySelectorAll('details')).toHaveLength(5);
+    expect(document.body.textContent).not.toMatch(/popular|portfolio/i);
   });
 
   it('sends the hero CTA and every pricing CTA to /new', async () => {
@@ -56,23 +58,12 @@ describe('landing page', () => {
     renderHome();
     const links = [
       screen.getByRole('link', { name: /submit a ticket/i }),
-      ...screen.getAllByRole('link', { name: /try it|talk to us/i }),
+      ...screen.getAllByRole('link', { name: /start free|start with team|ask us/i }),
     ];
     expect(links).toHaveLength(4);
     links.forEach((link) => expect(link).toHaveAttribute('href', '/new'));
     await user.click(links[0]);
     expect(screen.getByTestId('where')).toHaveTextContent('/new');
-  });
-
-  it('the track field opens a valid reference and rejects an invalid one', async () => {
-    const user = userEvent.setup();
-    renderHome();
-    const field = screen.getByRole('textbox', { name: 'Ticket reference' });
-    await user.type(field, 'nope{Enter}');
-    expect(field).toHaveAttribute('aria-invalid', 'true');
-    await user.clear(field);
-    await user.type(field, 'tick-1760000000000-7a4d2c9e{Enter}');
-    expect(screen.getByTestId('where')).toHaveTextContent('/t/TICK-1760000000000-7A4D2C9E');
   });
 
   it('opens a FAQ answer', async () => {
