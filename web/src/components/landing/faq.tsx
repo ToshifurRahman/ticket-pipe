@@ -2,13 +2,10 @@ import { FAQ_HEADING, FAQS } from '@/content/landing';
 
 export function Faq() {
   return (
-    <section id="faq" aria-labelledby="faq-title" className="mx-auto w-full max-w-3xl scroll-mt-24 py-16">
-      <div className="mb-8 flex flex-col gap-2">
-        <span className="label-caps text-xs text-muted-foreground">{FAQ_HEADING.label}</span>
-        <h2 id="faq-title" className="text-3xl font-semibold tracking-tight">
-          {FAQ_HEADING.title}
-        </h2>
-      </div>
+    <section id="faq" aria-labelledby="faq-title" className="mx-auto w-full max-w-3xl scroll-mt-24">
+      <h2 id="faq-title" className="mb-8 text-center text-[clamp(2rem,4.4vw,3.5rem)] leading-none font-bold tracking-[-0.03em] text-balance">
+        {FAQ_HEADING.title}
+      </h2>
       <div className="divide-y divide-rule border-y border-rule">
         {FAQS.map(({ q, a }) => (
           <details key={q} className="group">

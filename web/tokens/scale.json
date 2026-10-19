@@ -45,7 +45,14 @@
     },
     "motion": {
       "stamp-duration": { "$type": "duration", "$value": "90ms", "$extensions": { "relay.css": ["duration-stamp"] } },
-      "stamp-easing": { "$type": "cubicBezier", "$value": "steps(2, jump-none)", "$description": "Two hard frames, no easing. Carbon Set's only motion: hover and press change in one step.", "$extensions": { "relay.css": ["ease-stamp"] } }
+      "stamp-easing": { "$type": "cubicBezier", "$value": "steps(2, jump-none)", "$description": "Two hard frames, no easing. Carbon Set's motion grammar: hover and press change in one step.", "$extensions": { "relay.css": ["ease-stamp"] } },
+      "press-duration": { "$type": "duration", "$value": "135ms", "$description": "A rubber stamp: blank, pressed, set, one hard frame each.", "$extensions": { "relay.css": ["duration-press"] } },
+      "print-head": { "$type": "duration", "$value": "270ms", "$description": "The headline printing in on load; also a rate tier sweeping in.", "$extensions": { "relay.css": ["duration-print-head"] } },
+      "print-form": { "$type": "duration", "$value": "480ms", "$description": "The sample form printing in, after the headline.", "$extensions": { "relay.css": ["duration-print-form"] } },
+      "print-cta": { "$type": "duration", "$value": "135ms", "$description": "The hero button printing in, last.", "$extensions": { "relay.css": ["duration-print-cta"] } },
+      "print-cta-delay": { "$type": "duration", "$value": "750ms", "$description": "When the hero button starts printing.", "$extensions": { "relay.css": ["duration-print-cta-delay"] } },
+      "nudge": { "$type": "duration", "$value": "240ms", "$description": "One press of the idle nudge.", "$extensions": { "relay.css": ["duration-nudge"] } },
+      "print-line": { "$type": "duration", "$value": "180ms", "$description": "One line of a reply printing, like an impact printer.", "$extensions": { "relay.css": ["duration-print-line"] } }
     },
     "opacity": {
       "overlay": { "$type": "number", "$value": "80%", "$extensions": { "relay.css": ["opacity-overlay"] } },
@@ -67,7 +74,9 @@
     "layout": {
       "table-min": { "$type": "dimension", "$value": "45rem", "$description": "The ops ledger scrolls inside its box below this width.", "$extensions": { "relay.css": ["table-min"] } },
       "cell-max": { "$type": "dimension", "$value": "24rem", "$extensions": { "relay.css": ["cell-max"] } },
-      "captcha-height": { "$type": "dimension", "$value": "4.0625rem", "$description": "Turnstile's fixed widget height (65px), reserved so it never shifts layout.", "$extensions": { "relay.css": ["captcha-height"] } }
+      "captcha-height": { "$type": "dimension", "$value": "4.0625rem", "$description": "Turnstile's fixed widget height (65px), reserved so it never shifts layout.", "$extensions": { "relay.css": ["captcha-height"] } },
+      "strip": { "$type": "dimension", "$value": "2.75rem", "$description": "The sticky strip of a landing stage band, phone width.", "$extensions": { "relay.css": ["strip"] } },
+      "strip-wide": { "$type": "dimension", "$value": "3.5rem", "$description": "The same strip from the md breakpoint up.", "$extensions": { "relay.css": ["strip-wide"] } }
     }
   }
 }

@@ -12,8 +12,10 @@ export const DEMO_REPLY =
 
 const BADGES = { category: 'billing', priority: 'high' };
 
-// Fixed sample times, so the landing page prints the same form for every visitor.
-const TIMES = ['2026-01-01T14:02:07Z', '2026-01-01T14:02:09Z', '2026-01-01T14:02:14Z', '2026-01-01T14:02:15Z'];
+// Fixed sample times, so the landing page prints the same form for every visitor. Each one
+// follows the previous by roughly its stage's hold below, so the live clock and the printed
+// times agree.
+export const DEMO_TIMES = ['2026-01-01T14:02:07Z', '2026-01-01T14:02:09Z', '2026-01-01T14:02:11Z', '2026-01-01T14:02:13Z'];
 const KEYS = ['received', 'triage', 'draft', 'reply'] as const;
 const LABELS = [
   ['Received', 'Received', 'Received'],
@@ -30,7 +32,7 @@ function plies(done: number, live: number | null): Ply[] {
       key,
       state,
       label: LABELS[i][state === 'done' ? 2 : state === 'live' ? 1 : 0],
-      time: state === 'done' ? TIMES[i] : null,
+      time: state === 'done' ? DEMO_TIMES[i] : null,
     };
   });
 }
@@ -47,3 +49,11 @@ export const DEMO_FRAMES: DemoFrame[] = [
 ];
 
 export const FINAL_FRAME = DEMO_FRAMES.length - 1;
+
+// Replay tears the copy off: the reply goes first, then the plies clear right to left, one
+// stamp at a time, down to the received request the demo starts from.
+export const CLEAR_FRAMES: DemoFrame[] = [3, 2, 1].map((done) => ({
+  plies: plies(done, null),
+  support: DEMO_FRAMES[0].support,
+  holdMs: 140,
+}));

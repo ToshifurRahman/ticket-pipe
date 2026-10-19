@@ -25,7 +25,7 @@ export function TicketFormHeader({ copyLine, title, referenceNumber, copyable = 
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
       <div className="flex min-w-0 flex-col gap-2">
-        <p className={cn('label-caps text-xs sm:text-sm', neutral ? 'text-muted-foreground' : 'text-ply-live')}>Service ticket · {copyLine}</p>
+        <p className={cn('label-caps text-xs sm:text-sm', neutral ? 'text-muted-foreground' : 'text-ply-live-ink')}>Service ticket · {copyLine}</p>
         <Title className="text-2xl font-semibold tracking-tight break-words sm:text-3xl">{title}</Title>
         {children}
       </div>

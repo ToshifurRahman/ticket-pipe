@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <!-- The ply-stack mark (web/src/components/brand-mark.tsx) in the carbon theme. Literal
-       values of web/tokens/colors.json: primitive.color.carbon, rule-carbon, white-ply,
-       grey-ply, red, paper. A static asset cannot read CSS variables. -->
-  <rect width="32" height="32" fill="#111111"/>
-  <rect x="0.5" y="0.5" width="31" height="31" fill="none" stroke="#6B6B67"/>
+       values of web/tokens/colors.json: primitive.color.forest, rule-forest, ply-bone,
+       ply-mint, ply-orange, ply-edge. A static asset cannot read CSS variables. -->
+  <rect width="32" height="32" fill="#08130F"/>
+  <rect x="0.5" y="0.5" width="31" height="31" fill="none" stroke="#5E8A73"/>
   <g transform="translate(4 4)">
-    <rect x="2" y="3" width="17" height="3.5" fill="#D8D8D4"/>
-    <rect x="3.5" y="8" width="17" height="3.5" fill="#BDBDBA"/>
-    <rect x="5" y="13" width="17" height="3.5" fill="#F2524C"/>
-    <rect x="6.5" y="18" width="17" height="3.5" fill="#F2F2F0"/>
+    <rect x="2" y="3" width="17" height="3.5" fill="#E4EEE8"/>
+    <rect x="3.5" y="8" width="17" height="3.5" fill="#34C98B"/>
+    <rect x="5" y="13" width="17" height="3.5" fill="#FF7A1A"/>
+    <rect x="6.5" y="18" width="17" height="3.5" fill="#3FA766"/>
   </g>
 </svg>
