@@ -1,8 +1,8 @@
 import { PlyRow } from '@/components/ticket/ply-row';
-import { TicketFormHeader } from '@/components/ticket/ticket-form-header';
+import { FormHeader } from '@/components/form/form-header';
+import { FormFoot, FormPanel } from '@/components/form/form-panel';
 import { TicketThread } from '@/components/ticket/ticket-thread';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { DEMO_MESSAGE, DEMO_REFERENCE, DEMO_REPLY, DEMO_SUBJECT } from './demo-script';
 import { useDemoPlayback } from './use-demo-playback';
 
@@ -12,30 +12,30 @@ export function DemoTicket({ className }: { className?: string }) {
   const { frame, canReplay, replay } = useDemoPlayback();
 
   return (
-    <section aria-label="Example ticket" className={cn('ruled flex flex-col gap-5 bg-card p-4 text-card-foreground sm:p-6', className)}>
+    <FormPanel aria-label="Example ticket" className={className}>
       <p className="sr-only">
         Example: a customer asks for a refund of a duplicate charge. The ticket is received, triaged as a high
         priority billing issue, and answered with: {DEMO_REPLY}
       </p>
-      <div aria-hidden className="flex flex-col gap-5">
-        <TicketFormHeader
+      <div aria-hidden>
+        <FormHeader
           as="h2"
-          neutral
-          copyLine="Sample copy"
+          kicker="Service ticket · Sample copy"
           title={DEMO_SUBJECT}
           referenceNumber={DEMO_REFERENCE}
-          copyable={false}
         />
         <PlyRow plies={frame.plies} liveClock />
-        <TicketThread demo description={DEMO_MESSAGE} createdAt={new Date(0).toISOString()} support={frame.support} />
+        <div className="p-4 sm:p-5.5">
+          <TicketThread demo description={DEMO_MESSAGE} createdAt={new Date(0).toISOString()} support={frame.support} />
+        </div>
       </div>
       {canReplay && (
-        <div className="flex justify-end border-t border-rule pt-4">
+        <FormFoot className="justify-end">
           <Button variant="outline" size="sm" onClick={replay}>
             Replay
           </Button>
-        </div>
+        </FormFoot>
       )}
-    </section>
+    </FormPanel>
   );
 }

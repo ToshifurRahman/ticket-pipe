@@ -3,6 +3,7 @@ import { humanize, onHoldTime, type Ply, type TriageBadges } from '@/lib/ticket-
 import type { TicketDetail } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { NotifyCard } from './notify-card';
+import { ToneChip, toneForCategory, toneForPriority, type Tone } from './tone-chip';
 import { stampProps, useStampOnChange } from './use-stamp-on-change';
 
 const TIME_LABELS: Record<Ply['key'], string> = {
@@ -13,7 +14,7 @@ const TIME_LABELS: Record<Ply['key'], string> = {
 };
 
 // The form's side column: what the office stamped on the ticket and when, then the email
-// opt-in. Every priority is stamped in grey; red stamps belong to the ops console.
+// opt-in. The triage stamps wear the same topic and priority colours as the ops console.
 export function OfficeUse({
   ticket,
   plies,
@@ -31,12 +32,19 @@ export function OfficeUse({
       <h2 className="label-caps text-sm text-muted-foreground">Office use</h2>
 
       <ul aria-label="Triage" className="flex flex-wrap gap-3">
-        <Stamp id="category" counts={counts} label="Category" value={badges ? humanize(badges.category) : null} />
+        <Stamp
+          id="category"
+          counts={counts}
+          label="Category"
+          value={badges ? humanize(badges.category) : null}
+          tone={badges ? toneForCategory(badges.category) : null}
+        />
         <Stamp
           id="priority"
           counts={counts}
           label="Priority"
           value={badges ? `${humanize(badges.priority)} priority` : null}
+          tone={badges ? toneForPriority(badges.priority) : null}
         />
       </ul>
 
@@ -57,24 +65,37 @@ function Stamp({
   counts,
   label,
   value,
+  tone,
 }: {
   id: 'category' | 'priority';
   counts: Record<string, number>;
   label: string;
   value: string | null;
+  tone: Tone | null;
 }) {
   const stamp = stampProps(counts, id);
-  return (
-    <li
-      key={stamp.key}
-      className={cn(
-        'ruled label-caps -rotate-2 px-3 py-1.5 text-sm',
-        value ? 'text-foreground' : 'text-muted-foreground',
-        stamp.className
-      )}
-    >
+  const text = (
+    <>
       <span className="sr-only">{label}: </span>
       {value ?? '-'}
+    </>
+  );
+  return (
+    <li key={stamp.key} className={stamp.className}>
+      {value && tone ? (
+        <ToneChip tone={tone} className="border-2 px-3 py-1.5 text-sm">
+          {text}
+        </ToneChip>
+      ) : (
+        <span
+          className={cn(
+            'label-caps stamp-tilt inline-block border px-3 py-1.5 text-sm',
+            value ? 'border-input text-foreground' : 'border-rule text-muted-foreground'
+          )}
+        >
+          {text}
+        </span>
+      )}
     </li>
   );
 }

@@ -1,6 +1,4 @@
-import { ArrowRight } from 'lucide-react';
 import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { printedTime } from '@/lib/relative-time';
 import { humanize, type SupportSide, type TriageBadges } from '@/lib/ticket-thread';
@@ -68,18 +66,6 @@ export function TicketThread({ description, createdAt, support, emailOffered = f
         </div>
       </div>
 
-      {support.kind === 'replied' && !demo && (
-        <footer className="flex flex-col items-start gap-3 border-t border-rule pt-6">
-          <p className="text-sm text-muted-foreground">
-            This conversation is closed. Need more help? Open a new ticket.
-          </p>
-          <Button asChild variant="outline">
-            <Link to="/new" className="no-underline">
-              Open a new ticket <ArrowRight />
-            </Link>
-          </Button>
-        </footer>
-      )}
     </div>
   );
 }

@@ -2,6 +2,24 @@ import { cn } from '@/lib/utils';
 
 export type Tone = 'billing' | 'account' | 'bug' | 'tech' | 'feature' | 'low' | 'medium' | 'high' | 'urgent';
 
+/** The category is free text from the model: match on the words a stamp can be coloured by. */
+export function toneForCategory(category: string): Tone | null {
+  const text = category.toLowerCase();
+  if (text.includes('bill')) return 'billing';
+  if (text.includes('account')) return 'account';
+  if (text.includes('bug')) return 'bug';
+  if (text.includes('tech')) return 'tech';
+  if (text.includes('feature')) return 'feature';
+  return null;
+}
+
+/** The triage schema's top priority is `critical`; the stamp calls it urgent. */
+export function toneForPriority(priority: string): Tone | null {
+  const text = priority.toLowerCase();
+  if (text === 'critical') return 'urgent';
+  return text === 'low' || text === 'medium' || text === 'high' || text === 'urgent' ? text : null;
+}
+
 // Tailwind only sees whole class names, so each tone spells its colours out.
 const OUTLINE: Record<Tone, string> = {
   billing: 'border-topic-billing text-topic-billing',

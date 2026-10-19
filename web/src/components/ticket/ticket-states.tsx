@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
+import { FormHeader } from '@/components/form/form-header';
+import { FormBody, FormPanel } from '@/components/form/form-panel';
 import { TrackForm } from '@/components/track-ticket-field';
 import { Button } from '@/components/ui/button';
 import { REF_EXAMPLE } from '@/lib/ticket-ref';
-import { TicketFormHeader } from './ticket-form-header';
 
 // The ticket page's other states, printed on the same form: loading, unknown, load failed.
 
@@ -10,9 +11,9 @@ const PLY_NAMES = ['Received', 'Triage', 'Draft', 'Reply'];
 
 export function TicketSkeleton({ reference = '-' }: { reference?: string }) {
   return (
-    <article aria-busy="true" aria-label="Loading ticket" className="flex flex-col gap-8">
-      <TicketFormHeader copyLine="Customer copy" title="Loading…" referenceNumber={reference} copyable={false} />
-      <ol aria-hidden className="ruled grid grid-cols-4">
+    <FormPanel as="article" aria-busy="true" aria-label="Loading ticket">
+      <FormHeader kicker="Service ticket · Customer copy" title="Loading…" referenceNumber={reference} />
+      <ol aria-hidden className="grid grid-cols-4 border-b border-rule">
         {PLY_NAMES.map((name, i) => (
           <li key={name} className="flex flex-col gap-1 border-l border-rule px-2 py-3 first:border-l-0 sm:px-4 sm:py-4">
             <span className="font-mono text-xs">{i + 1}</span>
@@ -20,34 +21,29 @@ export function TicketSkeleton({ reference = '-' }: { reference?: string }) {
           </li>
         ))}
       </ol>
-      <div aria-hidden className="flex flex-col gap-4">
+      <div aria-hidden className="flex flex-col p-4 sm:p-5.5">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="border-b border-rule pb-4" />
+          <div key={i} className="h-11 border-b border-rule" />
         ))}
       </div>
-    </article>
+    </FormPanel>
   );
 }
 
 export function TicketNotFound({ reference }: { reference?: string }) {
   return (
-    <article className="flex flex-col gap-8">
-      <TicketFormHeader
-        copyLine="Not on file"
-        title="We couldn't find that ticket"
-        referenceNumber={reference || '-'}
-        copyable={false}
-      />
-      <section className="ruled flex max-w-lg flex-col gap-5 p-5 sm:p-6">
+    <FormPanel as="article" enter className="max-w-2xl">
+      <FormHeader kicker="Not on file" title="We couldn't find that ticket" referenceNumber={reference || '-'} />
+      <FormBody>
         <p className="text-muted-foreground">
-          Check the reference and try again. It looks like <span className="font-mono text-sm">{REF_EXAMPLE}</span>.
+          Check the reference and try again. It looks like <span className="font-mono text-sm text-foreground">{REF_EXAMPLE}</span>.
         </p>
         <TrackForm />
         <p className="text-sm text-muted-foreground">
           Don't have one? <Link to="/new">Open a new ticket</Link>.
         </p>
-      </section>
-    </article>
+      </FormBody>
+    </FormPanel>
   );
 }
 
@@ -61,18 +57,16 @@ export function TicketLoadError({
   retrying: boolean;
 }) {
   return (
-    <article role="alert" className="flex flex-col gap-8">
-      <TicketFormHeader
-        copyLine="Could not load"
-        title="We couldn't load this ticket right now"
-        referenceNumber={reference}
-      />
-      <section className="ruled flex max-w-lg flex-col items-start gap-4 p-5 sm:p-6">
+    <FormPanel as="article" enter role="alert" className="max-w-2xl">
+      <FormHeader kicker="Could not load" title="We couldn't load this ticket right now" referenceNumber={reference} />
+      <FormBody>
         <p className="text-muted-foreground">Your ticket is safe. Check your connection and try again.</p>
-        <Button onClick={onRetry} disabled={retrying}>
-          {retrying ? 'Trying…' : 'Try again'}
-        </Button>
-      </section>
-    </article>
+        <div>
+          <Button size="sm" onClick={onRetry} disabled={retrying}>
+            {retrying ? 'Trying…' : 'Try again'}
+          </Button>
+        </div>
+      </FormBody>
+    </FormPanel>
   );
 }

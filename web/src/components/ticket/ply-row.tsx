@@ -40,7 +40,7 @@ export function PlyRow({ plies, liveClock = false }: { plies: Ply[]; liveClock?:
   const counts = useStampOnChange(Object.fromEntries(plies.map((p) => [p.key, p.state])));
 
   return (
-    <ol aria-label="Progress" className="ruled grid grid-cols-4">
+    <ol aria-label="Progress" className="grid grid-cols-4 border-b border-rule">
       {plies.map((ply) => {
         const stamp = stampProps(counts, ply.key);
         return (

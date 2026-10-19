@@ -1,10 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
+import { FormHeader } from '@/components/form/form-header';
+import { FormPanel } from '@/components/form/form-panel';
 import { useEmailOffered } from '@/components/ticket/notify-card';
 import { OfficeUse } from '@/components/ticket/office-use';
 import { PlyRow } from '@/components/ticket/ply-row';
-import { TicketFormHeader } from '@/components/ticket/ticket-form-header';
+import { TicketClosed } from '@/components/ticket/ticket-closed';
 import { TicketLoadError, TicketNotFound, TicketSkeleton } from '@/components/ticket/ticket-states';
 import { TicketThread } from '@/components/ticket/ticket-thread';
 import { brand } from '@/config/brand';
@@ -73,20 +75,26 @@ function TicketForm({ ticket }: { ticket: TicketDetail }) {
   const badges = support.kind === 'working' || support.kind === 'replied' || support.kind === 'on-hold' ? support.badges : null;
 
   return (
-    <article className="grid w-full gap-8 lg:grid-cols-12 lg:gap-10">
-      <div className="flex min-w-0 flex-col gap-8 lg:col-span-8">
-        <TicketFormHeader copyLine="Customer copy" title={ticket.subject} referenceNumber={ticket.referenceNumber} />
-        <PlyRow plies={plies} />
-        <TicketThread
-          description={ticket.description}
-          createdAt={ticket.createdAt}
-          support={support}
-          emailOffered={emailOffered}
+    <div className="grid w-full items-start gap-8 lg:grid-cols-[minmax(0,8fr)_minmax(0,4fr)]">
+      <FormPanel as="article" enter aria-label="Ticket">
+        <FormHeader
+          kicker="Service ticket · Customer copy"
+          title={ticket.subject}
+          referenceNumber={ticket.referenceNumber}
+          copyable
         />
-      </div>
-      <div className="lg:col-span-4">
-        <OfficeUse ticket={ticket} plies={plies} badges={badges} />
-      </div>
-    </article>
+        <PlyRow plies={plies} />
+        <div className="p-4 sm:p-5.5">
+          <TicketThread
+            description={ticket.description}
+            createdAt={ticket.createdAt}
+            support={support}
+            emailOffered={emailOffered}
+          />
+        </div>
+        {support.kind === 'replied' && <TicketClosed />}
+      </FormPanel>
+      <OfficeUse ticket={ticket} plies={plies} badges={badges} />
+    </div>
   );
 }
