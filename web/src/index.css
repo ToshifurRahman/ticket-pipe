@@ -45,7 +45,31 @@
   --color-ply-received-foreground: var(--ply-received-foreground);
   --color-ply-triaged: var(--ply-triaged);
   --color-ply-triaged-foreground: var(--ply-triaged-foreground);
+  --color-ply-drafted: var(--ply-drafted);
+  --color-ply-drafted-foreground: var(--ply-drafted-foreground);
+  --color-ply-replied-edge: var(--ply-replied-edge);
+  --color-hero: var(--hero);
+  --color-hero-foreground: var(--hero-foreground);
+  --color-topic-billing: var(--topic-billing);
+  --color-topic-account: var(--topic-account);
+  --color-topic-bug: var(--topic-bug);
+  --color-topic-tech: var(--topic-tech);
+  --color-topic-feature: var(--topic-feature);
+  --color-priority-low: var(--priority-low);
+  --color-priority-medium: var(--priority-medium);
+  --color-priority-high: var(--priority-high);
+  --color-priority-urgent: var(--priority-urgent);
+  --color-topic-billing-fill: var(--topic-billing-fill);
+  --color-topic-account-fill: var(--topic-account-fill);
+  --color-topic-bug-fill: var(--topic-bug-fill);
+  --color-topic-tech-fill: var(--topic-tech-fill);
+  --color-topic-feature-fill: var(--topic-feature-fill);
+  --color-priority-low-fill: var(--priority-low-fill);
+  --color-priority-medium-fill: var(--priority-medium-fill);
+  --color-priority-high-fill: var(--priority-high-fill);
+  --color-priority-urgent-fill: var(--priority-urgent-fill);
   --color-ply-live: var(--ply-live);
+  --color-ply-live-ink: var(--ply-live-ink);
   --color-ply-live-foreground: var(--ply-live-foreground);
   --color-ply-replied: var(--ply-replied);
   --color-ply-replied-foreground: var(--ply-replied-foreground);
@@ -97,6 +121,94 @@
 @keyframes stamp {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* A rubber stamp: blank, pressed oversize, then set at its tilt. Each frame holds, no easing. */
+@keyframes stamp-press {
+  0% { opacity: 0; }
+  33% { opacity: 1; transform: rotate(var(--stamp-tilt)) scale(1.15); }
+  66%, 100% { opacity: 1; transform: rotate(var(--stamp-tilt)); }
+}
+
+/* A reply printing: the paper is there, the ink lands one line at a time (--lines is measured). */
+@keyframes print {
+  from { clip-path: inset(0 0 100% 0); }
+  to { clip-path: inset(0); }
+}
+
+/* Every stamp lands at the same angle. */
+:root {
+  --stamp-tilt: -3deg;
+}
+
+@utility stamp-tilt {
+  transform: rotate(var(--stamp-tilt));
+}
+
+/* On the green band (top bar, hero): the semantic colours read as ink on that band, so the
+   shared controls (Track field, buttons, theme toggle) restyle themselves inside it. */
+.on-hero {
+  --background: var(--hero);
+  --foreground: var(--hero-foreground);
+  --primary: var(--hero-foreground);
+  --primary-foreground: var(--hero);
+  --link: var(--hero-foreground);
+  --ring: var(--hero-foreground);
+  --muted-foreground: color-mix(in srgb, var(--hero-foreground) 78%, var(--hero));
+  --border: color-mix(in srgb, var(--hero-foreground) 28%, var(--hero));
+  --input: color-mix(in srgb, var(--hero-foreground) 70%, var(--hero));
+  --accent: color-mix(in srgb, var(--hero-foreground) 14%, var(--hero));
+  --accent-foreground: var(--hero-foreground);
+  background-color: var(--hero);
+  color: var(--hero-foreground);
+}
+
+@utility animate-stamp-press {
+  animation: stamp-press var(--duration-press) step-end both;
+}
+
+/* The page prints in on load: headline, then the form, then the button. Backwards fill, so
+   nothing stays clipped once it has run. */
+@keyframes print-in {
+  from { clip-path: inset(0 0 100% 0); }
+  to { clip-path: inset(0); }
+}
+
+@utility animate-print-in-1 {
+  animation: print-in var(--duration-print-head) steps(3, jump-start) backwards;
+}
+
+@utility animate-print-in-2 {
+  animation: print-in var(--duration-print-form) steps(6, jump-start) var(--duration-print-head) backwards;
+}
+
+@utility animate-print-in-3 {
+  animation: print-in var(--duration-print-cta) steps(1, jump-start) var(--duration-print-cta-delay) backwards;
+}
+
+/* Idle nudge: a button nobody has touched presses itself down, twice. */
+@keyframes nudge {
+  0% { transform: none; box-shadow: none; }
+  50% { transform: translateY(var(--rule-width)); box-shadow: 0 0 0 calc(var(--rule-width) + var(--hair)) var(--hero), 0 0 0 calc(var(--rule-width) * 2 + var(--hair)) var(--hero-foreground); }
+  100% { transform: none; box-shadow: none; }
+}
+
+@utility animate-nudge {
+  animation: nudge var(--duration-nudge) step-end 2;
+}
+
+/* A rate tier sweeps in from the left in three hard steps. */
+@keyframes sweep {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0); }
+}
+
+@utility animate-sweep {
+  animation: sweep var(--duration-print-head) steps(3, jump-start) backwards;
+}
+
+@utility animate-print {
+  animation: print calc(var(--lines) * var(--duration-print-line)) steps(var(--lines), jump-start) both;
 }
 
 @layer base {

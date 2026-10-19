@@ -12,7 +12,7 @@ export const brand = {
     'Relay files every support request as a service ticket you can watch: received, triaged, drafted and replied, each stage stamped as it happens.',
   // Browser UI colour: the carbon ground (primitive.color.carbon in web/tokens/colors.json).
   // A meta tag needs a literal; tests/web-tokens.guard.test.ts keeps it equal to the token.
-  themeColor: '#111111', // ds-allow-hardcode: <meta name="theme-color"> cannot read CSS variables
+  themeColor: '#08130F', // ds-allow-hardcode: <meta name="theme-color"> cannot read CSS variables
   // Where the legal pages point people who have a question. Update with the repo rename (7.12).
   repoUrl: 'https://github.com/ToshifurRahman/ticket-pipe',
 } as const;

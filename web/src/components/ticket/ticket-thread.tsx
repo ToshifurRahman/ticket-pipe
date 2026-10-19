@@ -1,5 +1,5 @@
 import { ArrowRight } from 'lucide-react';
-import { useState } from 'react';
+import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { printedTime } from '@/lib/relative-time';
@@ -64,7 +64,7 @@ export function TicketThread({ description, createdAt, support, emailOffered = f
       {/* The support side changes in place, so screen readers hear each stage and the reply. */}
       <div aria-live={demo ? undefined : 'polite'} className="flex flex-col gap-6">
         <div key={stamp.key} className={stamp.className}>
-          <SupportMessage support={support} emailOffered={emailOffered} demo={demo} />
+          <SupportMessage support={support} emailOffered={emailOffered} demo={demo} print={demo && stamp.className !== undefined} />
         </div>
       </div>
 
@@ -84,13 +84,21 @@ export function TicketThread({ description, createdAt, support, emailOffered = f
   );
 }
 
-function SupportMessage({ support, emailOffered, demo }: { support: SupportSide; emailOffered: boolean; demo: boolean }) {
+type SupportMessageProps = {
+  support: SupportSide;
+  emailOffered: boolean;
+  demo: boolean;
+  /** The reply landed while the sample played, so it prints in rather than stamping whole. */
+  print: boolean;
+};
+
+function SupportMessage({ support, emailOffered, demo, print }: SupportMessageProps) {
   if (support.kind === 'working') {
     return (
       <div className="flex flex-col gap-3">
         {demo && support.badges && <TriageBadgeList badges={support.badges} />}
-        <div className="flex flex-col gap-2 border border-dashed border-ply-live p-4">
-          <p role="status" className="label-caps text-sm text-ply-live">
+        <div className="flex flex-col gap-2 border border-dashed border-ply-live-ink p-4">
+          <p role="status" className="label-caps text-sm text-ply-live-ink">
             {support.stage === 'reviewing' ? 'Reviewing your request…' : 'Writing a reply…'}
           </p>
           <p className="text-sm text-muted-foreground">{emailOffered ? WORKING_NOTE_WITH_EMAIL : WORKING_NOTE}</p>
@@ -111,8 +119,8 @@ function SupportMessage({ support, emailOffered, demo }: { support: SupportSide;
   return (
     <div className="flex flex-col gap-1.5">
       {demo && support.badges && <TriageBadgeList badges={support.badges} />}
-      <div className="ruled bg-ply-replied px-4 py-3 whitespace-pre-wrap break-words text-ply-replied-foreground">
-        {support.reply}
+      <div className="border border-ply-replied-edge bg-ply-replied px-4 py-3 whitespace-pre-wrap break-words text-ply-replied-foreground">
+        {print ? <PrintedText text={support.reply} /> : support.reply}
       </div>
       <span className="label-caps text-xs text-muted-foreground">
         Reply from support{support.repliedAt ? ` · ${printedTime(support.repliedAt)}` : ''}
@@ -121,15 +129,40 @@ function SupportMessage({ support, emailOffered, demo }: { support: SupportSide;
   );
 }
 
+// The paper is already on the form; the ink lands one line at a time. The line count is
+// measured before paint, so the steps match the lines at any width.
+function PrintedText({ text }: { text: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [lines, setLines] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
+    setLines(Math.max(1, Math.round(el.getBoundingClientRect().height / lineHeight)));
+  }, []);
+
+  return (
+    <span
+      ref={ref}
+      className={cn('block', lines !== null && 'animate-print')}
+      style={lines !== null ? ({ '--lines': lines } as CSSProperties) : undefined}
+    >
+      {text}
+    </span>
+  );
+}
+
 // Only the landing sample shows badges inline; the real page stamps them in Office use.
+// Pressed by hand, so each sits a little askew, never at the same angle.
 function TriageBadgeList({ badges }: { badges: TriageBadges }) {
   return (
     <ul aria-label="Triage" className="flex flex-wrap gap-2">
-      <li className="ruled label-caps px-2 py-0.5 text-xs">
+      <li className="ruled label-caps -rotate-3 px-2 py-0.5 text-xs">
         <span className="sr-only">Category: </span>
         {humanize(badges.category)}
       </li>
-      <li className="ruled label-caps px-2 py-0.5 text-xs text-muted-foreground">
+      <li className="ruled label-caps rotate-2 px-2 py-0.5 text-xs text-muted-foreground">
         <span className="sr-only">Priority: </span>
         {humanize(badges.priority)} priority
       </li>

@@ -12,8 +12,8 @@ export function BrandMark({ className }: { className?: string }) {
       <svg viewBox="0 0 24 24" className="size-3/4">
         <rect x="2" y="3" width="17" height="3.5" className="fill-ply-received" />
         <rect x="3.5" y="8" width="17" height="3.5" className="fill-ply-triaged" />
-        <rect x="5" y="13" width="17" height="3.5" className="fill-ply-live" />
-        <rect x="6.5" y="18" width="17" height="3.5" className="fill-ply-replied" />
+        <rect x="5" y="13" width="17" height="3.5" className="fill-ply-drafted" />
+        <rect x="6.5" y="18" width="17" height="3.5" className="fill-ply-replied-edge" />
       </svg>
     </span>
   );

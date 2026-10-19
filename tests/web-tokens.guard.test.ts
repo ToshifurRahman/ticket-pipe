@@ -7,7 +7,7 @@ import { brand } from '../web/src/config/brand';
 // web/tokens/*.json is the design system's source of truth; web/src/styles/tokens.css is
 // generated from it and committed. These guard the two things that drift silently: a hand
 // edit to the CSS (or a JSON edit without `bun run tokens`), and a token change that drops
-// a Red Rule pair below WCAG AA.
+// a palette pair below WCAG AA.
 
 it('tokens.css is up to date with web/tokens (run `bun run tokens`)', () => {
   expect(readFileSync(OUTPUT, 'utf8')).toBe(buildTokensCss());
@@ -58,9 +58,17 @@ const TEXT_PAIRS: [fg: string, bg: string][] = [
   ['semantic.ply.live-text', 'semantic.ply.live'],
   ['semantic.ply.replied-text', 'semantic.ply.replied'],
   ['semantic.ply.on-hold-text', 'semantic.ply.on-hold'],
+  ['semantic.ply.drafted-text', 'semantic.ply.drafted'],
+  ['semantic.hero.hero-text', 'semantic.hero.hero'],
+  ['semantic.ply.live-ink', 'semantic.surface.page'],
+  ['semantic.ply.live-ink', 'semantic.surface.card'],
+  ...['page', 'card', 'raised'].flatMap((surface): [string, string][] => [
+    ...['billing', 'account', 'bug', 'tech', 'feature'].map((t): [string, string] => [`semantic.topic.${t}`, `semantic.surface.${surface}`]),
+    ...['low', 'medium', 'high', 'urgent'].map((t): [string, string] => [`semantic.priority.${t}`, `semantic.surface.${surface}`]),
+  ]),
 ];
 
-describe.each(['paper', 'dark'] as const)('Red Rule contrast (%s)', (mode) => {
+describe.each(['paper', 'dark'] as const)('Palette contrast (%s)', (mode) => {
   it.each(TEXT_PAIRS)('%s on %s is at least 4.5:1', (fg, bg) => {
     const ratio = contrast(resolveToken('colors.json', fg, mode), resolveToken('colors.json', bg, mode));
     expect(ratio).toBeGreaterThanOrEqual(4.5);

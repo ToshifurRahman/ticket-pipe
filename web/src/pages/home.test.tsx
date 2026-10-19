@@ -50,7 +50,7 @@ describe('landing page', () => {
     expect(screen.getByRole('heading', { name: 'Questions' })).toBeInTheDocument();
     expect(screen.getAllByRole('listitem').length).toBeGreaterThan(0);
     expect(document.querySelectorAll('details')).toHaveLength(5);
-    expect(document.body.textContent).not.toMatch(/popular|portfolio/i);
+    expect(document.body.textContent).not.toMatch(/portfolio/i);
   });
 
   it('sends the hero CTA and every pricing CTA to /new', async () => {

@@ -58,10 +58,10 @@ describe('routes', () => {
 
   it('shows landing links only on /', () => {
     const { unmount } = renderAt('/');
-    expect(screen.getByRole('link', { name: 'Pricing' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Rates' })).toBeInTheDocument();
     unmount();
     renderAt('/new');
-    expect(screen.queryByRole('link', { name: 'Pricing' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Rates' })).not.toBeInTheDocument();
   });
 
   it('navigates to a ticket from the header track field', async () => {

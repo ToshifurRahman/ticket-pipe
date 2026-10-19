@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { Ply, PlyState } from '@/lib/ticket-thread';
 import { printedTime } from '@/lib/relative-time';
 import { cn } from '@/lib/utils';
@@ -6,7 +7,7 @@ import { stampProps, useStampOnChange } from './use-stamp-on-change';
 const SURFACE: Record<Ply['key'], string> = {
   received: 'bg-ply-received text-ply-received-foreground',
   triage: 'bg-ply-triaged text-ply-triaged-foreground',
-  draft: 'bg-ply-triaged text-ply-triaged-foreground',
+  draft: 'bg-ply-drafted text-ply-drafted-foreground',
   reply: 'bg-ply-replied text-ply-replied-foreground',
 };
 
@@ -32,9 +33,10 @@ const SR_STATE: Record<PlyState, string> = {
 
 /**
  * The four plies of the form: number, caps label and the printed time. A ply that changes
- * state after the page loaded is stamped in; nothing else on the row moves.
+ * state after the page loaded is stamped in; nothing else on the row moves. With `liveClock`
+ * the live ply runs a stopwatch where its time will be printed (the landing sample).
  */
-export function PlyRow({ plies }: { plies: Ply[] }) {
+export function PlyRow({ plies, liveClock = false }: { plies: Ply[]; liveClock?: boolean }) {
   const counts = useStampOnChange(Object.fromEntries(plies.map((p) => [p.key, p.state])));
 
   return (
@@ -68,11 +70,32 @@ export function PlyRow({ plies }: { plies: Ply[] }) {
               </span>
             </span>
             <span className="font-mono text-xs">
-              {ply.time ? printedTime(ply.time) : STATE_TEXT[ply.state]}
+              {ply.time ? (
+                printedTime(ply.time)
+              ) : liveClock && ply.state === 'live' ? (
+                <Stopwatch />
+              ) : (
+                STATE_TEXT[ply.state]
+              )}
             </span>
           </li>
         );
       })}
     </ol>
   );
+}
+
+// Time since this ply went live, in tenths. The ply remounts on every state change (its key),
+// so each stage counts from zero.
+function Stopwatch() {
+  const [start] = useState(() => performance.now());
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => setElapsed(performance.now() - start), 100);
+    return () => clearInterval(timer);
+  }, [start]);
+
+  const tenths = Math.floor(elapsed / 100);
+  return <>{`00:${String(Math.floor(tenths / 10)).padStart(2, '0')}.${tenths % 10}`}</>;
 }
