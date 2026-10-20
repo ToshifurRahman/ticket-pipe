@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { SQSClient, CreateQueueCommand, PurgeQueueCommand, GetQueueUrlCommand } from '@aws-sdk/client-sqs';
+import {
+  SQSClient,
+  CreateQueueCommand,
+  DeleteQueueCommand,
+  PurgeQueueCommand,
+  GetQueueUrlCommand,
+} from '@aws-sdk/client-sqs';
 import { enqueueTicket, receiveMessages, deleteMessage } from '../../src/lib/queue.js';
 
 const client = new SQSClient({
@@ -55,5 +61,19 @@ describe('receiveMessages + deleteMessage', () => {
     const after = await receiveMessages();
     const reappeared = after.find(m => m.ticketId === ticketId);
     expect(reappeared).toBeUndefined();
+  });
+});
+
+describe('queue disappears after its URL was cached', () => {
+  it('fails while the queue is missing and recovers once it is back', async () => {
+    await enqueueTicket('00000000-0000-0000-0000-000000000003', 'TICK-QUEUE-003');
+
+    await client.send(new DeleteQueueCommand({ QueueUrl: queueUrl }));
+    await expect(enqueueTicket('00000000-0000-0000-0000-000000000004', 'TICK-QUEUE-004')).rejects.toMatchObject({
+      name: 'QueueDoesNotExist',
+    });
+
+    await client.send(new CreateQueueCommand({ QueueName: queueName }));
+    await expect(enqueueTicket('00000000-0000-0000-0000-000000000005', 'TICK-QUEUE-005')).resolves.toBeUndefined();
   });
 });

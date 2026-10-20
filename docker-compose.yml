@@ -14,6 +14,30 @@ services:
       - "4566:4566"
     environment:
       SERVICES: sqs,sns
+      PERSISTENCE: "1"
+    volumes:
+      - localstack-data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Creates the queues and SNS topic once LocalStack is healthy (scripts/setup-infra.ts is idempotent).
+  setup:
+    image: oven/bun:1
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      SQS_ENDPOINT: http://localstack:4566
+      SNS_ENDPOINT: http://localstack:4566
+    env_file: .env
+    command: bun scripts/setup-infra.ts
+    depends_on:
+      localstack:
+        condition: service_healthy
+    restart: on-failure
 
   redis:
     image: redis:7-alpine
@@ -26,3 +50,6 @@ services:
     ports:
       - "1025:1025"
       - "8025:8025"
+
+volumes:
+  localstack-data:

@@ -55,7 +55,7 @@ An AI-powered ticket processing system that automatically analyzes support ticke
    bun run migrate
    ```
 
-5. **Set up AWS infrastructure** (SQS queue, etc.):
+5. **Set up AWS infrastructure** (SQS queue, etc.). `docker compose up -d` does this for you: a one-shot `setup` service creates the queues once LocalStack is healthy, and LocalStack keeps its state in a volume. To run it by hand:
    ```bash
    bun run setup
    ```

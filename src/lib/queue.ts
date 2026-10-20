@@ -19,6 +19,11 @@ export interface ReceiveMessagesOptions {
   waitTimeSeconds?: number;
 }
 
+function isQueueMissing(err: unknown): boolean {
+  const e = err as { name?: string; Code?: string } | null;
+  return e?.name === 'QueueDoesNotExist' || e?.Code === 'AWS.SimpleQueueService.NonExistentQueue';
+}
+
 function normalizeMaxMessages(value: number | undefined): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 10;
   return Math.min(10, Math.max(1, Math.floor(value)));
@@ -45,27 +50,42 @@ export class QueueService {
     return this.queueUrl;
   }
 
+  // The queue can vanish (LocalStack recreated, queue deleted) after its URL was cached. Drop the
+  // cache and resolve again once; if the queue is still missing the error reaches the caller, which
+  // owns the backoff.
+  private async withQueueUrl<T>(call: (queueUrl: string) => Promise<T>): Promise<T> {
+    try {
+      return await call(await this.getQueueUrl());
+    } catch (err) {
+      if (!isQueueMissing(err)) throw err;
+      this.queueUrl = null;
+      return call(await this.getQueueUrl());
+    }
+  }
+
   async enqueue(ticketId: string, referenceNumber: string): Promise<void> {
-    const queueUrl = await this.getQueueUrl();
-    await this.client.send(
-      new SendMessageCommand({
-        QueueUrl: queueUrl,
-        MessageBody: JSON.stringify({ ticketId, referenceNumber }),
-      })
+    await this.withQueueUrl(queueUrl =>
+      this.client.send(
+        new SendMessageCommand({
+          QueueUrl: queueUrl,
+          MessageBody: JSON.stringify({ ticketId, referenceNumber }),
+        })
+      )
     );
   }
 
   async receive(options: ReceiveMessagesOptions = {}): Promise<QueueMessage[]> {
     const maxMessages = normalizeMaxMessages(options.maxMessages);
     const waitTimeSeconds = normalizeWaitTimeSeconds(options.waitTimeSeconds);
-    const queueUrl = await this.getQueueUrl();
-    const result = await this.client.send(
-      new ReceiveMessageCommand({
-        QueueUrl: queueUrl,
-        MaxNumberOfMessages: maxMessages,
-        WaitTimeSeconds: waitTimeSeconds,
-        MessageSystemAttributeNames: [MessageSystemAttributeName.ApproximateReceiveCount],
-      })
+    const result = await this.withQueueUrl(queueUrl =>
+      this.client.send(
+        new ReceiveMessageCommand({
+          QueueUrl: queueUrl,
+          MaxNumberOfMessages: maxMessages,
+          WaitTimeSeconds: waitTimeSeconds,
+          MessageSystemAttributeNames: [MessageSystemAttributeName.ApproximateReceiveCount],
+        })
+      )
     );
     return (result.Messages ?? []).map(m => ({
       ...JSON.parse(m.Body!),
@@ -75,8 +95,9 @@ export class QueueService {
   }
 
   async delete(receiptHandle: string): Promise<void> {
-    const queueUrl = await this.getQueueUrl();
-    await this.client.send(new DeleteMessageCommand({ QueueUrl: queueUrl, ReceiptHandle: receiptHandle }));
+    await this.withQueueUrl(queueUrl =>
+      this.client.send(new DeleteMessageCommand({ QueueUrl: queueUrl, ReceiptHandle: receiptHandle }))
+    );
   }
 }
 
