@@ -61,6 +61,7 @@ const aiService = new AIService();
 const MAX_SQS_BATCH_SIZE = 10;
 const DEFAULT_WORKER_CONCURRENCY = 10;
 const RECEIVE_ERROR_BACKOFF_MS = 1000;
+const RECEIVE_ERROR_BACKOFF_MAX_MS = 30_000;
 const MAX_ATTEMPTS = 3;
 // Triage and draft each get MAX_ATTEMPTS, and those limits fire first with a precise reason.
 // This cap only catches everything else (DB errors, finalize errors): once a message has been
@@ -395,6 +396,8 @@ export async function run(options: RunOptions = {}): Promise<void> {
   const concurrency = resolveWorkerConcurrency(process.env.WORKER_CONCURRENCY, options.concurrency);
   const waitTimeSeconds = options.receiveWaitTimeSeconds;
   const inFlight = new Set<Promise<void>>();
+  let receiveBackoffMs = RECEIVE_ERROR_BACKOFF_MS;
+  let receiveFailing = false;
 
   logger.info({ concurrency }, 'Worker started, polling...');
 
@@ -410,10 +413,18 @@ export async function run(options: RunOptions = {}): Promise<void> {
     try {
       messages = await receiveMessages({ maxMessages: availableSlots, waitTimeSeconds });
     } catch (err) {
-      logger.error({ err }, 'Failed to receive queue messages');
-      await sleep(RECEIVE_ERROR_BACKOFF_MS);
+      // Log loudly once per outage, then quietly, so a missing queue does not flood the log.
+      if (receiveFailing) logger.warn({ err, retryInMs: receiveBackoffMs }, 'Still failing to receive queue messages');
+      else logger.error({ err, retryInMs: receiveBackoffMs }, 'Failed to receive queue messages');
+      receiveFailing = true;
+      await sleep(receiveBackoffMs);
+      receiveBackoffMs = Math.min(receiveBackoffMs * 2, RECEIVE_ERROR_BACKOFF_MAX_MS);
       continue;
     }
+
+    if (receiveFailing) logger.info('Queue receive recovered');
+    receiveFailing = false;
+    receiveBackoffMs = RECEIVE_ERROR_BACKOFF_MS;
 
     if (messages.length === 0) {
       if (options.stopWhenIdle && inFlight.size === 0) {
