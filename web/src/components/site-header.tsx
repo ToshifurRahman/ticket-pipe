@@ -1,5 +1,4 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { TrackTicketField } from '@/components/track-ticket-field';
 import { Wordmark } from '@/components/brand-mark';
 
@@ -9,7 +8,7 @@ const LANDING_LINKS = [
   { href: '#faq', label: 'Questions' },
 ];
 
-// The form's top rule: mark, sections, Track field, theme. Flat ground, one hairline under it.
+// The form's top rule: mark, sections, Track field. Flat ground, one hairline under it.
 export function SiteHeader() {
   const { pathname } = useLocation();
   return (
@@ -33,7 +32,6 @@ export function SiteHeader() {
             </div>
           )}
           <TrackTicketField />
-          <ThemeToggle />
         </nav>
       </div>
     </header>

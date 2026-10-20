@@ -1,5 +1,4 @@
 import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
-import { useTheme } from '@/hooks/use-theme';
 
 const SCRIPT_URL = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 
@@ -49,7 +48,6 @@ type TurnstileProps = {
 
 /** The bot check. Server-side verification of the token lands in 7.5. */
 export function Turnstile({ onToken, ref }: TurnstileProps) {
-  const { theme } = useTheme();
   const container = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
   const onTokenRef = useRef(onToken);
@@ -66,7 +64,6 @@ export function Turnstile({ onToken, ref }: TurnstileProps) {
     },
   }));
 
-  // Re-rendered on a theme flip: Turnstile has no API to restyle a live widget.
   useEffect(() => {
     let cancelled = false;
     const cancelIdle = whenIdle(() => {
@@ -76,7 +73,7 @@ export function Turnstile({ onToken, ref }: TurnstileProps) {
           setFailed(false);
           widgetId.current = window.turnstile.render(container.current, {
             sitekey: TURNSTILE_SITE_KEY,
-            theme,
+            theme: 'dark',
             callback: (token) => onTokenRef.current(token),
             'expired-callback': () => onTokenRef.current(null),
             'error-callback': () => onTokenRef.current(null),
@@ -94,7 +91,7 @@ export function Turnstile({ onToken, ref }: TurnstileProps) {
       widgetId.current = null;
       onTokenRef.current(null);
     };
-  }, [theme]);
+  }, []);
 
   return (
     <div className="min-h-(--captcha-height)">

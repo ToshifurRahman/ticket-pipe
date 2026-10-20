@@ -1,14 +1,12 @@
 import { Toaster as Sonner } from 'sonner';
-import { useTheme } from '@/hooks/use-theme';
 
 // Sonner takes its colours from CSS variables, so the toasts follow the app's tokens. Flat and
 // square like the rest of the form: a strong rule instead of a shadow, red only for errors
 // and warnings.
 export function Toaster() {
-  const { theme } = useTheme();
   return (
     <Sonner
-      theme={theme}
+      theme="dark"
       position="bottom-right"
       style={
         {

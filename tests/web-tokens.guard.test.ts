@@ -27,8 +27,8 @@ it('never sets the figures face in a heavier weight', () => {
   expect(offenders.map((f) => path.relative(SRC, f))).toEqual([]);
 });
 
-it('the browser theme colour is the carbon ground token', () => {
-  expect(brand.themeColor).toBe(resolveToken('colors.json', 'semantic.surface.page', 'dark'));
+it('the browser theme colour is the ground token', () => {
+  expect(brand.themeColor).toBe(resolveToken('colors.json', 'semantic.surface.page'));
 });
 
 function luminance(hex: string): number {
@@ -68,16 +68,16 @@ const TEXT_PAIRS: [fg: string, bg: string][] = [
   ]),
 ];
 
-describe.each(['paper', 'dark'] as const)('Palette contrast (%s)', (mode) => {
+describe('Palette contrast', () => {
   it.each(TEXT_PAIRS)('%s on %s is at least 4.5:1', (fg, bg) => {
-    const ratio = contrast(resolveToken('colors.json', fg, mode), resolveToken('colors.json', bg, mode));
+    const ratio = contrast(resolveToken('colors.json', fg), resolveToken('colors.json', bg));
     expect(ratio).toBeGreaterThanOrEqual(4.5);
   });
 
   it('the focus ring is at least 3:1 on every surface', () => {
-    const ring = resolveToken('colors.json', 'semantic.border.focus', mode);
+    const ring = resolveToken('colors.json', 'semantic.border.focus');
     for (const surface of ['page', 'card', 'raised']) {
-      expect(contrast(ring, resolveToken('colors.json', `semantic.surface.${surface}`, mode))).toBeGreaterThanOrEqual(3);
+      expect(contrast(ring, resolveToken('colors.json', `semantic.surface.${surface}`))).toBeGreaterThanOrEqual(3);
     }
   });
 });

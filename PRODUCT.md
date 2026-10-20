@@ -35,8 +35,8 @@ Transparency: the customer **watches their ticket being understood and answered,
 
 - Stack: Vite + React + TS + Tailwind v4 + shadcn/ui (Radix) in `web/`, served by the API from `web/dist`. TanStack Query; socket events only invalidate queries.
 - Brand name and public copy live in `web/src/config/brand.ts`; landing and legal copy in `web/src/content/`.
-- Dark is the default theme; light is a variant behind a two-state toggle.
-- Hard quality gates: axe WCAG 2.1 AA on every route × both themes × key states, no horizontal scroll at 360px, keyboard + skip link, Lighthouse mobile ≥ 0.9 in performance / accessibility / best-practices / SEO on `/`, `/new`, `/t/:ref`, main JS chunk under 500 kB, fonts self-hosted, no `innerHTML`.
+- Dark only: there is one theme and no toggle. The Relay Full Demo (https://claude.ai/artifact/KgujCr5HHmouNMgx9bHwzo) is the single design authority; web/ copies its values exactly, and any departure forced by a hard gate is listed and approved. The Landing Demo and the light "paper" theme are retired.
+- Hard quality gates: axe WCAG 2.1 AA on every route × key states, no horizontal scroll at 360px, keyboard + skip link, Lighthouse mobile ≥ 0.9 in performance / accessibility / best-practices / SEO on `/`, `/new`, `/t/:ref`, main JS chunk under 500 kB, fonts self-hosted, no `innerHTML`.
 - Customer emails are HTML with inline styles (`src/services/notification-emails.ts`).
 - Free-tier hosting: no paid services, assets, or fonts that need a licence fee.
 
@@ -61,4 +61,4 @@ Transparency: the customer **watches their ticket being understood and answered,
 
 ## Accessibility & Inclusion
 
-WCAG 2.1 AA in both themes, full keyboard use, skip links, `prefers-reduced-motion` respected (the landing demo shows its final frame), live regions on the ticket thread.
+WCAG 2.1 AA, full keyboard use, skip links, `prefers-reduced-motion` respected (the landing demo shows its final frame), live regions on the ticket thread.

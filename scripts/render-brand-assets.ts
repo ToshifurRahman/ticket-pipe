@@ -18,7 +18,7 @@ const [sans, label, mono] = await Promise.all([
   font('@fontsource/courier-prime/files/courier-prime-latin-400-normal.woff2'),
 ]);
 
-const c = (dotted: string) => resolveToken('colors.json', dotted, 'dark');
+const c = (dotted: string) => resolveToken('colors.json', dotted);
 const color = {
   ground: c('semantic.surface.page'),
   ink: c('semantic.text.primary'),
