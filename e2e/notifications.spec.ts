@@ -44,7 +44,7 @@ test('confirming through the emailed link leads to a "reply is ready" email', as
   await expect(page.getByRole('heading', { name: 'Confirm your email' })).toBeVisible();
   expect(await mailCount(address)).toBe(1);
   await page.getByRole('button', { name: 'Confirm' }).click();
-  await expect(page.getByRole('heading', { name: 'You’re all set' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: "You're all set" })).toBeVisible();
 
   const mail = await waitForMail(address, 2);
   expect(mail[1].subject).toMatch(/reply is ready/i);
@@ -68,7 +68,7 @@ test('a ticket that needs attention sends one snag email, then the reply after a
   const [confirmation] = await waitForMail(address);
   await page.goto(linkIn(confirmation, '/confirm/'));
   await page.getByRole('button', { name: 'Confirm' }).click();
-  await expect(page.getByRole('heading', { name: 'You’re all set' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: "You're all set" })).toBeVisible();
 
   // Confirming after the outcome catches up with the snag email.
   const afterConfirm = await waitForMail(address, 2);

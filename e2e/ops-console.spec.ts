@@ -60,7 +60,7 @@ test('an operator signs in, finds a ticket that needs attention and replays it l
   await stripFakeMarkers(ticketId);
   await drawer.getByRole('button', { name: /^Replay/ }).click();
   await drawer.getByRole('button', { name: 'Confirm' }).click();
-  await expect(page.getByText(`${referenceNumber} is back in the queue.`)).toBeVisible();
+  await expect(page.getByText(`${referenceNumber} replayed. The team re-queued it.`)).toBeVisible();
 
   await page.keyboard.press('Escape');
   await page.getByRole('tab', { name: /^All/ }).click();
