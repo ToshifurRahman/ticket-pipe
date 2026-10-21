@@ -47,7 +47,7 @@ export function LegalPage({ docKey }: { docKey: LegalDocKey }) {
             {doc.title}
           </h1>
         </header>
-        <p className="mt-3 mb-5 font-mono text-[0.8125rem] text-muted-foreground">Last updated {doc.updated}</p>
+        <p className="mt-3 mb-5 font-mono text-[0.8125rem] leading-[normal] text-muted-foreground">Last updated {doc.updated}</p>
         <p className="mb-5 text-[1.375rem] leading-[1.35] text-balance">{doc.intro}</p>
         <p role="note" className="mb-3 border border-dashed border-muted-foreground px-4 py-3 text-sm leading-[1.55] text-muted-foreground">
           {DEMO_NOTICE}
