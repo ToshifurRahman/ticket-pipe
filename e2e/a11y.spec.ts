@@ -196,6 +196,7 @@ test.describe('keyboard', () => {
       if (path === '/ops') await signInWithCookie(page, request);
       await page.goto(path);
       await page.locator('#main').waitFor(); // the ops layout is lazy-loaded
+      if (path === '/new') await page.getByLabel('Subject').waitFor(); // so is the form
       await page.keyboard.press('Tab');
 
       const skip = page.getByRole('link', { name: 'Skip to content' });

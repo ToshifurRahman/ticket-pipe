@@ -1,19 +1,21 @@
 import { Link } from 'react-router-dom';
 import { brand } from '@/config/brand';
 
-// The form's bottom rule. The legal links are printed chrome, styled like the header nav.
+// The form's bottom rule: one hairline inside the page column. The legal links are printed
+// chrome, underlined like the demo's.
 export function SiteFooter() {
   return (
-    <footer className="border-t bg-background">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-muted-foreground sm:px-6">
-        <span className="label-caps text-xs">
+    <footer className="bg-background px-4">
+      <div className="button-caps mx-auto flex max-w-(--content-width) flex-wrap items-center justify-between gap-4 border-t py-6 text-xs text-muted-foreground">
+        <span>
           © {brand.name} · {brand.tagline}
         </span>
-        <nav className="flex gap-5" aria-label="Legal">
-          <Link to="/privacy" className="label-caps text-xs text-muted-foreground no-underline hover:text-foreground">
+        <nav aria-label="Legal">
+          <Link to="/privacy" className="text-inherit">
             Privacy
-          </Link>
-          <Link to="/terms" className="label-caps text-xs text-muted-foreground no-underline hover:text-foreground">
+          </Link>{' '}
+          ·{' '}
+          <Link to="/terms" className="text-inherit">
             Terms
           </Link>
         </nav>

@@ -14,7 +14,7 @@ export function PublicLayout() {
       <main
         id="main"
         tabIndex={-1}
-        className={cn('outline-none flex-1', !landing && 'mx-auto w-full max-w-6xl px-4 py-10 sm:px-6')}
+        className={cn('outline-none flex-1', !landing && 'mx-auto w-full max-w-(--page-width) px-4 py-12 pb-18')}
       >
         <Outlet />
       </main>

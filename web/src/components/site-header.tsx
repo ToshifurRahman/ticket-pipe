@@ -13,18 +13,18 @@ export function SiteHeader() {
   const { pathname } = useLocation();
   return (
     <header className="on-hero">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-(--page-width) items-center justify-between gap-4 px-4">
         <Link to="/" aria-label="Home" className="text-foreground no-underline hover:no-underline">
           <Wordmark />
         </Link>
-        <nav className="flex items-center gap-3 sm:gap-5" aria-label="Main">
+        <nav className="flex items-center gap-6" aria-label="Main">
           {pathname === '/' && (
-            <div className="hidden items-center gap-5 md:flex">
+            <div className="hidden items-center gap-6 md:flex">
               {LANDING_LINKS.map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  className="label-caps text-sm text-muted-foreground no-underline hover:text-foreground"
+                  className="button-caps text-[0.8125rem] text-foreground no-underline hover:no-underline"
                 >
                   {link.label}
                 </a>

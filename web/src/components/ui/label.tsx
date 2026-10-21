@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 export function Label({ className, ...props }: React.ComponentProps<typeof LabelPrimitive.Root>) {
   return (
     <LabelPrimitive.Root
-      className={cn('label-caps flex items-center gap-2 text-sm leading-none select-none', className)}
+      className={cn('button-caps flex items-center gap-2 text-xs leading-none text-muted-foreground select-none', className)}
       {...props}
     />
   );
