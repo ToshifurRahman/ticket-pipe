@@ -53,11 +53,13 @@
       "print-cta": { "$type": "duration", "$value": "135ms", "$description": "The hero button printing in, last.", "$extensions": { "relay.css": ["duration-print-cta"] } },
       "print-cta-delay": { "$type": "duration", "$value": "750ms", "$description": "When the hero button starts printing.", "$extensions": { "relay.css": ["duration-print-cta-delay"] } },
       "press-delay": { "$type": "duration", "$value": "120ms", "$description": "When a confirmed stamp lands after the click.", "$extensions": { "relay.css": ["duration-press-delay"] } },
+      "ops-stamp-delay": { "$type": "duration", "$value": "300ms", "$description": "When the first Staff only stamp lands on the ops sign-in.", "$extensions": { "relay.css": ["duration-ops-stamp-delay"] } },
+      "ops-stamp-delay-2": { "$type": "duration", "$value": "435ms", "$description": "When the second sign-in stamp lands, one press after the first.", "$extensions": { "relay.css": ["duration-ops-stamp-delay-2"] } },
       "nudge": { "$type": "duration", "$value": "240ms", "$description": "One press of the idle nudge.", "$extensions": { "relay.css": ["duration-nudge"] } },
       "print-line": { "$type": "duration", "$value": "180ms", "$description": "One line of a reply printing, like an impact printer.", "$extensions": { "relay.css": ["duration-print-line"] } }
     },
     "opacity": {
-      "overlay": { "$type": "number", "$value": "80%", "$extensions": { "relay.css": ["opacity-overlay"] } },
+      "overlay": { "$type": "number", "$value": "55%", "$extensions": { "relay.css": ["opacity-overlay"] } },
       "disabled": { "$type": "number", "$value": "45%", "$extensions": { "relay.css": ["opacity-disabled"] } }
     }
   },
@@ -73,8 +75,8 @@
     "layout": {
       "content": { "$type": "dimension", "$value": "75rem", "$description": "Content inside a section that already has its gutter: 1200px.", "$extensions": { "relay.css": ["content-width"] } },
       "page": { "$type": "dimension", "$value": "77rem", "$description": "The page column: 1200px of content plus a 16px gutter each side.", "$extensions": { "relay.css": ["page-width"] } },
-      "table-min": { "$type": "dimension", "$value": "45rem", "$description": "The ops ledger scrolls inside its box below this width.", "$extensions": { "relay.css": ["table-min"] } },
-      "cell-max": { "$type": "dimension", "$value": "24rem", "$extensions": { "relay.css": ["cell-max"] } },
+      "table-min": { "$type": "dimension", "$value": "51.25rem", "$description": "The ops ledger scrolls inside its box below this width.", "$extensions": { "relay.css": ["table-min"] } },
+      "cell-max": { "$type": "dimension", "$value": "18.75rem", "$extensions": { "relay.css": ["cell-max"] } },
       "captcha-height": { "$type": "dimension", "$value": "4.0625rem", "$description": "Turnstile's fixed widget height (65px), reserved so it never shifts layout.", "$extensions": { "relay.css": ["captcha-height"] } },
       "strip": { "$type": "dimension", "$value": "2.75rem", "$description": "The sticky strip of a landing stage band, phone width.", "$extensions": { "relay.css": ["strip-narrow"] } },
       "strip-wide": { "$type": "dimension", "$value": "3.5rem", "$description": "The same strip from the md breakpoint up.", "$extensions": { "relay.css": ["strip-wide"] } }
