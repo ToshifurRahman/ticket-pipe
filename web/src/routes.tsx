@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { TicketSkeleton } from '@/components/ticket/ticket-states';
+import { LEGAL_DOCS, type LegalDocKey } from '@/content/legal';
 import { PublicLayout } from '@/layouts/public-layout';
 import { HomePage } from '@/pages/home';
 import { LegalPage } from '@/pages/legal';
@@ -16,6 +17,8 @@ const OpsPage = lazy(() => import('@/pages/ops').then((m) => ({ default: m.OpsPa
 const NewTicketPage = lazy(() => import('@/pages/new-ticket').then((m) => ({ default: m.NewTicketPage })));
 const ConfirmPage = lazy(() => import('@/pages/confirm').then((m) => ({ default: m.ConfirmPage })));
 const TicketPage = lazy(() => import('@/pages/ticket').then((m) => ({ default: m.TicketPage })));
+
+const LEGAL_DOC_KEYS = Object.keys(LEGAL_DOCS) as LegalDocKey[];
 
 export function AppRoutes() {
   return (
@@ -44,10 +47,14 @@ export function AppRoutes() {
             </Suspense>
           }
         />
-        <Route path="legal/privacy" element={<LegalPage docKey="privacy" />} />
-        <Route path="legal/terms" element={<LegalPage docKey="terms" />} />
-        <Route path="privacy" element={<Navigate to="/legal/privacy" replace />} />
-        <Route path="terms" element={<Navigate to="/legal/terms" replace />} />
+        {/* One route and one old-URL redirect per document in the content file. A path param would
+            send an unknown /legal/xyz to a 404 inside this layout, not the bare one below. */}
+        {LEGAL_DOC_KEYS.map((key) => (
+          <Route key={key} path={`legal/${key}`} element={<LegalPage docKey={key} />} />
+        ))}
+        {LEGAL_DOC_KEYS.map((key) => (
+          <Route key={`${key}-old`} path={key} element={<Navigate to={`/legal/${key}`} replace />} />
+        ))}
       </Route>
       <Route element={<PublicLayout bare />}>
         <Route path="*" element={<NotFoundPage />} />
