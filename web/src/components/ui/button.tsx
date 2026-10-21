@@ -4,7 +4,7 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 // Printed caps on square stock, as the Relay Full Demo draws them. Default is the solid slab
-// (.btn); outline is a rule in the text colour that goes heavy under the pointer (.btn.line);
+// (.btn); solid is ink on the page ground (.btn.solid); outline is a rule in the text colour that goes heavy under the pointer (.btn.line);
 // tb is the small text button with a hairline rule (.tb). States change in one step, like a
 // stamp, never with a fade: a press sets the button down a pixel. Disabled is the same button
 // at 45% (not ready yet). Focus is the global ink outline (index.css), offset off the button.
@@ -14,6 +14,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: 'bg-primary text-primary-foreground',
+        solid: 'bg-foreground text-background',
         outline: 'border-current bg-transparent text-foreground hover:shadow-[inset_0_0_0_var(--hair)_currentColor]',
         tb: 'border-border bg-transparent text-foreground hover:border-foreground hover:shadow-[inset_0_0_0_var(--hair)_var(--foreground)] aria-pressed:border-foreground aria-pressed:bg-card',
         ghost: 'text-foreground hover:border-border active:border-foreground',
