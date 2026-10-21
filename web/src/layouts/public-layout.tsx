@@ -4,9 +4,9 @@ import { SkipLink } from '@/components/skip-link';
 import { SiteHeader } from '@/components/site-header';
 import { cn } from '@/lib/utils';
 
-// The landing page is a stack of full-width bands; every other page sits in a centred column.
-export function PublicLayout() {
-  const landing = useMatch('/') !== null;
+// The landing page and the 404 are full-width bands; every other page sits in a centred column.
+export function PublicLayout({ bare = false }: { bare?: boolean }) {
+  const landing = useMatch('/') !== null || bare;
   return (
     <div className="flex min-h-screen flex-col">
       <SkipLink />
