@@ -9,9 +9,9 @@ export function NotFoundPage() {
     <section className="px-4">
       <div className="mx-auto max-w-(--content-width) [--strip:var(--strip-narrow)] md:[--strip:var(--strip-wide)]">
         <div className="flex h-(--strip) items-center gap-4 border-b border-current">
-          <span className="font-mono text-[0.8125rem]">404</span>
+          <span className="font-mono text-meta">404</span>
           <span className="label-caps text-[0.9375rem]">Not on file</span>
-          <span className="ml-auto font-mono text-[0.8125rem]">{printedAt}</span>
+          <span className="ml-auto font-mono text-meta">{printedAt}</span>
         </div>
         <div className="grid items-start gap-8 pt-8 pb-10 md:grid-cols-[7fr_5fr] md:gap-12">
           <h1 className="mt-8 font-label text-[clamp(4rem,11vw,10.5rem)] leading-[0.85] font-bold tracking-[-0.01em] uppercase">

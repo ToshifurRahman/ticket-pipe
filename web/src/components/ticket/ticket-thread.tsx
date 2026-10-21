@@ -48,7 +48,7 @@ export function TicketThread({ description, createdAt, support, demo = false }: 
           {expanded ? 'Show less' : 'Show full message'}
         </Button>
       )}
-      <p className="label-caps self-end text-[0.6875rem] text-muted-foreground">You · {printedTime(createdAt)}</p>
+      <p className="label-caps self-end text-caption text-muted-foreground">You · {printedTime(createdAt)}</p>
 
       {/* The support side changes in place, so screen readers hear each stage and the reply. */}
       <div aria-live={demo ? undefined : 'polite'} className="flex flex-col gap-3">
@@ -97,7 +97,7 @@ function SupportMessage({ support, demo, print }: SupportMessageProps) {
       <div className="border border-ply-replied-edge bg-ply-replied/28 px-4 py-3 whitespace-pre-wrap break-words text-foreground">
         {print ? <PrintedText text={support.reply} /> : support.reply}
       </div>
-      <p className="label-caps text-[0.6875rem] text-muted-foreground">
+      <p className="label-caps text-caption text-muted-foreground">
         Reply from support{support.repliedAt ? ` · ${printedTime(support.repliedAt)}` : ''}
       </p>
     </>

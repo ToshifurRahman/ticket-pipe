@@ -46,12 +46,12 @@ export function FormHeader({
       </div>
       <div className="flex flex-col gap-1.5 border-t border-rule px-5.5 py-4.5 sm:border-t-0 sm:border-l sm:text-right">
         <p className="label-caps text-xs text-muted-foreground">{numberLabel}</p>
-        <p className="font-mono text-[0.8125rem] break-all" data-testid={copyable ? 'ticket-reference' : undefined}>
+        <p className="font-mono text-meta break-all" data-testid={copyable ? 'ticket-reference' : undefined}>
           {referenceNumber}
         </p>
         {copyable && (
           <div className="flex items-center justify-end gap-2">
-            <Button variant="tb" className="px-2 py-0.5 text-[0.6875rem]" onClick={() => copyText(referenceNumber)}>
+            <Button variant="tb" className="px-2 py-0.5 text-caption" onClick={() => copyText(referenceNumber)}>
               {copy === 'copied' ? 'Copied' : 'Copy'}
             </Button>
             <span aria-live="polite" className="sr-only">

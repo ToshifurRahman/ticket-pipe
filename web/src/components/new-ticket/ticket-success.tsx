@@ -25,10 +25,10 @@ export function TicketSuccess({ referenceNumber, createdAt, onSubmitAnother }: T
       <FormHeader as="h2" titleRef={heading} kicker="Service ticket · Filed" title="We're on it" referenceNumber={referenceNumber} />
       <FormBody>
         <div className="flex flex-wrap items-center gap-4">
-          <span className="button-caps stamp-tilt inline-block border-2 border-current px-3 py-1 text-[0.8125rem] text-ply-triaged">
+          <span className="button-caps stamp-tilt inline-block border-2 border-current px-3 py-1 text-meta text-ply-triaged">
             Ticket received
           </span>
-          <span className="font-mono text-[0.8125rem] text-muted-foreground">{printedTime(createdAt)}</span>
+          <span className="font-mono text-meta text-muted-foreground">{printedTime(createdAt)}</span>
         </div>
         <p className="text-base text-muted-foreground">
           Keep your reference to come back to this ticket. A reply usually arrives within a minute.

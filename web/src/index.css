@@ -86,8 +86,10 @@
   --font-mono: var(--font-family-mono);
   --font-label: var(--font-family-label);
 
+  --text-caption: var(--font-size-caption);
   --text-xs: var(--font-size-xs);
   --text-xs--line-height: var(--leading-xs);
+  --text-meta: var(--font-size-meta);
   --text-sm: var(--font-size-sm);
   --text-sm--line-height: var(--leading-sm);
   --text-base: var(--font-size-base);

@@ -19,7 +19,7 @@ export function statusLabel(status: TicketStatus): string {
 export function StatusPill({ status }: { status: TicketStatus }) {
   const { label, tone } = PILLS[status];
   return (
-    <span className={cn('label-caps stamp-tilt inline-block shrink-0 border border-current px-2 py-0.5 text-[0.6875rem]', tone)}>
+    <span className={cn('label-caps stamp-tilt inline-block shrink-0 border border-current px-2 py-0.5 text-caption', tone)}>
       {label}
     </span>
   );

@@ -66,7 +66,9 @@
   --font-family-sans: 'Public Sans Variable', ui-sans-serif, system-ui, sans-serif;
   --font-family-mono: 'Courier Prime', ui-monospace, monospace;
   --font-family-label: 'Archivo Narrow', 'Arial Narrow', ui-sans-serif, sans-serif;
+  --font-size-caption: 0.6875rem;
   --font-size-xs: 0.75rem;
+  --font-size-meta: 0.8125rem;
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
   --font-size-lg: 1.125rem;

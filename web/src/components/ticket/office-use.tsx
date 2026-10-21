@@ -81,13 +81,13 @@ function Stamp({
   return (
     <li key={stamp.key} className={stamp.className}>
       {value && tone ? (
-        <ToneChip tone={tone} className="border-2 px-3 py-1.5 text-[0.8125rem]">
+        <ToneChip tone={tone} className="border-2 px-3 py-1.5 text-meta">
           {text}
         </ToneChip>
       ) : (
         <span
           className={cn(
-            'label-caps stamp-tilt inline-block border px-3 py-1.5 text-[0.8125rem]',
+            'label-caps stamp-tilt inline-block border px-3 py-1.5 text-meta',
             value ? 'border-input text-foreground' : 'border-rule text-muted-foreground'
           )}
         >
@@ -101,7 +101,7 @@ function Stamp({
 function TimeRow({ label, time }: { label: string; time: string | null }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-rule py-2 last:border-b-0">
-      <dt className="label-caps text-[0.6875rem] text-muted-foreground">{label}</dt>
+      <dt className="label-caps text-caption text-muted-foreground">{label}</dt>
       <dd className="font-mono text-xs">{time ? printedTime(time) : '-'}</dd>
     </div>
   );

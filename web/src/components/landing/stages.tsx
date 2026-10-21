@@ -43,13 +43,13 @@ export function Stages() {
           >
             <div className="mx-auto max-w-(--content-width)">
               <div className="flex h-(--strip) items-center gap-4 border-b border-current">
-                <span aria-hidden className="font-mono text-[0.8125rem]">
+                <span aria-hidden className="font-mono text-meta">
                   {i + 1}
                 </span>
                 <span aria-hidden className="label-caps text-[0.9375rem]">
                   {label}
                 </span>
-                <span className="ml-auto font-mono text-[0.8125rem]">{printedTime(DEMO_TIMES[i])}</span>
+                <span className="ml-auto font-mono text-meta">{printedTime(DEMO_TIMES[i])}</span>
               </div>
               <div className="grid items-end gap-8 pt-8 pb-10 md:grid-cols-[7fr_5fr] md:gap-12">
                 <h3 className="font-label text-[clamp(4rem,11vw,10.5rem)] leading-[0.85] font-bold tracking-[-0.01em] uppercase">{label}</h3>
@@ -72,7 +72,7 @@ function StageStamp({ text }: { text: string }) {
     <span
       ref={ref}
       style={style}
-      className={cn('button-caps stamp-tilt inline-block border-(length:--rule-width) border-current px-3 py-1.5 text-[0.8125rem]', className)}
+      className={cn('button-caps stamp-tilt inline-block border-(length:--rule-width) border-current px-3 py-1.5 text-meta', className)}
     >
       {text}
     </span>
@@ -92,7 +92,7 @@ function Legend() {
 function ChipRow({ label, chips, offset }: { label: string; chips: [Tone, string][]; offset: number }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="button-caps w-full text-[0.6875rem] sm:w-18">{label}</span>
+      <span className="button-caps w-full text-caption sm:w-18">{label}</span>
       {chips.map(([tone, text], i) => (
         <LegendChip key={tone} tone={tone} delayMs={(offset + i) * 90}>
           {text}

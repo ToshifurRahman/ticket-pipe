@@ -40,7 +40,7 @@ export function ConfirmPage() {
     const { referenceNumber, status, maskedEmail } = confirm.data;
     return (
       <Panel title="You're all set" referenceNumber={referenceNumber}>
-        <span className="button-caps stamp-tilt animate-stamp-press-late justify-self-start border-2 border-current px-3 py-1 text-[0.8125rem] text-ply-triaged motion-reduce:animate-none">
+        <span className="button-caps stamp-tilt animate-stamp-press-late justify-self-start border-2 border-current px-3 py-1 text-meta text-ply-triaged motion-reduce:animate-none">
           Confirmed
         </span>
         <p role="status">
