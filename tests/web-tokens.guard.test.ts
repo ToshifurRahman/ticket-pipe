@@ -13,8 +13,9 @@ it('tokens.css is up to date with web/tokens (run `bun run tokens`)', () => {
   expect(readFileSync(OUTPUT, 'utf8')).toBe(buildTokensCss());
 });
 
-// Courier Prime ships at 400 only (web/src/main.tsx); a bold ref would be synthesised.
-it('never sets the figures face in a heavier weight', () => {
+// The demo sets prices and KPIs in bold Courier Prime, so the 700 file must be loaded, or the
+// browser would synthesise the bold.
+it('loads the bold figures face wherever bold figures are used', () => {
   const SRC = path.resolve(import.meta.dirname, '../web/src');
   const files = (function walk(dir: string): string[] {
     return readdirSync(dir).flatMap((name) => {
@@ -24,7 +25,8 @@ it('never sets the figures face in a heavier weight', () => {
   })(SRC);
   const BOLD_MONO = /['"`][^'"`]*\bfont-mono\b[^'"`]*\bfont-(medium|semibold|bold)\b|['"`][^'"`]*\bfont-(medium|semibold|bold)\b[^'"`]*\bfont-mono\b/;
   const offenders = files.filter((f) => BOLD_MONO.test(readFileSync(f, 'utf8')));
-  expect(offenders.map((f) => path.relative(SRC, f))).toEqual([]);
+  const loaded = readFileSync(path.join(SRC, 'main.tsx'), 'utf8').includes('@fontsource/courier-prime/700.css');
+  expect(offenders.length === 0 || loaded).toBe(true);
 });
 
 it('the browser theme colour is the ground token', () => {
@@ -53,6 +55,10 @@ const TEXT_PAIRS: [fg: string, bg: string][] = [
   ['semantic.text.on-urgent', 'semantic.action.urgent'],
   ['semantic.text.secondary', 'semantic.surface.card'],
   ['semantic.text.secondary', 'semantic.surface.raised'],
+  ['semantic.text.form-secondary', 'semantic.surface.form'],
+  ['semantic.text.primary', 'semantic.surface.form'],
+  ['semantic.text.primary', 'semantic.ply.on-hold'],
+  ['semantic.action.urgent', 'semantic.surface.form'],
   ['semantic.ply.received-text', 'semantic.ply.received'],
   ['semantic.ply.triaged-text', 'semantic.ply.triaged'],
   ['semantic.ply.live-text', 'semantic.ply.live'],
@@ -62,7 +68,7 @@ const TEXT_PAIRS: [fg: string, bg: string][] = [
   ['semantic.hero.hero-text', 'semantic.hero.hero'],
   ['semantic.ply.live-ink', 'semantic.surface.page'],
   ['semantic.ply.live-ink', 'semantic.surface.card'],
-  ...['page', 'card', 'raised'].flatMap((surface): [string, string][] => [
+  ...['page', 'card', 'raised', 'form'].flatMap((surface): [string, string][] => [
     ...['billing', 'account', 'bug', 'tech', 'feature'].map((t): [string, string] => [`semantic.topic.${t}`, `semantic.surface.${surface}`]),
     ...['low', 'medium', 'high', 'urgent'].map((t): [string, string] => [`semantic.priority.${t}`, `semantic.surface.${surface}`]),
   ]),
@@ -76,7 +82,7 @@ describe('Palette contrast', () => {
 
   it('the focus ring is at least 3:1 on every surface', () => {
     const ring = resolveToken('colors.json', 'semantic.border.focus');
-    for (const surface of ['page', 'card', 'raised']) {
+    for (const surface of ['page', 'card', 'raised', 'form']) {
       expect(contrast(ring, resolveToken('colors.json', `semantic.surface.${surface}`))).toBeGreaterThanOrEqual(3);
     }
   });

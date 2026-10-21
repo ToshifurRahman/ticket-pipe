@@ -30,7 +30,8 @@
         "5xl": { "$type": "number", "$value": "1", "$extensions": { "relay.css": ["leading-5xl"] } }
       },
       "tracking": {
-        "label": { "$type": "dimension", "$value": "0.06em", "$description": "Printed caps labels.", "$extensions": { "relay.css": ["tracking-label"] } }
+        "label": { "$type": "dimension", "$value": "0.08em", "$description": "Printed caps labels: kickers, chips, field captions.", "$extensions": { "relay.css": ["tracking-label"] } },
+        "button": { "$type": "dimension", "$value": "0.1em", "$description": "Printed caps on controls, nav, stamps and table heads.", "$extensions": { "relay.css": ["tracking-button"] } }
       }
     },
     "space": {
@@ -56,26 +57,25 @@
     },
     "opacity": {
       "overlay": { "$type": "number", "$value": "80%", "$extensions": { "relay.css": ["opacity-overlay"] } },
-      "disabled": { "$type": "number", "$value": "50%", "$extensions": { "relay.css": ["opacity-disabled"] } }
+      "disabled": { "$type": "number", "$value": "45%", "$extensions": { "relay.css": ["opacity-disabled"] } }
     }
   },
   "component": {
     "control": {
-      "height": { "$type": "dimension", "$value": "2.5rem", "$extensions": { "relay.css": ["control-height"] } },
-      "height-sm": { "$type": "dimension", "$value": "2rem", "$extensions": { "relay.css": ["control-height-sm"] } }
+      "height": { "$type": "dimension", "$value": "3rem", "$description": "A full button (48px).", "$extensions": { "relay.css": ["control-height"] } },
+      "height-sm": { "$type": "dimension", "$value": "2.5rem", "$description": "A small button (40px).", "$extensions": { "relay.css": ["control-height-sm"] } }
     },
     "focus": {
-      "width": { "$type": "dimension", "$value": "{primitive.size.rule}", "$extensions": { "relay.css": ["focus-width"] } },
+      "width": { "$type": "dimension", "$value": "3px", "$description": "The ink focus ring.", "$extensions": { "relay.css": ["focus-width"] } },
       "offset": { "$type": "dimension", "$value": "{primitive.size.rule}", "$extensions": { "relay.css": ["focus-offset"] } }
     },
-    "mark": {
-      "size": { "$type": "dimension", "$value": "2.25rem", "$description": "The ply-stack logo tile.", "$extensions": { "relay.css": ["mark-size"] } }
-    },
     "layout": {
+      "content": { "$type": "dimension", "$value": "75rem", "$description": "Content inside a section that already has its gutter: 1200px.", "$extensions": { "relay.css": ["content-width"] } },
+      "page": { "$type": "dimension", "$value": "77rem", "$description": "The page column: 1200px of content plus a 16px gutter each side.", "$extensions": { "relay.css": ["page-width"] } },
       "table-min": { "$type": "dimension", "$value": "45rem", "$description": "The ops ledger scrolls inside its box below this width.", "$extensions": { "relay.css": ["table-min"] } },
       "cell-max": { "$type": "dimension", "$value": "24rem", "$extensions": { "relay.css": ["cell-max"] } },
       "captcha-height": { "$type": "dimension", "$value": "4.0625rem", "$description": "Turnstile's fixed widget height (65px), reserved so it never shifts layout.", "$extensions": { "relay.css": ["captcha-height"] } },
-      "strip": { "$type": "dimension", "$value": "2.75rem", "$description": "The sticky strip of a landing stage band, phone width.", "$extensions": { "relay.css": ["strip"] } },
+      "strip": { "$type": "dimension", "$value": "2.75rem", "$description": "The sticky strip of a landing stage band, phone width.", "$extensions": { "relay.css": ["strip-narrow"] } },
       "strip-wide": { "$type": "dimension", "$value": "3.5rem", "$description": "The same strip from the md breakpoint up.", "$extensions": { "relay.css": ["strip-wide"] } }
     }
   }

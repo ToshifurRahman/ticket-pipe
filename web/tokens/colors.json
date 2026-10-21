@@ -5,6 +5,9 @@
       "forest": { "$type": "color", "$value": "#08130F", "$description": "Carbon ground, a green-black. Also the ink on a light ply." },
       "forest-2": { "$type": "color", "$value": "#0E1D17" },
       "forest-3": { "$type": "color", "$value": "#152A21" },
+      "form-ground": { "$type": "color", "$value": "#0B1511", "$description": "The ground a service form is printed on: a touch lighter than the page, darker than a card." },
+      "form-rule": { "$type": "color", "$value": "#1F3A2E", "$description": "Ruling inside a form and its outer edge (decorative). A field boundary uses rule-forest instead: this is about 1.5:1." },
+      "form-mute": { "$type": "color", "$value": "#A3CCB7", "$description": "Secondary text on a form." },
       "hair-forest": { "$type": "color", "$value": "#1D3529", "$description": "Form ruling on carbon (decorative)." },
       "rule-forest": { "$type": "color", "$value": "#5E8A73", "$description": "Control boundary on carbon, 3:1+." },
       "bone": { "$type": "color", "$value": "#E8F3EC", "$description": "Ink on carbon." },
@@ -16,9 +19,8 @@
       "ply-green": { "$type": "color", "$value": "#166534", "$description": "Replied." },
       "ply-yellow": { "$type": "color", "$value": "#FFD84D", "$description": "The live ply." },
       "ply-edge": { "$type": "color", "$value": "#3FA766", "$description": "The reply's edge." },
-      "hold-forest": { "$type": "color", "$value": "#2B3A33", "$description": "On hold on carbon." },
-      "hold-forest-text": { "$type": "color", "$value": "#A9BDB1" },
-      "ink-on-ply": { "$type": "color", "$value": "#04140C" },
+      "hold-forest": { "$type": "color", "$value": "#56645D", "$description": "On hold: a grey-green slab with ink on it." },
+            "ink-on-ply": { "$type": "color", "$value": "#04140C" },
       "ink-on-orange": { "$type": "color", "$value": "#1A0A00" },
       "ink-on-yellow": { "$type": "color", "$value": "#1A1400" },
       "hero": { "$type": "color", "$value": "#044F34", "$description": "The hero and top bar band, same on both sides." },
@@ -37,12 +39,14 @@
       "page": { "$type": "color", "$value": "{primitive.color.forest}", "$extensions": { "relay.css": ["background"] } },
       "card": { "$type": "color", "$value": "{primitive.color.forest-2}", "$extensions": { "relay.css": ["card"] } },
       "raised": { "$type": "color", "$value": "{primitive.color.forest-3}", "$extensions": { "relay.css": ["secondary", "muted", "accent"] } },
+      "form": { "$type": "color", "$value": "{primitive.color.form-ground}", "$extensions": { "relay.css": ["form"] } },
       "popover": { "$type": "color", "$value": "{primitive.color.forest-2}", "$extensions": { "relay.css": ["popover"] } },
       "overlay": { "$type": "color", "$value": "{primitive.color.forest}", "$extensions": { "relay.css": ["overlay"] } }
     },
     "text": {
       "primary": { "$type": "color", "$value": "{primitive.color.bone}", "$extensions": { "relay.css": ["foreground", "card-foreground", "popover-foreground", "secondary-foreground", "accent-foreground", "success"] } },
       "secondary": { "$type": "color", "$value": "{primitive.color.mute-forest}", "$extensions": { "relay.css": ["muted-foreground"] } },
+      "form-secondary": { "$type": "color", "$value": "{primitive.color.form-mute}", "$extensions": { "relay.css": ["form-muted"] } },
       "tertiary": { "$type": "color", "$value": "{primitive.color.mute-forest}", "$description": "Kept for the contrast validator; the app has one secondary text tone (muted-foreground), so it emits no CSS." },
       "link": { "$type": "color", "$value": "{primitive.color.bone}", "$extensions": { "relay.css": ["link"] } },
       "on-action": { "$type": "color", "$value": "{primitive.color.forest}", "$extensions": { "relay.css": ["primary-foreground"] } },
@@ -54,6 +58,7 @@
     },
     "border": {
       "default": { "$type": "color", "$value": "{primitive.color.hair-forest}", "$extensions": { "relay.css": ["border", "rule"] } },
+      "form": { "$type": "color", "$value": "{primitive.color.form-rule}", "$extensions": { "relay.css": ["form-rule"] } },
       "strong": { "$type": "color", "$value": "{primitive.color.rule-forest}", "$extensions": { "relay.css": ["input"] } },
       "focus": { "$type": "color", "$value": "{primitive.color.bone}", "$extensions": { "relay.css": ["ring"] } }
     },
@@ -70,7 +75,7 @@
       "replied-text": { "$type": "color", "$value": "{primitive.color.bone}", "$extensions": { "relay.css": ["ply-replied-foreground"] } },
       "replied-edge": { "$type": "color", "$value": "{primitive.color.ply-edge}", "$extensions": { "relay.css": ["ply-replied-edge"] } },
       "on-hold": { "$type": "color", "$value": "{primitive.color.hold-forest}", "$extensions": { "relay.css": ["ply-on-hold"] } },
-      "on-hold-text": { "$type": "color", "$value": "{primitive.color.hold-forest-text}", "$extensions": { "relay.css": ["ply-on-hold-foreground"] } },
+      "on-hold-text": { "$type": "color", "$value": "{primitive.color.bone}", "$extensions": { "relay.css": ["ply-on-hold-foreground"] } },
       "live-ink": { "$type": "color", "$value": "{primitive.color.ply-yellow}", "$extensions": { "relay.css": ["ply-live-ink"] } }
     },
     "hero": {

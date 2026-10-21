@@ -17,6 +17,9 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
+  --color-form: var(--form);
+  --color-form-rule: var(--form-rule);
+  --color-form-muted: var(--form-muted);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
@@ -74,6 +77,11 @@
   --color-ply-on-hold: var(--ply-on-hold);
   --color-ply-on-hold-foreground: var(--ply-on-hold-foreground);
 
+  /* The demo switches layout at 900px and its phone rules at 520px. A media query cannot read a
+     variable, so these two are the literals the breakpoints are named by. */
+  --breakpoint-sm: 521px; /* ds-allow-hardcode: media queries cannot use var() */
+  --breakpoint-md: 901px; /* ds-allow-hardcode: media queries cannot use var() */
+
   --font-sans: var(--font-family-sans);
   --font-mono: var(--font-family-mono);
   --font-label: var(--font-family-label);
@@ -102,12 +110,31 @@
   --animate-stamp: stamp var(--duration-stamp) var(--ease-stamp) both;
 }
 
-/* Printed caps: buttons, field labels, nav, eyebrows, table headers, pills. */
+/* Printed caps: field labels, kickers, chips, table heads. The demo sets these with the `font`
+   shorthand, which resets the line height to normal, so the same is done here. */
 @utility label-caps {
   font-family: var(--font-label);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
+  line-height: normal;
+}
+
+/* Printed caps on a control, nav link, stamp or table head. Labels use label-caps (tighter). */
+@utility button-caps {
+  font-family: var(--font-label);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-button);
+  line-height: normal;
+}
+
+/* Inside a service form the colours are the form's own: its ground, its rule and its muted text. */
+@utility form-surface {
+  --background: var(--form);
+  --border: var(--form-rule);
+  --rule: var(--form-rule);
+  --muted-foreground: var(--form-muted);
 }
 
 /* The form's ruling: one hairline on every side. */
@@ -152,9 +179,9 @@
   --primary-foreground: var(--hero);
   --link: var(--hero-foreground);
   --ring: var(--hero-foreground);
-  --muted-foreground: color-mix(in srgb, var(--hero-foreground) 78%, var(--hero));
+  --muted-foreground: color-mix(in srgb, var(--hero-foreground) 70%, var(--hero));
   --border: color-mix(in srgb, var(--hero-foreground) 28%, var(--hero));
-  --input: color-mix(in srgb, var(--hero-foreground) 70%, var(--hero));
+  --input: color-mix(in srgb, var(--hero-foreground) 50%, var(--hero));
   --accent: color-mix(in srgb, var(--hero-foreground) 14%, var(--hero));
   --accent-foreground: var(--hero-foreground);
   background-color: var(--hero);

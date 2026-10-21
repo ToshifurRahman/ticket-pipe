@@ -6,6 +6,7 @@
   --secondary: #152A21;
   --muted: #152A21;
   --accent: #152A21;
+  --form: #0B1511;
   --popover: #0E1D17;
   --overlay: #08130F;
   --foreground: #E8F3EC;
@@ -15,6 +16,7 @@
   --accent-foreground: #E8F3EC;
   --success: #E8F3EC;
   --muted-foreground: #93AE9F;
+  --form-muted: #A3CCB7;
   --link: #E8F3EC;
   --primary-foreground: #08130F;
   --destructive-foreground: #08130F;
@@ -24,6 +26,7 @@
   --stamp-urgent: #FF7062;
   --border: #1D3529;
   --rule: #1D3529;
+  --form-rule: #1F3A2E;
   --input: #5E8A73;
   --ring: #E8F3EC;
   --ply-received: #E4EEE8;
@@ -37,8 +40,8 @@
   --ply-replied: #166534;
   --ply-replied-foreground: #E8F3EC;
   --ply-replied-edge: #3FA766;
-  --ply-on-hold: #2B3A33;
-  --ply-on-hold-foreground: #A9BDB1;
+  --ply-on-hold: #56645D;
+  --ply-on-hold-foreground: #E8F3EC;
   --ply-live-ink: #FFD84D;
   --hero: #044F34;
   --hero-foreground: #E8F3EC;
@@ -81,7 +84,8 @@
   --leading-3xl: 1.2;
   --leading-4xl: calc(2.5 / 2.25);
   --leading-5xl: 1;
-  --tracking-label: 0.06em;
+  --tracking-label: 0.08em;
+  --tracking-button: 0.1em;
   --space-unit: 0.25rem;
   --hair: 1px;
   --rule-width: 2px;
@@ -96,15 +100,16 @@
   --duration-nudge: 240ms;
   --duration-print-line: 180ms;
   --opacity-overlay: 80%;
-  --opacity-disabled: 50%;
-  --control-height: 2.5rem;
-  --control-height-sm: 2rem;
-  --focus-width: 2px;
+  --opacity-disabled: 45%;
+  --control-height: 3rem;
+  --control-height-sm: 2.5rem;
+  --focus-width: 3px;
   --focus-offset: 2px;
-  --mark-size: 2.25rem;
+  --content-width: 75rem;
+  --page-width: 77rem;
   --table-min: 45rem;
   --cell-max: 24rem;
   --captcha-height: 4.0625rem;
-  --strip: 2.75rem;
+  --strip-narrow: 2.75rem;
   --strip-wide: 3.5rem;
 }
