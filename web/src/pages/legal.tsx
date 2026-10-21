@@ -1,38 +1,79 @@
-import { Link } from 'react-router-dom';
-import { DEMO_NOTICE, PRIVACY, TERMS, type LegalDoc } from '@/content/legal';
+import { Link, NavLink, useParams } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { DEMO_NOTICE, LEGAL_DOCS, type LegalDocKey, type LegalParagraph } from '@/content/legal';
+import { NotFoundPage } from './not-found';
 
-function LegalPage({ doc }: { doc: LegalDoc }) {
+const TABS: { key: LegalDocKey; label: string }[] = [
+  { key: 'privacy', label: 'Privacy' },
+  { key: 'terms', label: 'Terms' },
+];
+
+function Paragraph({ text }: { text: LegalParagraph }) {
   return (
-    <article className="mx-auto flex max-w-prose flex-col gap-8">
-      <header className="flex flex-col gap-3">
-        <h1 className="text-3xl font-semibold tracking-tight">{doc.title}</h1>
-        <p className="text-sm text-muted-foreground">Last updated {doc.updated}</p>
-        <p className="text-lg text-foreground">{doc.intro}</p>
-        <p role="note" className="rounded-lg border bg-muted px-4 py-3 text-sm text-foreground">
-          {DEMO_NOTICE}
-        </p>
-      </header>
-      {doc.sections.map((section) => (
-        <section key={section.heading} className="flex flex-col gap-2">
-          <h2 className="text-xl font-semibold tracking-tight">{section.heading}</h2>
-          {section.body.map((paragraph) => (
-            <p key={paragraph} className="leading-relaxed text-muted-foreground">
-              {paragraph}
-            </p>
-          ))}
-        </section>
-      ))}
-      <p className="text-sm text-muted-foreground">
-        <Link to="/">Back to home</Link>
-      </p>
-    </article>
+    <p className="mb-2.5 max-w-[62ch] text-muted-foreground">
+      {typeof text === 'string' ? (
+        text
+      ) : (
+        <>
+          {text.before}
+          <a href={text.link.href} className="text-inherit">
+            {text.link.label}
+          </a>
+          {text.after}
+        </>
+      )}
+    </p>
   );
 }
 
-export function PrivacyPage() {
-  return <LegalPage doc={PRIVACY} />;
-}
+// One page for both documents: the tabs are links, so each document keeps its own URL.
+export function LegalPage() {
+  const { doc: key } = useParams();
+  if (!key || !Object.hasOwn(LEGAL_DOCS, key)) return <NotFoundPage />;
+  const doc = LEGAL_DOCS[key as LegalDocKey];
 
-export function TermsPage() {
-  return <LegalPage doc={TERMS} />;
+  return (
+    <div className="mx-auto w-full max-w-190">
+      <nav aria-label="Legal page" className="mb-7 flex gap-2">
+        {TABS.map((tab) => (
+          <Button key={tab.key} asChild variant="tb">
+            <NavLink to={`/legal/${tab.key}`} className="text-foreground no-underline hover:no-underline">
+              {tab.label}
+            </NavLink>
+          </Button>
+        ))}
+      </nav>
+      <article className="animate-print-in-2 leading-[1.55]">
+        <header>
+          <p className="button-caps mb-2.5 text-xs text-muted-foreground">Legal · {doc.title}</p>
+          <h1 className="text-[clamp(2.25rem,5vw,4rem)] leading-none font-bold tracking-[-0.035em] text-balance">
+            {doc.title}
+          </h1>
+        </header>
+        <p className="mt-3 mb-5 font-mono text-[0.8125rem] text-muted-foreground">Last updated {doc.updated}</p>
+        <p className="mb-5 text-[1.375rem] leading-[1.35] text-balance">{doc.intro}</p>
+        <p role="note" className="mb-3 border border-dashed border-muted-foreground px-4 py-3 text-sm leading-[1.55] text-muted-foreground">
+          {DEMO_NOTICE}
+        </p>
+        {doc.sections.map((section, i) => (
+          <section key={section.heading} className="grid grid-cols-[2rem_1fr] gap-x-4 border-t py-6 md:grid-cols-[3rem_1fr]">
+            <span aria-hidden className="pt-1.5 font-mono text-[0.8125rem] text-muted-foreground">
+              {i + 1}
+            </span>
+            <div>
+              <h2 className="mb-2.5 text-2xl leading-[1.15] font-bold tracking-[-0.02em]">{section.heading}</h2>
+              {section.body.map((paragraph, j) => (
+                <Paragraph key={j} text={paragraph} />
+              ))}
+            </div>
+          </section>
+        ))}
+        <p className="mt-3">
+          <Link to="/" className="text-inherit">
+            Back to home
+          </Link>
+        </p>
+      </article>
+    </div>
+  );
 }

@@ -1,15 +1,20 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
-import { PrivacyPage, TermsPage } from './legal';
+import { AppRoutes } from '@/routes';
 
-function renderPage(page: React.ReactElement) {
-  return render(<MemoryRouter>{page}</MemoryRouter>);
+function renderAt(path: string) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <AppRoutes />
+    </MemoryRouter>
+  );
 }
 
-describe('legal pages', () => {
+describe('legal page', () => {
   it('privacy says what is collected, who handles it, and how long it is kept', () => {
-    renderPage(<PrivacyPage />);
+    renderAt('/legal/privacy');
     expect(screen.getByRole('heading', { level: 1, name: 'Privacy' })).toBeInTheDocument();
     expect(screen.getByText(/subject and description/i)).toBeInTheDocument();
     expect(screen.getByText(/no accounts/i)).toBeInTheDocument();
@@ -19,8 +24,37 @@ describe('legal pages', () => {
   });
 
   it('terms say it is a demo', () => {
-    renderPage(<TermsPage />);
+    renderAt('/legal/terms');
     expect(screen.getByRole('heading', { level: 1, name: 'Terms' })).toBeInTheDocument();
     expect(screen.getByRole('note')).toHaveTextContent(/portfolio demo/i);
+  });
+
+  it('numbers the sections and marks the open document in the tabs', () => {
+    renderAt('/legal/terms');
+    const tabs = screen.getByRole('navigation', { name: 'Legal page' });
+    expect(tabs.querySelector('[aria-current="page"]')).toHaveTextContent('Terms');
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(6);
+  });
+
+  it('switches documents from the tabs', async () => {
+    const user = userEvent.setup();
+    renderAt('/legal/privacy');
+    await user.click(screen.getByRole('navigation', { name: 'Legal page' }).querySelector('a[href="/legal/terms"]')!);
+    expect(screen.getByRole('heading', { level: 1, name: 'Terms' })).toBeInTheDocument();
+  });
+
+  it('links the GitHub page from the privacy questions', () => {
+    renderAt('/legal/privacy');
+    expect(screen.getByRole('link', { name: 'GitHub page' })).toHaveAttribute('href', expect.stringMatching(/\/issues$/));
+  });
+
+  it.each(['privacy', 'terms'])('redirects /%s to the legal page', (doc) => {
+    renderAt(`/${doc}`);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(new RegExp(`^${doc}$`, 'i'));
+  });
+
+  it('shows the 404 for an unknown document', () => {
+    renderAt('/legal/cookies');
+    expect(screen.getByRole('heading', { level: 1, name: 'Page not found' })).toBeInTheDocument();
   });
 });

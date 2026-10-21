@@ -1,9 +1,9 @@
 import { lazy, Suspense } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import { TicketSkeleton } from '@/components/ticket/ticket-states';
 import { PublicLayout } from '@/layouts/public-layout';
 import { HomePage } from '@/pages/home';
-import { PrivacyPage, TermsPage } from '@/pages/legal';
+import { LegalPage } from '@/pages/legal';
 import { NotFoundPage } from '@/pages/not-found';
 
 // The submit page brings react-hook-form and zod; keeping them out of the main bundle keeps
@@ -44,8 +44,9 @@ export function AppRoutes() {
             </Suspense>
           }
         />
-        <Route path="privacy" element={<PrivacyPage />} />
-        <Route path="terms" element={<TermsPage />} />
+        <Route path="legal/:doc" element={<LegalPage />} />
+        <Route path="privacy" element={<Navigate to="/legal/privacy" replace />} />
+        <Route path="terms" element={<Navigate to="/legal/terms" replace />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route

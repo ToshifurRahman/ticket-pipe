@@ -11,11 +11,11 @@ export function SiteFooter() {
           © {brand.name} · {brand.tagline}
         </span>
         <nav aria-label="Legal">
-          <Link to="/privacy" className="text-inherit">
+          <Link to="/legal/privacy" className="text-inherit">
             Privacy
           </Link>{' '}
           ·{' '}
-          <Link to="/terms" className="text-inherit">
+          <Link to="/legal/terms" className="text-inherit">
             Terms
           </Link>
         </nav>

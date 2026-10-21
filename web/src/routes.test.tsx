@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
@@ -50,9 +50,10 @@ describe('routes', () => {
   it('reaches the legal pages from the footer', async () => {
     const user = userEvent.setup();
     renderAt('/new');
-    await user.click(screen.getByRole('link', { name: 'Privacy' }));
+    const footer = () => within(screen.getByRole('navigation', { name: 'Legal' }));
+    await user.click(footer().getByRole('link', { name: 'Privacy' }));
     expect(screen.getByRole('heading', { level: 1, name: 'Privacy' })).toBeInTheDocument();
-    await user.click(screen.getByRole('link', { name: 'Terms' }));
+    await user.click(footer().getByRole('link', { name: 'Terms' }));
     expect(screen.getByRole('heading', { level: 1, name: 'Terms' })).toBeInTheDocument();
   });
 

@@ -17,7 +17,7 @@ const buttonVariants = cva(
         solid: 'bg-foreground text-background',
         outline:
           'border-current bg-transparent text-foreground hover:shadow-[inset_0_0_0_var(--hair)_currentColor]',
-        tb: 'border-border bg-transparent text-foreground hover:border-foreground hover:shadow-[inset_0_0_0_var(--hair)_var(--foreground)] aria-pressed:border-foreground aria-pressed:bg-card aria-selected:border-foreground aria-selected:bg-card',
+        tb: 'border-border bg-transparent text-foreground hover:border-foreground hover:shadow-[inset_0_0_0_var(--hair)_var(--foreground)] aria-pressed:border-foreground aria-pressed:bg-card aria-selected:border-foreground aria-selected:bg-card aria-[current=page]:border-foreground aria-[current=page]:bg-card',
         ghost: 'text-foreground hover:border-border active:border-foreground',
       },
       size: {

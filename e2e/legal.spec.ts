@@ -4,11 +4,11 @@ test('privacy and terms open from the footer', async ({ page }) => {
   await page.goto('/');
 
   await page.getByRole('navigation', { name: 'Legal' }).getByRole('link', { name: 'Privacy' }).click();
-  await expect(page).toHaveURL(/\/privacy$/);
+  await expect(page).toHaveURL(/\/legal\/privacy$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Privacy' })).toBeVisible();
 
   await page.getByRole('navigation', { name: 'Legal' }).getByRole('link', { name: 'Terms' }).click();
-  await expect(page).toHaveURL(/\/terms$/);
+  await expect(page).toHaveURL(/\/legal\/terms$/);
   await expect(page.getByRole('heading', { level: 1, name: 'Terms' })).toBeVisible();
 });
 
@@ -17,7 +17,7 @@ test('no analytics beacon and no cookies on the legal pages of a non-production 
   page.on('request', (req) => {
     if (req.url().includes('cloudflareinsights')) beacon.push(req.url());
   });
-  await page.goto('/privacy');
+  await page.goto('/legal/privacy');
   await expect(page.getByRole('heading', { level: 1, name: 'Privacy' })).toBeVisible();
   expect(beacon).toEqual([]);
   expect(await context.cookies()).toEqual([]);
