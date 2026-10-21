@@ -13,6 +13,8 @@ type Props = {
   copyable?: boolean;
   /** The title's heading level; the landing sample sits under the page's own h1. */
   as?: 'h1' | 'h2';
+  /** Makes the title programmatically focusable, so a result can hand focus to it. */
+  titleRef?: React.Ref<HTMLHeadingElement>;
   children?: React.ReactNode;
 };
 
@@ -24,6 +26,7 @@ export function FormHeader({
   referenceNumber,
   copyable = false,
   as: Title = 'h1',
+  titleRef,
   children,
 }: Props) {
   const [copy, copyText] = useCopy();
@@ -32,7 +35,13 @@ export function FormHeader({
     <header className="grid border-b border-rule sm:grid-cols-[1fr_auto]">
       <div className="flex min-w-0 flex-col gap-1.5 px-5.5 py-4.5">
         <p className="label-caps text-xs text-muted-foreground">{kicker}</p>
-        <Title className="text-[1.625rem] leading-[1.15] font-semibold tracking-[-0.01em] break-words text-balance">{title}</Title>
+        <Title
+          ref={titleRef}
+          tabIndex={titleRef ? -1 : undefined}
+          className="text-[1.625rem] leading-[1.15] font-semibold tracking-[-0.01em] break-words text-balance outline-none"
+        >
+          {title}
+        </Title>
         {children}
       </div>
       <div className="flex flex-col gap-1.5 border-t border-rule px-5.5 py-4.5 sm:border-t-0 sm:border-l sm:text-right">

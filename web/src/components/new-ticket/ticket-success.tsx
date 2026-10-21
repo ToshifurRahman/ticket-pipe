@@ -1,15 +1,18 @@
-import { ArrowRight, Check, CircleCheck, Copy } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { FormHeader } from '@/components/form/form-header';
+import { FormBody, FormPanel } from '@/components/form/form-panel';
 import { Button } from '@/components/ui/button';
 import { useCopy } from '@/hooks/use-copy';
+import { printedTime } from '@/lib/relative-time';
 
 type TicketSuccessProps = {
   referenceNumber: string;
+  createdAt: string;
   onSubmitAnother: () => void;
 };
 
-export function TicketSuccess({ referenceNumber, onSubmitAnother }: TicketSuccessProps) {
+export function TicketSuccess({ referenceNumber, createdAt, onSubmitAnother }: TicketSuccessProps) {
   const heading = useRef<HTMLHeadingElement>(null);
   const [copy, copyText] = useCopy();
 
@@ -18,46 +21,46 @@ export function TicketSuccess({ referenceNumber, onSubmitAnother }: TicketSucces
   useEffect(() => heading.current?.focus(), []);
 
   return (
-    <div className="flex flex-col gap-6 rounded-xl border border-border bg-card/60 p-6 sm:p-8">
-      <div className="flex flex-col gap-2">
-        <span className="inline-flex items-center gap-2 text-sm font-medium text-success">
-          <CircleCheck className="size-4" aria-hidden />
-          Ticket received
-        </span>
-        <h2 ref={heading} tabIndex={-1} className="text-2xl font-semibold tracking-tight outline-none">
-          We're on it
-        </h2>
-        <p className="text-muted-foreground">
+    <FormPanel enter aria-label="Ticket received">
+      <FormHeader as="h2" titleRef={heading} kicker="Service ticket · Filed" title="We're on it" referenceNumber={referenceNumber} />
+      <FormBody>
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="button-caps stamp-tilt inline-block border-2 border-current px-3 py-1 text-[0.8125rem] text-ply-triaged">
+            Ticket received
+          </span>
+          <span className="font-mono text-[0.8125rem] text-muted-foreground">{printedTime(createdAt)}</span>
+        </div>
+        <p className="text-base text-muted-foreground">
           Keep your reference to come back to this ticket. A reply usually arrives within a minute.
         </p>
-      </div>
 
-      <div className="flex flex-col gap-1.5">
-        <span className="text-xs text-muted-foreground">Your reference</span>
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-input/30 py-1 pr-1 pl-3">
-          <span className="min-w-0 flex-1 truncate font-mono text-sm" data-testid="ticket-reference">
-            {referenceNumber}
+        <div className="grid gap-2">
+          <span className="button-caps text-xs text-muted-foreground">Your reference</span>
+          <div className="flex items-center justify-between gap-3 border border-border px-3 py-2.5">
+            <span className="font-mono text-sm break-all" data-testid="ticket-reference">
+              {referenceNumber}
+            </span>
+            <Button variant="tb" aria-label="Copy reference" onClick={() => copyText(referenceNumber)}>
+              {copy === 'copied' ? 'Copied' : 'Copy'}
+            </Button>
+          </div>
+          <span aria-live="polite" className="min-h-5 text-sm text-muted-foreground">
+            {copy === 'copied' && 'Copied to clipboard'}
+            {copy === 'failed' && "Couldn't copy. Select the reference and copy it by hand."}
           </span>
-          <Button variant="ghost" size="icon" onClick={() => copyText(referenceNumber)} aria-label="Copy reference">
-            {copy === 'copied' ? <Check /> : <Copy />}
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <Button asChild variant="solid">
+            <Link to={`/t/${referenceNumber}`} className="no-underline">
+              Watch it live
+            </Link>
+          </Button>
+          <Button variant="tb" className="min-h-12 px-5" onClick={onSubmitAnother}>
+            Submit another ticket
           </Button>
         </div>
-        <span aria-live="polite" className="min-h-4 text-xs text-muted-foreground">
-          {copy === 'copied' && 'Copied to clipboard'}
-          {copy === 'failed' && "Couldn't copy. Select the reference and copy it by hand."}
-        </span>
-      </div>
-
-      <div className="flex flex-wrap gap-3">
-        <Button asChild>
-          <Link to={`/t/${referenceNumber}`} className="no-underline">
-            Watch it live <ArrowRight />
-          </Link>
-        </Button>
-        <Button variant="outline" onClick={onSubmitAnother}>
-          Submit another ticket
-        </Button>
-      </div>
-    </div>
+      </FormBody>
+    </FormPanel>
   );
 }

@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { ArrowRight, LoaderCircle } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Turnstile, type TurnstileHandle } from '@/components/turnstile';
@@ -66,7 +65,7 @@ export function TicketForm({ onCreated }: TicketFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(submit)} noValidate className="flex flex-col gap-6">
+      <form onSubmit={form.handleSubmit(submit)} noValidate aria-label="New ticket" className="grid gap-5 p-4 sm:p-5.5">
         <FormField
           control={form.control}
           name="subject"
@@ -76,7 +75,7 @@ export function TicketForm({ onCreated }: TicketFormProps) {
               <FormControl>
                 <Input placeholder="A short summary of the problem" autoComplete="off" {...field} />
               </FormControl>
-              <FormMessage />
+              <FormMessage className="text-sm" />
             </FormItem>
           )}
         />
@@ -98,36 +97,28 @@ export function TicketForm({ onCreated }: TicketFormProps) {
               <FormControl>
                 <Textarea rows={7} className="resize-y" {...field} />
               </FormControl>
-              <FormDescription>
+              <FormDescription className="text-sm">
                 Include what you tried and any error messages.
                 <span className="sr-only">
                   {' '}
                   {descriptionLength} of {TICKET_LIMITS.description.max} characters used.
                 </span>
               </FormDescription>
-              <FormMessage />
+              <FormMessage className="text-sm" />
             </FormItem>
           )}
         />
 
         {submitError && (
-          <p role="alert" className="rounded-lg border border-destructive/40 px-3 py-2 text-sm text-destructive">
+          <p role="alert" className="text-sm text-destructive">
             {submitError}
           </p>
         )}
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <Turnstile ref={turnstile} onToken={setToken} />
-          <Button type="submit" disabled={!token || pending} className="sm:self-end">
-            {pending ? (
-              <>
-                <LoaderCircle className="animate-spin" /> Sending…
-              </>
-            ) : (
-              <>
-                Submit ticket <ArrowRight />
-              </>
-            )}
+          <Button type="submit" variant="solid" disabled={!token || pending}>
+            {pending ? 'Sending...' : 'Submit ticket'}
           </Button>
         </div>
       </form>

@@ -33,24 +33,22 @@ export function RecentTickets({ tickets, onForget }: RecentTicketsProps) {
   if (tickets.length === 0) return null;
 
   return (
-    <section aria-labelledby="recent-tickets-heading" className="rounded-xl border border-border bg-card/60 p-5">
-      <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 id="recent-tickets-heading" className="text-sm font-semibold">
-          Your recent tickets
-        </h2>
-        <span className="text-xs text-muted-foreground">Remembered on this browser only</span>
-      </div>
-      <ul className="flex flex-col gap-1">
+    <section aria-labelledby="recent-tickets-heading" className="border border-border p-5">
+      <h2 id="recent-tickets-heading" className="label-caps mb-3.5 text-sm">
+        Your recent tickets
+      </h2>
+      <p className="-mt-1.5 mb-3 font-mono text-[0.6875rem] text-muted-foreground">Remembered on this browser only</p>
+      <ul className="flex flex-col">
         {tickets.map((t, i) => {
           const status = statuses[i]?.data?.status;
           return (
-            <li key={t.ref}>
+            <li key={t.ref} className="border-t border-border">
               <Link
                 to={`/t/${t.ref}`}
-                className="flex items-center justify-between gap-3 rounded-lg px-3 py-2 no-underline transition-colors hover:bg-accent"
+                className="group flex items-center justify-between gap-3 py-3 no-underline"
               >
                 <span className="flex min-w-0 flex-col">
-                  <span className="truncate text-sm font-medium text-foreground">{t.subject}</span>
+                  <span className="truncate font-semibold text-foreground group-hover:underline">{t.subject}</span>
                   <span className="truncate font-mono text-xs text-muted-foreground">
                     {t.ref} · {relativeTime(t.createdAt)}
                   </span>
