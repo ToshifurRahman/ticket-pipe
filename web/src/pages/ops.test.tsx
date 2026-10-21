@@ -10,11 +10,22 @@ import { OpsHeaderActions } from '@/components/ops/ops-header-actions';
 import { createQueryClient } from '@/lib/query-client';
 import type { OpsSession } from '@/lib/types';
 import { createFakeSocket } from '@/test/fake-socket';
-import { aiCall, events, listedTicket, OPS_ID, opsTicket, OTHER_ID, summary, ticketList } from '@/test/ops-fixtures';
+import {
+  aiCall,
+  events,
+  listedTicket,
+  OPS_ID,
+  opsTicket,
+  OTHER_ID,
+  summary,
+  ticketList,
+} from '@/test/ops-fixtures';
 import { server } from '@/test/server';
 import { OpsPage } from './ops';
 
-const fakeSocket = vi.hoisted(() => ({ current: null as ReturnType<typeof createFakeSocket> | null }));
+const fakeSocket = vi.hoisted(() => ({
+  current: null as ReturnType<typeof createFakeSocket> | null,
+}));
 vi.mock('@/lib/socket', () => ({ getSocket: () => fakeSocket.current }));
 const socket = () => fakeSocket.current!;
 
@@ -45,8 +56,12 @@ function renderConsole(path = '/ops') {
 
 // The feed subscribes on connect and the server answers through the ack callback.
 async function acknowledge(ok = true) {
-  await waitFor(() => expect(socket().emit).toHaveBeenCalledWith('ops:subscribe', expect.any(Function)));
-  const ack = socket().emit.mock.calls.find((c) => c[0] === 'ops:subscribe')![1] as (r: { ok: boolean }) => void;
+  await waitFor(() =>
+    expect(socket().emit).toHaveBeenCalledWith('ops:subscribe', expect.any(Function))
+  );
+  const ack = socket().emit.mock.calls.find((c) => c[0] === 'ops:subscribe')![1] as (r: {
+    ok: boolean;
+  }) => void;
   await act(async () => ack({ ok }));
 }
 
@@ -91,7 +106,11 @@ describe('signed out', () => {
 
   it('says so when the token is wrong, and clears the message as you type', async () => {
     const user = userEvent.setup();
-    server.use(http.post('/api/ops/session', () => HttpResponse.json({ error: 'Invalid token' }, { status: 401 })));
+    server.use(
+      http.post('/api/ops/session', () =>
+        HttpResponse.json({ error: 'Invalid token' }, { status: 401 })
+      )
+    );
     renderConsole();
 
     await user.type(await screen.findByLabelText('Ops token'), 'nope{Enter}');
@@ -139,7 +158,14 @@ describe('the ticket table', () => {
   it('lists tickets with their triage, status and the KPIs and tab counts', async () => {
     list = ticketList([
       listedTicket(),
-      listedTicket({ id: OTHER_ID, referenceNumber: 'TICK-1759993412345-FFFFFFFF', subject: 'CSV export never starts', status: 'processing', category: null, priority: null }),
+      listedTicket({
+        id: OTHER_ID,
+        referenceNumber: 'TICK-1759993412345-FFFFFFFF',
+        subject: 'CSV export never starts',
+        status: 'processing',
+        category: null,
+        priority: null,
+      }),
     ]);
     renderConsole();
 
@@ -157,9 +183,9 @@ describe('the ticket table', () => {
 
     const kpis = within(await screen.findByLabelText('Last 24 hours'));
     expect(await kpis.findByText('142')).toBeInTheDocument();
-    expect(kpis.getByText('96.5%')).toBeInTheDocument();
-    expect(kpis.getByText('2.1 s')).toBeInTheDocument();
-    expect(kpis.getByText('0.0%')).toBeInTheDocument();
+    expect(kpis.getByText('96.5')).toHaveTextContent('96.5%');
+    expect(kpis.getByText('2.1')).toHaveTextContent(/^2\.1 ?s$/);
+    expect(kpis.getByText('0.0')).toHaveTextContent('0.0%');
 
     const tabs = screen.getByRole('tablist');
     expect(within(tabs).getByRole('tab', { name: /All/ })).toHaveTextContent('142');
@@ -171,7 +197,12 @@ describe('the ticket table', () => {
   it('asks for the newest update first, 20 at a time', async () => {
     renderConsole();
     await screen.findByRole('table');
-    expect(Object.fromEntries(listRequests.at(-1)!)).toEqual({ page: '1', limit: '20', sort: 'updatedAt', order: 'desc' });
+    expect(Object.fromEntries(listRequests.at(-1)!)).toEqual({
+      page: '1',
+      limit: '20',
+      sort: 'updatedAt',
+      order: 'desc',
+    });
   });
 
   it('filters by a status tab and keeps it in the URL', async () => {
@@ -190,7 +221,11 @@ describe('the ticket table', () => {
     renderConsole('/ops?status=completed&page=2&sort=createdAt&order=asc');
     await screen.findByRole('table');
     expect(Object.fromEntries(listRequests.at(-1)!)).toEqual({
-      page: '2', limit: '20', sort: 'createdAt', order: 'asc', status: 'completed',
+      page: '2',
+      limit: '20',
+      sort: 'createdAt',
+      order: 'asc',
+      status: 'completed',
     });
     expect(screen.getByRole('tab', { name: /Completed/ })).toHaveAttribute('aria-selected', 'true');
   });
@@ -204,9 +239,14 @@ describe('the ticket table', () => {
 
     await user.click(within(updated).getByRole('button'));
     await waitFor(() => expect(listRequests.at(-1)!.get('order')).toBe('asc'));
-    expect(screen.getByRole('columnheader', { name: /Updated/ })).toHaveAttribute('aria-sort', 'ascending');
+    expect(screen.getByRole('columnheader', { name: /Updated/ })).toHaveAttribute(
+      'aria-sort',
+      'ascending'
+    );
 
-    await user.click(within(screen.getByRole('columnheader', { name: /Created/ })).getByRole('button'));
+    await user.click(
+      within(screen.getByRole('columnheader', { name: /Created/ })).getByRole('button')
+    );
     await waitFor(() => expect(listRequests.at(-1)!.get('sort')).toBe('createdAt'));
     expect(listRequests.at(-1)!.get('order')).toBe('desc');
   });
@@ -233,7 +273,9 @@ describe('the ticket table', () => {
 
   it('offers a retry when the list cannot load', async () => {
     const user = userEvent.setup();
-    server.use(http.get('/api/tickets', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+    server.use(
+      http.get('/api/tickets', () => HttpResponse.json({ error: 'boom' }, { status: 500 }))
+    );
     renderConsole();
     const retry = await screen.findByRole('button', { name: 'Try again' }, { timeout: 5000 });
 
@@ -261,24 +303,35 @@ describe('live updates', () => {
 
     list = ticketList([listedTicket({ status: 'completed', subject: 'Now resolved' })]);
     await act(async () => {
-      for (let i = 0; i < 5; i++) socket().serverEmit('ops:ticket_event', { ticketId: OPS_ID, event: 'x' });
+      for (let i = 0; i < 5; i++)
+        socket().serverEmit('ops:ticket_event', { ticketId: OPS_ID, event: 'x' });
     });
 
     expect(await screen.findByText('Now resolved')).toBeInTheDocument();
     expect(listRequests.length).toBe(before + 1);
   });
 
-  it.each(['ticket:requeued', 'ticket:failed', 'ticket:needs_attention'])('also reacts to %s', async (event) => {
-    renderConsole();
-    await screen.findByRole('table');
-    await acknowledge();
-    await new Promise((r) => setTimeout(r, 450));
-    const before = listRequests.length;
+  it.each(['ticket:requeued', 'ticket:failed', 'ticket:needs_attention'])(
+    'also reacts to %s',
+    async (event) => {
+      renderConsole();
+      await screen.findByRole('table');
+      await acknowledge();
+      await new Promise((r) => setTimeout(r, 450));
+      const before = listRequests.length;
 
-    await act(async () => socket().serverEmit(event, { ticketId: OPS_ID, referenceNumber: 'TICK-X', reason: 'x', previousStatus: 'failed' }));
+      await act(async () =>
+        socket().serverEmit(event, {
+          ticketId: OPS_ID,
+          referenceNumber: 'TICK-X',
+          reason: 'x',
+          previousStatus: 'failed',
+        })
+      );
 
-    await waitFor(() => expect(listRequests.length).toBeGreaterThan(before));
-  });
+      await waitFor(() => expect(listRequests.length).toBeGreaterThan(before));
+    }
+  );
 
   it('returns to the sign-in card when the server refuses the subscription', async () => {
     renderConsole();
@@ -300,7 +353,9 @@ describe('live updates', () => {
   });
 
   it('returns to the sign-in card on a 401 from any console request', async () => {
-    server.use(http.get('/api/tickets', () => HttpResponse.json({ error: 'Unauthorized' }, { status: 401 })));
+    server.use(
+      http.get('/api/tickets', () => HttpResponse.json({ error: 'Unauthorized' }, { status: 401 }))
+    );
     renderConsole();
     expect(await screen.findByLabelText('Ops token')).toBeInTheDocument();
   });
@@ -351,7 +406,9 @@ describe('alert toasts', () => {
     );
 
     // Sonner's store is global, so earlier tests' toasts can still be on screen: find this one.
-    const message = await screen.findByText(/TICK-1759993412345-A1B2C3D4 needs attention: Incomplete output/);
+    const message = await screen.findByText(
+      /TICK-1759993412345-A1B2C3D4 needs attention: Incomplete output/
+    );
     await user.click(within(message.closest('li')!).getByRole('button', { name: /^Open$/ }));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(screen.getByTestId('url')).toHaveTextContent(`ticket=${OPS_ID}`);
@@ -362,7 +419,11 @@ describe('alert toasts', () => {
     await screen.findByRole('table');
     await acknowledge();
     await act(async () =>
-      socket().serverEmit('ticket:failed', { ticketId: OPS_ID, referenceNumber: 'TICK-F', reason: 'draft_retries_exhausted' })
+      socket().serverEmit('ticket:failed', {
+        ticketId: OPS_ID,
+        referenceNumber: 'TICK-F',
+        reason: 'draft_retries_exhausted',
+      })
     );
     expect(await screen.findByText(/TICK-F failed: Draft retries exhausted/)).toBeInTheDocument();
   });

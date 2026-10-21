@@ -3,6 +3,7 @@
   "primitive": {
     "color": {
       "forest": { "$type": "color", "$value": "#08130F", "$description": "Carbon ground, a green-black. Also the ink on a light ply." },
+      "scrim-black": { "$type": "color", "$value": "#000000", "$description": "The scrim behind a drawer." },
       "forest-2": { "$type": "color", "$value": "#0E1D17" },
       "forest-3": { "$type": "color", "$value": "#152A21" },
       "form-ground": { "$type": "color", "$value": "#0B1511", "$description": "The ground a service form is printed on: a touch lighter than the page, darker than a card." },
@@ -41,7 +42,7 @@
       "raised": { "$type": "color", "$value": "{primitive.color.forest-3}", "$extensions": { "relay.css": ["secondary", "muted", "accent"] } },
       "form": { "$type": "color", "$value": "{primitive.color.form-ground}", "$extensions": { "relay.css": ["form"] } },
       "popover": { "$type": "color", "$value": "{primitive.color.forest-2}", "$extensions": { "relay.css": ["popover"] } },
-      "overlay": { "$type": "color", "$value": "{primitive.color.forest}", "$extensions": { "relay.css": ["overlay"] } }
+      "overlay": { "$type": "color", "$value": "{primitive.color.scrim-black}", "$extensions": { "relay.css": ["overlay"] } }
     },
     "text": {
       "primary": { "$type": "color", "$value": "{primitive.color.bone}", "$extensions": { "relay.css": ["foreground", "card-foreground", "popover-foreground", "secondary-foreground", "accent-foreground", "success"] } },

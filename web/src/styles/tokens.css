@@ -8,7 +8,7 @@
   --accent: #152A21;
   --form: #0B1511;
   --popover: #0E1D17;
-  --overlay: #08130F;
+  --overlay: #000000;
   --foreground: #E8F3EC;
   --card-foreground: #E8F3EC;
   --popover-foreground: #E8F3EC;
@@ -98,9 +98,11 @@
   --duration-print-cta: 135ms;
   --duration-print-cta-delay: 750ms;
   --duration-press-delay: 120ms;
+  --duration-ops-stamp-delay: 300ms;
+  --duration-ops-stamp-delay-2: 435ms;
   --duration-nudge: 240ms;
   --duration-print-line: 180ms;
-  --opacity-overlay: 80%;
+  --opacity-overlay: 55%;
   --opacity-disabled: 45%;
   --control-height: 3rem;
   --control-height-sm: 2.5rem;
@@ -108,8 +110,8 @@
   --focus-offset: 2px;
   --content-width: 75rem;
   --page-width: 77rem;
-  --table-min: 45rem;
-  --cell-max: 24rem;
+  --table-min: 51.25rem;
+  --cell-max: 18.75rem;
   --captcha-height: 4.0625rem;
   --strip-narrow: 2.75rem;
   --strip-wide: 3.5rem;

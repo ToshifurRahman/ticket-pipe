@@ -196,6 +196,19 @@
   animation: stamp-press var(--duration-press) step-end var(--duration-press-delay) both;
 }
 
+@utility animate-stamp-press-delay-1 {
+  animation: stamp-press var(--duration-press) step-end var(--duration-ops-stamp-delay) both;
+}
+
+@utility animate-stamp-press-delay-2 {
+  animation: stamp-press var(--duration-press) step-end var(--duration-ops-stamp-delay-2) both;
+}
+
+/* A toast prints in: two hard frames from the top. */
+@utility animate-print-toast {
+  animation: print var(--duration-press) steps(2, jump-start) backwards;
+}
+
 /* The page prints in on load: headline, then the form, then the button. Backwards fill, so
    nothing stays clipped once it has run. */
 @keyframes print-in {

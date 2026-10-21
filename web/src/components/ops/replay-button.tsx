@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { LoaderCircle, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,7 @@ export function ReplayButton({ ticketId, reference, stage }: ReplayButtonProps) 
   const [confirming, setConfirming] = useState(false);
   const mutation = useMutation({
     mutationFn: () => replayTicket(ticketId),
-    onSuccess: () => toast.success(`${reference} is back in the queue.`),
+    onSuccess: () => toast.success(`${reference} replayed. The team re-queued it.`),
     onError: (error) => toast.error(failureMessage(error)),
     onSettled: () => {
       setConfirming(false);
@@ -36,8 +35,8 @@ export function ReplayButton({ ticketId, reference, stage }: ReplayButtonProps) 
 
   if (!confirming) {
     return (
-      <Button variant="outline" size="sm" onClick={() => setConfirming(true)}>
-        <RotateCcw /> {label}
+      <Button variant="tb" className="justify-self-start" onClick={() => setConfirming(true)}>
+        {label}
       </Button>
     );
   }
@@ -45,10 +44,15 @@ export function ReplayButton({ ticketId, reference, stage }: ReplayButtonProps) 
   return (
     <div role="group" aria-label="Confirm replay" className="flex flex-wrap items-center gap-2">
       <span className="text-sm text-muted-foreground">{label}? This spends AI calls.</span>
-      <Button size="sm" disabled={mutation.isPending} onClick={() => mutation.mutate()}>
-        {mutation.isPending ? <LoaderCircle className="animate-spin" /> : null} Confirm
+      <Button
+        variant="solid"
+        size="sm"
+        disabled={mutation.isPending}
+        onClick={() => mutation.mutate()}
+      >
+        Confirm
       </Button>
-      <Button variant="ghost" size="sm" disabled={mutation.isPending} onClick={() => setConfirming(false)}>
+      <Button variant="tb" disabled={mutation.isPending} onClick={() => setConfirming(false)}>
         Cancel
       </Button>
     </div>

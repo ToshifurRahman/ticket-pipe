@@ -10,18 +10,22 @@ export function OpsLayout() {
   return (
     <div className="flex min-h-screen flex-col">
       <SkipLink />
-      <header className="border-b bg-background">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <Wordmark />
-            <span className="border border-input px-2 py-0.5 label-caps text-xs text-muted-foreground">Ops</span>
-          </div>
-          <div className="flex items-center gap-3">
+      <header className="border-b border-border bg-background">
+        <div className="mx-auto flex h-16 w-full max-w-(--page-width) items-center gap-4 px-4">
+          <Wordmark />
+          <span className="button-caps stamp-tilt border-2 border-ply-drafted px-2 py-0.5 text-xs text-ply-drafted">
+            Ops
+          </span>
+          <div className="ml-auto flex items-center gap-3.5">
             <OpsHeaderActions />
           </div>
         </div>
       </header>
-      <main id="main" tabIndex={-1} className="outline-none mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">
+      <main
+        id="main"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-(--page-width) flex-1 px-4 pt-8 pb-18 outline-none"
+      >
         <Outlet />
       </main>
       <Toaster />

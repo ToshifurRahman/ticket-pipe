@@ -1,4 +1,3 @@
-import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PAGE_SIZE, type OpsParams, type OpsSort } from '@/lib/ops-params';
 import { humanize } from '@/lib/ops-ticket';
@@ -7,7 +6,13 @@ import type { OpsTicketList } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { OpsStatusBadge } from './status-badge';
 
-const URGENT = new Set(['high', 'urgent', 'critical']);
+const PRIORITY_TONE: Record<string, string> = {
+  urgent: 'text-priority-urgent',
+  critical: 'text-priority-urgent',
+  high: 'text-priority-high',
+};
+const TH =
+  'button-caps border-b border-border px-3 py-2.75 border-b border-border text-[0.6875rem] whitespace-nowrap text-muted-foreground';
 
 type TicketTableProps = {
   data: OpsTicketList | undefined;
@@ -20,31 +25,50 @@ type TicketTableProps = {
   onRetry: () => void;
 };
 
-function SortHeader({ label, column, params, onSort, className }: {
+function SortHeader({
+  label,
+  column,
+  params,
+  onSort,
+}: {
   label: string;
   column: OpsSort;
   params: OpsParams;
   onSort: (sort: OpsSort) => void;
-  className?: string;
 }) {
   const active = params.sort === column;
-  const Icon = !active ? ChevronsUpDown : params.order === 'asc' ? ArrowUp : ArrowDown;
   return (
-    <th scope="col" aria-sort={active ? (params.order === 'asc' ? 'ascending' : 'descending') : 'none'} className={cn('px-3 py-2 font-medium', className)}>
-      <button type="button" onClick={() => onSort(column)} className="inline-flex items-center gap-1 hover:text-foreground">
+    <th
+      scope="col"
+      aria-sort={active ? (params.order === 'asc' ? 'ascending' : 'descending') : 'none'}
+      className={TH}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className="cursor-pointer uppercase hover:text-foreground"
+      >
         {label}
-        <Icon aria-hidden className="size-3.5" />
       </button>
     </th>
   );
 }
 
-export function TicketTable({ data, params, loading, failed, onSort, onPage, onOpen, onRetry }: TicketTableProps) {
+export function TicketTable({
+  data,
+  params,
+  loading,
+  failed,
+  onSort,
+  onPage,
+  onOpen,
+  onRetry,
+}: TicketTableProps) {
   if (failed && !data) {
     return (
-      <div role="alert" className="rounded-xl border border-border bg-card/70 p-8 text-center">
-        <p className="text-sm text-muted-foreground">Couldn't load the tickets.</p>
-        <Button variant="outline" size="sm" className="mt-3" onClick={onRetry}>
+      <div role="alert" className="border border-border bg-card p-8 text-center">
+        <p className="m-0 text-sm text-muted-foreground">Couldn't load the tickets.</p>
+        <Button variant="tb" className="mt-3" onClick={onRetry}>
           Try again
         </Button>
       </div>
@@ -56,28 +80,38 @@ export function TicketTable({ data, params, loading, failed, onSort, onPage, onO
   const lastPage = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
 
   return (
-    <div className="rounded-xl border border-border bg-card/70">
+    <div className="border border-border bg-card">
       <div className="overflow-x-auto">
         <table className="w-full min-w-(--table-min) text-left text-sm">
-          <thead className="border-b border-border text-xs text-muted-foreground">
+          <thead>
             <tr>
-              <th scope="col" className="px-3 py-2 font-medium">Ref</th>
-              <th scope="col" className="px-3 py-2 font-medium">Subject</th>
-              <th scope="col" className="px-3 py-2 font-medium">Category</th>
-              <th scope="col" className="px-3 py-2 font-medium">Priority</th>
-              <th scope="col" className="px-3 py-2 font-medium">Status</th>
+              <th scope="col" className={TH}>
+                Ref
+              </th>
+              <th scope="col" className={TH}>
+                Subject
+              </th>
+              <th scope="col" className={TH}>
+                Category
+              </th>
+              <th scope="col" className={TH}>
+                Priority
+              </th>
+              <th scope="col" className={TH}>
+                Status
+              </th>
               <SortHeader label="Updated" column="updatedAt" params={params} onSort={onSort} />
               <SortHeader label="Created" column="createdAt" params={params} onSort={onSort} />
             </tr>
           </thead>
-          <tbody aria-busy={loading}>
+          <tbody aria-busy={loading} className="[&_tr:last-child_td]:border-b-0">
             {data?.tickets.map((ticket) => (
               <tr
                 key={ticket.id}
                 onClick={() => onOpen(ticket.id)}
-                className="cursor-pointer border-b border-border/60 last:border-0 hover:bg-accent/40"
+                className="cursor-pointer hover:bg-ply-received/5"
               >
-                <td className="px-3 py-2.5 font-mono text-xs">
+                <td className="border-b border-border px-3 py-2.75 font-mono text-xs">
                   <button
                     type="button"
                     onClick={(event) => {
@@ -85,40 +119,72 @@ export function TicketTable({ data, params, loading, failed, onSort, onPage, onO
                       onOpen(ticket.id);
                     }}
                     aria-label={`Open ${ticket.referenceNumber}`}
-                    className="text-left"
+                    className="cursor-pointer text-left"
                   >
                     {ticket.referenceNumber}
                   </button>
                 </td>
-                <td className="max-w-(--cell-max) truncate px-3 py-2.5">{ticket.subject}</td>
-                <td className="px-3 py-2.5 text-muted-foreground">{ticket.category ? humanize(ticket.category) : 'Not yet'}</td>
-                <td className={cn('px-3 py-2.5', ticket.priority && URGENT.has(ticket.priority) ? 'text-warning' : 'text-muted-foreground')}>
+                <td className="max-w-(--cell-max) truncate px-3 py-2.75 border-b border-border">
+                  {ticket.subject}
+                </td>
+                <td className="px-3 py-2.75 border-b border-border text-muted-foreground">
+                  {ticket.category ? humanize(ticket.category) : 'Not yet'}
+                </td>
+                <td
+                  className={cn(
+                    'border-b border-border px-3 py-2.75',
+                    (ticket.priority && PRIORITY_TONE[ticket.priority]) ?? 'text-muted-foreground'
+                  )}
+                >
                   {ticket.priority ? humanize(ticket.priority) : 'Not yet'}
                 </td>
-                <td className="px-3 py-2.5"><OpsStatusBadge status={ticket.status} /></td>
-                <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">{relativeTime(ticket.updatedAt)}</td>
-                <td className="px-3 py-2.5 whitespace-nowrap text-muted-foreground">{relativeTime(ticket.createdAt)}</td>
+                <td className="px-3 py-2.75 border-b border-border">
+                  <OpsStatusBadge status={ticket.status} />
+                </td>
+                <td className="px-3 py-2.75 border-b border-border whitespace-nowrap text-muted-foreground">
+                  {relativeTime(ticket.updatedAt)}
+                </td>
+                <td className="px-3 py-2.75 border-b border-border whitespace-nowrap text-muted-foreground">
+                  {relativeTime(ticket.createdAt)}
+                </td>
               </tr>
             ))}
-            {loading && !data &&
+            {data && data.tickets.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-3 py-9 text-center text-muted-foreground">
+                  No tickets here.
+                </td>
+              </tr>
+            )}
+            {loading &&
+              !data &&
               Array.from({ length: 5 }, (_, i) => (
-                <tr key={i} className="border-b border-border/60">
-                  <td colSpan={7} className="px-3 py-3"><div className="h-4 animate-pulse rounded bg-muted" /></td>
+                <tr key={i}>
+                  <td colSpan={7} className="px-3 py-3">
+                    <div className="h-4 animate-pulse bg-muted" />
+                  </td>
                 </tr>
               ))}
           </tbody>
         </table>
       </div>
-      {data && data.tickets.length === 0 && (
-        <p className="px-3 py-10 text-center text-sm text-muted-foreground">No tickets here.</p>
-      )}
-      <div className="flex items-center justify-between gap-3 border-t border-border px-3 py-2 text-xs text-muted-foreground">
+      <div className="flex items-center justify-between gap-3 border-t border-border px-3 py-2.5 font-mono text-xs text-muted-foreground">
         <span aria-live="polite">{data ? `${from} to ${to} of ${data.total}` : ''}</span>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" disabled={!data || data.page <= 1} onClick={() => onPage(params.page - 1)}>
+          <Button
+            variant="tb"
+            className="px-3 py-1"
+            disabled={!data || data.page <= 1}
+            onClick={() => onPage(params.page - 1)}
+          >
             Previous
           </Button>
-          <Button variant="outline" size="sm" disabled={!data || data.page >= lastPage} onClick={() => onPage(params.page + 1)}>
+          <Button
+            variant="tb"
+            className="px-3 py-1"
+            disabled={!data || data.page >= lastPage}
+            onClick={() => onPage(params.page + 1)}
+          >
             Next
           </Button>
         </div>

@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { LogOut } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -8,8 +7,8 @@ import { getOpsSession, opsKeys, signOut } from '@/lib/ops-api';
 import { cn } from '@/lib/utils';
 
 const FEED: Record<FeedState, { label: string; dot: string }> = {
-  connected: { label: 'Live feed connected', dot: 'bg-success' },
-  connecting: { label: 'Connecting…', dot: 'bg-warning animate-pulse' },
+  connected: { label: 'Live feed connected', dot: 'bg-ply-triaged' },
+  connecting: { label: 'Connecting…', dot: 'bg-ply-live' },
   offline: { label: 'Feed offline', dot: 'bg-muted-foreground' },
 };
 
@@ -30,12 +29,15 @@ export function OpsHeaderActions() {
 
   return (
     <>
-      <span role="status" className="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
-        <span aria-hidden className={cn('size-2 rounded-full', dot)} />
-        {label}
+      <span
+        role="status"
+        className="flex items-center gap-2 font-mono text-xs text-muted-foreground"
+      >
+        <span aria-hidden className={cn('size-2', dot)} />
+        <span className="sr-only sm:not-sr-only">{label}</span>
       </span>
-      <Button variant="ghost" size="sm" disabled={out.isPending} onClick={() => out.mutate()}>
-        <LogOut /> Sign out
+      <Button variant="tb" disabled={out.isPending} onClick={() => out.mutate()}>
+        Sign out
       </Button>
     </>
   );

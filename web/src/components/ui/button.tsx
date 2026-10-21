@@ -15,8 +15,9 @@ const buttonVariants = cva(
       variant: {
         default: 'bg-primary text-primary-foreground',
         solid: 'bg-foreground text-background',
-        outline: 'border-current bg-transparent text-foreground hover:shadow-[inset_0_0_0_var(--hair)_currentColor]',
-        tb: 'border-border bg-transparent text-foreground hover:border-foreground hover:shadow-[inset_0_0_0_var(--hair)_var(--foreground)] aria-pressed:border-foreground aria-pressed:bg-card',
+        outline:
+          'border-current bg-transparent text-foreground hover:shadow-[inset_0_0_0_var(--hair)_currentColor]',
+        tb: 'border-border bg-transparent text-foreground hover:border-foreground hover:shadow-[inset_0_0_0_var(--hair)_var(--foreground)] aria-pressed:border-foreground aria-pressed:bg-card aria-selected:border-foreground aria-selected:bg-card',
         ghost: 'text-foreground hover:border-border active:border-foreground',
       },
       size: {
@@ -25,12 +26,15 @@ const buttonVariants = cva(
         icon: 'size-(--control-height)',
       },
     },
-    compoundVariants: [{ variant: 'tb', class: 'h-auto px-3.5 py-1.5 text-xs tracking-(--tracking-label)' }],
+    compoundVariants: [
+      { variant: 'tb', class: 'h-auto px-3.5 py-1.5 text-xs tracking-(--tracking-label)' },
+    ],
     defaultVariants: { variant: 'default', size: 'default' },
   }
 );
 
-type ButtonProps = React.ComponentProps<'button'> & VariantProps<typeof buttonVariants> & { asChild?: boolean };
+type ButtonProps = React.ComponentProps<'button'> &
+  VariantProps<typeof buttonVariants> & { asChild?: boolean };
 
 export function Button({ className, variant, size, asChild = false, ...props }: ButtonProps) {
   const Comp = asChild ? Slot : 'button';

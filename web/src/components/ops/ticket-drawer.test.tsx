@@ -41,7 +41,9 @@ describe('the ticket drawer', () => {
     renderDrawer();
 
     const drawer = await screen.findByRole('dialog');
-    expect(await within(drawer).findByRole('heading', { name: 'Account locked after password reset' })).toBeInTheDocument();
+    expect(
+      await within(drawer).findByRole('heading', { name: 'Account locked after password reset' })
+    ).toBeInTheDocument();
     expect(within(drawer).getByText('TICK-1759993412345-A1B2C3D4')).toBeInTheDocument();
 
     const triage = within(drawer).getByText('Category').closest('dl')!;
@@ -52,7 +54,9 @@ describe('the ticket drawer', () => {
     expect(triage).toHaveTextContent('Identity and access');
     expect(drawer).toHaveTextContent('User reset their password and now sees "account locked".');
 
-    expect(drawer).toHaveTextContent('I reset my password and now every login says my account is locked.');
+    expect(drawer).toHaveTextContent(
+      'I reset my password and now every login says my account is locked.'
+    );
     expect(drawer).toHaveTextContent('We have unlocked your account.');
     expect(drawer).toHaveTextContent('Lockout counter was not reset by the reset flow.');
     expect(drawer).toHaveTextContent('Confirm login works');
@@ -89,14 +93,12 @@ describe('the ticket drawer', () => {
     const user = userEvent.setup();
     renderDrawer();
 
-    const timeline = (await screen.findByRole('heading', { name: 'Event timeline' })).parentElement!;
+    const timeline = (await screen.findByRole('heading', { name: 'Event timeline' }))
+      .parentElement!;
     const items = await within(timeline).findAllByRole('listitem');
-    expect(items.map((i) => i.firstElementChild!.textContent!.replace(/\s+/g, ' ').trim())).toEqual([
-      'ticket.received',
-      'triage.completed',
-      'draft.invalid ×3',
-      'ticket.needs_attention',
-    ]);
+    expect(items.map((i) => i.firstElementChild!.textContent!.replace(/\s+/g, ' ').trim())).toEqual(
+      ['ticket.received', 'triage.completed', 'draft.invalid ×3', 'ticket.needs_attention']
+    );
 
     const toggle = within(timeline).getByText('details');
     expect(toggle.closest('details')!.open).toBe(false);
@@ -135,9 +137,26 @@ describe('the ticket drawer', () => {
         expect(new URL(request.url).searchParams.get('ticketId')).toBe(OPS_ID);
         return HttpResponse.json({
           interactions: [
-            aiCall('3', { operation: 'draft', provider: 'backup', model: 'openai/gpt-oss-20b', outcome: 'invalid_response', durationMs: 3700, createdAt: '2026-10-12T14:02:20.000Z' }),
-            aiCall('2', { operation: 'draft', provider: 'primary', outcome: 'invalid_response', durationMs: 4200, createdAt: '2026-10-12T14:02:15.000Z' }),
-            aiCall('1', { operation: 'triage', durationMs: 1900, createdAt: '2026-10-12T14:02:08.000Z' }),
+            aiCall('3', {
+              operation: 'draft',
+              provider: 'backup',
+              model: 'openai/gpt-oss-20b',
+              outcome: 'invalid_response',
+              durationMs: 3700,
+              createdAt: '2026-10-12T14:02:20.000Z',
+            }),
+            aiCall('2', {
+              operation: 'draft',
+              provider: 'primary',
+              outcome: 'invalid_response',
+              durationMs: 4200,
+              createdAt: '2026-10-12T14:02:15.000Z',
+            }),
+            aiCall('1', {
+              operation: 'triage',
+              durationMs: 1900,
+              createdAt: '2026-10-12T14:02:08.000Z',
+            }),
           ],
         });
       })
@@ -161,20 +180,28 @@ describe('the ticket drawer', () => {
   });
 
   it('shows a not-found state for an unknown ticket', async () => {
-    server.use(http.get('/api/ops/tickets/:id', () => HttpResponse.json({ error: 'Ticket not found' }, { status: 404 })));
+    server.use(
+      http.get('/api/ops/tickets/:id', () =>
+        HttpResponse.json({ error: 'Ticket not found' }, { status: 404 })
+      )
+    );
     renderDrawer();
     expect(await screen.findByRole('heading', { name: 'Ticket not found' })).toBeInTheDocument();
   });
 
   it('offers a retry when the ticket cannot load', async () => {
-    server.use(http.get('/api/ops/tickets/:id', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+    server.use(
+      http.get('/api/ops/tickets/:id', () => HttpResponse.json({ error: 'boom' }, { status: 500 }))
+    );
     const user = userEvent.setup();
     renderDrawer();
     const retry = await screen.findByRole('button', { name: 'Try again' });
 
     serve('completed');
     await user.click(retry);
-    expect(await screen.findByRole('heading', { name: 'Account locked after password reset' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Account locked after password reset' })
+    ).toBeInTheDocument();
   });
 
   it('closes on Escape and from the close button', async () => {
@@ -209,19 +236,24 @@ describe('the reason and the replay button', () => {
   });
 
   it('resumes at triage when triage did not finish', async () => {
-    serve('needs_attention', { phases: { triage: { status: 'failed' }, draft: { status: 'pending' } } });
+    serve('needs_attention', {
+      phases: { triage: { status: 'failed' }, draft: { status: 'pending' } },
+    });
     renderDrawer();
     expect(await screen.findByText('Triage output invalid')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Replay from triage' })).toBeInTheDocument();
   });
 
-  it.each<TicketStatus>(['completed', 'processing', 'queued'])('is not offered for a %s ticket', async (status) => {
-    serve(status);
-    renderDrawer();
-    await screen.findByRole('heading', { name: 'Account locked after password reset' });
-    expect(screen.queryByRole('button', { name: /replay/i })).not.toBeInTheDocument();
-    expect(screen.queryByText(/Draft output invalid|retries exhausted/)).not.toBeInTheDocument();
-  });
+  it.each<TicketStatus>(['completed', 'processing', 'queued'])(
+    'is not offered for a %s ticket',
+    async (status) => {
+      serve(status);
+      renderDrawer();
+      await screen.findByRole('heading', { name: 'Account locked after password reset' });
+      expect(screen.queryByRole('button', { name: /replay/i })).not.toBeInTheDocument();
+      expect(screen.queryByText(/Draft output invalid|retries exhausted/)).not.toBeInTheDocument();
+    }
+  );
 });
 
 describe('replaying', () => {
@@ -260,17 +292,28 @@ describe('replaying', () => {
     renderDrawer();
 
     await user.click(await screen.findByRole('button', { name: /Replay from/ }));
-    await user.click(within(screen.getByRole('group', { name: 'Confirm replay' })).getByRole('button', { name: 'Confirm' }));
+    await user.click(
+      within(screen.getByRole('group', { name: 'Confirm replay' })).getByRole('button', {
+        name: 'Confirm',
+      })
+    );
 
-    expect(await screen.findByText('TICK-1759993412345-A1B2C3D4 is back in the queue.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('TICK-1759993412345-A1B2C3D4 replayed. The team re-queued it.')
+    ).toBeInTheDocument();
     expect(posts).toBe(1);
     // The confirm step is gone and the button is back.
-    await waitFor(() => expect(screen.queryByRole('group', { name: 'Confirm replay' })).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole('group', { name: 'Confirm replay' })).not.toBeInTheDocument()
+    );
   });
 
   it('shows a friendly message for a 409, because something else already moved it', async () => {
     const user = userEvent.setup();
-    replayWith(409, { error: 'Ticket can only be replayed if status is failed or needs_attention', status: 'processing' });
+    replayWith(409, {
+      error: 'Ticket can only be replayed if status is failed or needs_attention',
+      status: 'processing',
+    });
     renderDrawer();
     await user.click(await screen.findByRole('button', { name: /Replay from/ }));
     await user.click(screen.getByRole('button', { name: 'Confirm' }));
@@ -283,7 +326,9 @@ describe('replaying', () => {
     renderDrawer();
     await user.click(await screen.findByRole('button', { name: /Replay from/ }));
     await user.click(screen.getByRole('button', { name: 'Confirm' }));
-    expect(await screen.findByText("Couldn't requeue it, so it was left as it was. Try again.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Couldn't requeue it, so it was left as it was. Try again.")
+    ).toBeInTheDocument();
   });
 
   it('copes with a request that never reaches the server', async () => {
@@ -292,7 +337,9 @@ describe('replaying', () => {
     renderDrawer();
     await user.click(await screen.findByRole('button', { name: /Replay from/ }));
     await user.click(screen.getByRole('button', { name: 'Confirm' }));
-    expect(await screen.findByText("Couldn't replay the ticket. Check your connection and try again.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Couldn't replay the ticket. Check your connection and try again.")
+    ).toBeInTheDocument();
   });
 
   it('does not let a double click send two replays', async () => {
@@ -302,7 +349,7 @@ describe('replaying', () => {
     await user.click(await screen.findByRole('button', { name: /Replay from/ }));
     const confirmButton = screen.getByRole('button', { name: 'Confirm' });
     await user.dblClick(confirmButton);
-    await screen.findByText(/is back in the queue/);
+    await screen.findByText(/replayed. The team re-queued it/);
     expect(posts).toBe(1);
   });
 });

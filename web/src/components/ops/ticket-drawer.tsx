@@ -2,17 +2,16 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
-import {
-  getOpsEvents,
-  getOpsTicket,
-  listAiInteractions,
-  opsKeys,
-} from '@/lib/ops-api';
+import { getOpsEvents, getOpsTicket, listAiInteractions, opsKeys } from '@/lib/ops-api';
 import { groupTimeline, humanize, replayStage, stateReason } from '@/lib/ops-ticket';
 import type { AiInteraction, OpsTicketDetail } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ReplayButton } from './replay-button';
 import { OpsStatusBadge } from './status-badge';
+
+const CALL_TH =
+  'button-caps border-b border-border py-1.5 pr-2 text-[0.6875rem] whitespace-nowrap text-muted-foreground';
+const CALL_TD = 'border-b border-border py-1.5 pr-2';
 
 type TicketDrawerProps = { ticketId: string | null; onClose: () => void };
 
@@ -27,12 +26,16 @@ export function TicketDrawer({ ticketId, onClose }: TicketDrawerProps) {
 }
 
 function TicketDetails({ ticketId }: { ticketId: string }) {
-  const { data: ticket, error, refetch } = useQuery({ queryKey: opsKeys.ticket(ticketId), queryFn: () => getOpsTicket(ticketId) });
+  const {
+    data: ticket,
+    error,
+    refetch,
+  } = useQuery({ queryKey: opsKeys.ticket(ticketId), queryFn: () => getOpsTicket(ticketId) });
 
   if (error instanceof ApiError && error.status === 404) {
     return (
-      <div className="p-6">
-        <SheetTitle className="text-lg font-semibold">Ticket not found</SheetTitle>
+      <div className="p-5.5">
+        <SheetTitle className="text-xl leading-[1.2] font-semibold">Ticket not found</SheetTitle>
         <SheetDescription className="mt-2 text-sm text-muted-foreground">
           It may have been removed. Close this panel to go back to the list.
         </SheetDescription>
@@ -41,15 +44,17 @@ function TicketDetails({ ticketId }: { ticketId: string }) {
   }
   if (!ticket) {
     return (
-      <div className="p-6">
-        <SheetTitle className="text-lg font-semibold">{error ? "Couldn't load the ticket" : 'Loading…'}</SheetTitle>
+      <div className="p-5.5">
+        <SheetTitle className="text-xl leading-[1.2] font-semibold">
+          {error ? "Couldn't load the ticket" : 'Loading…'}
+        </SheetTitle>
         <SheetDescription className="sr-only">Ticket details</SheetDescription>
         {error ? (
-          <Button variant="outline" size="sm" className="mt-3" onClick={() => void refetch()}>
+          <Button variant="tb" className="mt-3" onClick={() => void refetch()}>
             Try again
           </Button>
         ) : (
-          <div className="mt-4 h-24 animate-pulse rounded-xl bg-muted" />
+          <div className="mt-4 h-24 animate-pulse bg-muted" />
         )}
       </div>
     );
@@ -61,19 +66,23 @@ function TicketDetails({ ticketId }: { ticketId: string }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex flex-col gap-3 border-b border-border p-6 pr-14">
+      <header className="grid gap-2.5 border-b border-border pt-5.5 pr-14 pb-4.5 pl-5.5">
         <div className="flex flex-wrap items-center gap-3">
-          <SheetTitle className="min-w-0 text-lg font-semibold break-words">{ticket.subject}</SheetTitle>
+          <SheetTitle className="min-w-0 text-xl leading-[1.2] font-semibold break-words">
+            {ticket.subject}
+          </SheetTitle>
           <OpsStatusBadge status={ticket.status} />
         </div>
         <SheetDescription asChild>
           <span className="font-mono text-xs text-muted-foreground">{ticket.referenceNumber}</span>
         </SheetDescription>
-        {reason && <p className="text-sm text-warning">{reason}</p>}
-        {canReplay && <ReplayButton ticketId={ticket.id} reference={ticket.referenceNumber} stage={stage} />}
+        {reason && <p className="m-0 text-sm text-priority-high">{reason}</p>}
+        {canReplay && (
+          <ReplayButton ticketId={ticket.id} reference={ticket.referenceNumber} stage={stage} />
+        )}
       </header>
 
-      <div className="flex-1 space-y-8 overflow-y-auto p-6">
+      <div className="grid flex-1 content-start gap-7 overflow-y-auto p-5.5">
         <Triage ticket={ticket} />
         <Messages ticket={ticket} />
         <Timeline ticketId={ticket.id} />
@@ -85,8 +94,8 @@ function TicketDetails({ ticketId }: { ticketId: string }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-3">
-      <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{title}</h3>
+    <section>
+      <h3 className="button-caps m-0 mb-2.5 text-[0.6875rem] text-muted-foreground">{title}</h3>
       {children}
     </section>
   );
@@ -98,20 +107,20 @@ function Triage({ ticket }: { ticket: OpsTicketDetail }) {
     <Section title="Triage">
       {out ? (
         <>
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+          <dl className="m-0 mb-3 grid grid-cols-2 gap-x-6 gap-y-3">
             <Field label="Category" value={humanize(out.category)} />
             <Field label="Priority" value={humanize(out.priority)} />
             <Field label="Sentiment" value={humanize(out.sentiment)} />
             <Field label="Escalate" value={out.escalate ? 'Yes' : 'No'} />
             <Field label="Team" value={humanize(out.recommendedTeam)} />
           </dl>
-          <p className="text-sm">
+          <p className="m-0 text-sm">
             <span className="text-muted-foreground">Summary · </span>
             {out.issueSummary}
           </p>
         </>
       ) : (
-        <p className="text-sm text-muted-foreground">No triage result yet.</p>
+        <p className="m-0 text-sm text-muted-foreground">No triage result yet.</p>
       )}
     </Section>
   );
@@ -121,7 +130,7 @@ function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="font-medium">{value}</dd>
+      <dd className="m-0 font-semibold">{value}</dd>
     </div>
   );
 }
@@ -131,17 +140,19 @@ function Messages({ ticket }: { ticket: OpsTicketDetail }) {
   return (
     <>
       <Section title="Customer message">
-        <p className="rounded-lg border border-border bg-card/60 p-3 text-sm whitespace-pre-wrap break-words">{ticket.description}</p>
+        <p className="m-0 border border-border px-3 py-2.5 text-sm whitespace-pre-wrap [overflow-wrap:anywhere]">
+          {ticket.description}
+        </p>
       </Section>
       <Section title="Draft">
         {draft ? (
-          <div className="space-y-4 text-sm">
-            <Block label="Customer reply" text={draft.customerReply} />
+          <div className="text-sm">
+            <Block label="Customer reply" text={draft.customerReply} first />
             <Block label="Internal note" text={draft.internalNote} />
             <div>
-              <p className="mb-1 text-xs text-muted-foreground">Next actions</p>
+              <p className="mt-2.5 mb-1 text-xs text-muted-foreground">Next actions</p>
               {draft.nextActions.length > 0 ? (
-                <ul className="list-disc space-y-1 pl-5">
+                <ul className="m-0 grid list-disc gap-1 pl-4.5">
                   {draft.nextActions.map((action) => (
                     <li key={action}>{action}</li>
                   ))}
@@ -152,18 +163,20 @@ function Messages({ ticket }: { ticket: OpsTicketDetail }) {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No draft yet.</p>
+          <p className="m-0 text-sm text-muted-foreground">No draft yet.</p>
         )}
       </Section>
     </>
   );
 }
 
-function Block({ label, text }: { label: string; text: string }) {
+function Block({ label, text, first = false }: { label: string; text: string; first?: boolean }) {
   return (
     <div>
-      <p className="mb-1 text-xs text-muted-foreground">{label}</p>
-      <p className="rounded-lg border border-border bg-card/60 p-3 whitespace-pre-wrap break-words">{text}</p>
+      <p className={cn('mb-1 text-xs text-muted-foreground', first ? 'mt-0' : 'mt-2.5')}>{label}</p>
+      <p className="m-0 border border-border px-3 py-2.5 whitespace-pre-wrap [overflow-wrap:anywhere]">
+        {text}
+      </p>
     </div>
   );
 }
@@ -180,16 +193,20 @@ function Timeline({ ticketId }: { ticketId: string }) {
   return (
     <Section title="Event timeline">
       {query.isError && !query.data ? (
-        <p role="alert" className="text-sm text-muted-foreground">Couldn't load the timeline.</p>
+        <p role="alert" className="m-0 text-sm text-muted-foreground">
+          Couldn't load the timeline.
+        </p>
       ) : (
-        <ol className="space-y-2 text-sm">
+        <ol className="m-0 grid list-none gap-2 p-0 font-mono text-xs">
           {items.map((item, i) => (
             <li key={`${item.event}-${i}`} className="flex flex-wrap items-baseline gap-x-3">
-              <span className="font-mono text-xs">
+              <span>
                 {item.event}
                 {item.count > 1 && <span className="text-muted-foreground"> ×{item.count}</span>}
               </span>
-              <span className="text-xs text-muted-foreground">{new Date(item.occurredAt).toLocaleTimeString()}</span>
+              <span className="text-muted-foreground">
+                {new Date(item.occurredAt).toLocaleTimeString()}
+              </span>
               {item.detail && (
                 <details className="w-full text-xs text-muted-foreground">
                   <summary className="cursor-pointer">details</summary>
@@ -201,7 +218,12 @@ function Timeline({ ticketId }: { ticketId: string }) {
         </ol>
       )}
       {query.hasNextPage && (
-        <Button variant="outline" size="sm" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>
+        <Button
+          variant="tb"
+          className="mt-3"
+          disabled={query.isFetchingNextPage}
+          onClick={() => void query.fetchNextPage()}
+        >
           Load more
         </Button>
       )}
@@ -210,39 +232,61 @@ function Timeline({ ticketId }: { ticketId: string }) {
 }
 
 function AiCalls({ ticketId }: { ticketId: string }) {
-  const { data, isError } = useQuery({ queryKey: opsKeys.ai(ticketId), queryFn: () => listAiInteractions(ticketId) });
+  const { data, isError } = useQuery({
+    queryKey: opsKeys.ai(ticketId),
+    queryFn: () => listAiInteractions(ticketId),
+  });
   // The API lists newest first; a ticket's story reads oldest first.
-  const calls: AiInteraction[] = [...(data?.interactions ?? [])].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const calls: AiInteraction[] = [...(data?.interactions ?? [])].sort((a, b) =>
+    a.createdAt.localeCompare(b.createdAt)
+  );
 
   return (
     <Section title="AI calls">
       {isError ? (
-        <p role="alert" className="text-sm text-muted-foreground">Couldn't load the AI calls.</p>
+        <p role="alert" className="m-0 text-sm text-muted-foreground">
+          Couldn't load the AI calls.
+        </p>
       ) : calls.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No AI calls recorded.</p>
+        <p className="m-0 text-sm text-muted-foreground">No AI calls recorded.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs text-muted-foreground">
+          <table className="w-full text-left text-[0.8125rem]">
+            <thead>
               <tr>
-                <th scope="col" className="py-1 pr-3 font-medium">Step</th>
-                <th scope="col" className="py-1 pr-3 font-medium">Model</th>
-                <th scope="col" className="py-1 pr-3 font-medium">Latency</th>
-                <th scope="col" className="py-1 font-medium">Outcome</th>
+                <th scope="col" className={CALL_TH}>
+                  Step
+                </th>
+                <th scope="col" className={CALL_TH}>
+                  Model
+                </th>
+                <th scope="col" className={CALL_TH}>
+                  Latency
+                </th>
+                <th scope="col" className={CALL_TH}>
+                  Outcome
+                </th>
               </tr>
             </thead>
             <tbody>
               {calls.map((call) => (
-                <tr key={call.id} className="border-t border-border/60">
-                  <td className="py-2 pr-3">{call.operation}</td>
-                  <td className="py-2 pr-3 font-mono text-xs">
+                <tr key={call.id}>
+                  <td className={CALL_TD}>{call.operation}</td>
+                  <td className={cn(CALL_TD, 'font-mono text-xs')}>
                     {call.model}
                     {call.provider === 'backup' && (
-                      <span className="ml-2 border border-border px-1.5 py-0.5 font-sans text-xs text-muted-foreground">fallback</span>
+                      <span className="ml-1.5 border border-muted-foreground px-1.5 text-[0.6875rem] text-muted-foreground">
+                        fallback
+                      </span>
                     )}
                   </td>
-                  <td className="py-2 pr-3 tabular-nums">{(call.durationMs / 1000).toFixed(1)}s</td>
-                  <td className={cn('py-2', call.outcome === 'success' ? 'text-success' : 'text-destructive')}>
+                  <td className={CALL_TD}>{(call.durationMs / 1000).toFixed(1)}s</td>
+                  <td
+                    className={cn(
+                      CALL_TD,
+                      call.outcome === 'success' ? 'text-ply-triaged' : 'text-destructive'
+                    )}
+                  >
                     {call.outcome === 'success' ? 'ok' : humanize(call.outcome)}
                   </td>
                 </tr>
@@ -254,4 +298,3 @@ function AiCalls({ ticketId }: { ticketId: string }) {
     </Section>
   );
 }
-

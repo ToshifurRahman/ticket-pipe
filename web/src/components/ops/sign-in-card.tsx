@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { LoaderCircle } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
+import { FormBody, FormPanel } from '@/components/form/form-panel';
+import { FormHeader } from '@/components/form/form-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +17,9 @@ function messageFor(error: unknown): string {
   return "Couldn't sign in. Check your connection and try again.";
 }
 
+const STAMP =
+  'button-caps stamp-tilt border-3 border-current px-4 py-1.5 text-[1.25rem] motion-reduce:animate-none';
+
 export function SignInCard() {
   const queryClient = useQueryClient();
   const [token, setToken] = useState('');
@@ -30,41 +34,52 @@ export function SignInCard() {
   }
 
   return (
-    <section className="mx-auto mt-10 w-full max-w-sm rounded-2xl border border-border bg-card/70 p-6 shadow-xl backdrop-blur">
-      <h1 className="text-xl font-semibold tracking-tight">Ops console</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Sign in with the ops token to see every ticket.</p>
-      <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="ops-token">Ops token</Label>
-          <Input
-            id="ops-token"
-            type="password"
-            autoComplete="current-password"
-            autoFocus
-            value={token}
-            aria-invalid={mutation.isError}
-            aria-describedby={mutation.isError ? 'ops-token-error' : undefined}
-            onChange={(e) => {
-              setToken(e.target.value);
-              if (mutation.isError) mutation.reset();
-            }}
-          />
-          {mutation.isError && (
-            <p id="ops-token-error" role="alert" className="text-sm text-destructive">
-              {messageFor(mutation.error)}
-            </p>
-          )}
-        </div>
-        <Button type="submit" disabled={!token || mutation.isPending}>
-          {mutation.isPending ? (
-            <>
-              <LoaderCircle className="animate-spin" /> Signing in…
-            </>
-          ) : (
-            'Sign in'
-          )}
-        </Button>
-      </form>
-    </section>
+    <div className="mx-auto max-w-140 pt-4">
+      <FormPanel as="form" enter noValidate aria-label="Ops sign in" onSubmit={submit}>
+        <FormHeader
+          kicker="Restricted area"
+          title="Ops console"
+          numberLabel="Access"
+          referenceNumber="Token"
+        />
+        <FormBody>
+          <div className="flex flex-wrap gap-5 pt-2 pb-3">
+            <span className={`${STAMP} animate-stamp-press-delay-1 text-ply-drafted`}>
+              Staff only
+            </span>
+            <span className={`${STAMP} animate-stamp-press-delay-2 text-ply-live-ink`}>
+              Token required
+            </span>
+          </div>
+          <p className="m-0 text-base text-muted-foreground">
+            Sign in with the ops token to see every ticket.
+          </p>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="ops-token">Ops token</Label>
+            <Input
+              id="ops-token"
+              type="password"
+              autoComplete="current-password"
+              autoFocus
+              value={token}
+              aria-invalid={mutation.isError}
+              aria-describedby={mutation.isError ? 'ops-token-error' : undefined}
+              onChange={(e) => {
+                setToken(e.target.value);
+                if (mutation.isError) mutation.reset();
+              }}
+            />
+            {mutation.isError && (
+              <p id="ops-token-error" role="alert" className="m-0 text-sm text-destructive">
+                {messageFor(mutation.error)}
+              </p>
+            )}
+          </div>
+          <Button variant="solid" type="submit" disabled={!token || mutation.isPending}>
+            {mutation.isPending ? 'Signing in...' : 'Sign in'}
+          </Button>
+        </FormBody>
+      </FormPanel>
+    </div>
   );
 }

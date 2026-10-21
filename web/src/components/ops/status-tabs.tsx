@@ -1,6 +1,6 @@
+import { Button } from '@/components/ui/button';
 import type { OpsTab } from '@/lib/ops-params';
 import type { OpsTicketList } from '@/lib/types';
-import { cn } from '@/lib/utils';
 
 const TABS: { tab: OpsTab; label: string }[] = [
   { tab: 'all', label: 'All' },
@@ -26,20 +26,22 @@ export function StatusTabs({ tab, counts, onChange }: StatusTabsProps) {
       {TABS.map(({ tab: value, label }) => {
         const selected = value === tab;
         return (
-          <button
+          <Button
             key={value}
+            variant="tb"
             role="tab"
             type="button"
             aria-selected={selected}
             onClick={() => onChange(value)}
-            className={cn(
-              'inline-flex items-center gap-2 border px-3 py-1.5 text-sm font-medium',
-              selected ? 'border-foreground bg-secondary text-foreground' : 'border-border text-muted-foreground hover:text-foreground'
-            )}
+            className="items-baseline"
           >
             {label}
-            {counts && <span className="font-mono text-xs tabular-nums text-muted-foreground">{countFor(value, counts)}</span>}
-          </button>
+            {counts && (
+              <span className="font-mono text-xs font-normal tracking-normal text-muted-foreground">
+                {countFor(value, counts)}
+              </span>
+            )}
+          </Button>
         );
       })}
     </div>
