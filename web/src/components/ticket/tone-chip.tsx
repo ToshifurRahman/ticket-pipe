@@ -69,7 +69,7 @@ export function ToneChip({
       ref={chipRef}
       style={style}
       className={cn(
-        'label-caps stamp-tilt inline-block border px-2 py-0.5 text-xs',
+        'label-caps stamp-tilt inline-block border px-2 py-0.5 text-[0.6875rem]',
         variant === 'outline' ? OUTLINE[tone] : cn(FILL[tone], 'border-ply-triaged-foreground text-ply-triaged-foreground'),
         className
       )}

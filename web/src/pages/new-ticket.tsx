@@ -17,7 +17,7 @@ export function NewTicketPage() {
         </p>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+      <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_380px] md:items-start">
         {created ? (
           <TicketSuccess referenceNumber={created} onSubmitAnother={() => setCreated(null)} />
         ) : (

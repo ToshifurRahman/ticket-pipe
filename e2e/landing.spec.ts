@@ -18,8 +18,8 @@ test('the demo plays to the reply without touching the API', async ({ page }) =>
     if (url.includes('/api/') || url.includes('socket.io')) calls.push(url);
   });
   await page.goto('/');
-  await expect(page.getByText('Reviewing your request…')).toBeVisible();
-  await expect(page.getByText('Reply from support')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText('Reading your request...')).toBeVisible();
+  await expect(page.getByText(/^Reply from support/)).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole('button', { name: 'Replay' })).toBeVisible();
   expect(calls).toEqual([]);
 });
@@ -31,19 +31,19 @@ test('the demo does not autoplay again after a reload in the same tab', async ({
     if (url.includes('/api/') || url.includes('socket.io')) calls.push(url);
   });
   await page.goto('/');
-  await expect(page.getByText('Reply from support')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(/^Reply from support/)).toBeVisible({ timeout: 15_000 });
   await page.reload();
-  await expect(page.getByText('Reply from support')).toBeVisible({ timeout: 1_000 });
-  await expect(page.getByText('Reviewing your request…')).toHaveCount(0);
+  await expect(page.getByText(/^Reply from support/)).toBeVisible({ timeout: 1_000 });
+  await expect(page.getByText('Reading your request...')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Replay' })).toBeVisible();
   expect(calls).toEqual([]);
 });
 
 test('a reload before the reply lands plays the demo again', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByText('Reviewing your request…')).toBeVisible();
+  await expect(page.getByText('Reading your request...')).toBeVisible();
   await page.reload();
-  await expect(page.getByText('Reviewing your request…')).toBeVisible();
+  await expect(page.getByText('Reading your request...')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Replay' })).toHaveCount(0);
 });
 
@@ -68,7 +68,7 @@ test('the finished demo has the same layout played or restored at 360px', async 
 test('reduced motion shows the finished demo straight away', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
-  await expect(page.getByText('Reply from support')).toBeVisible({ timeout: 1_000 });
+  await expect(page.getByText(/^Reply from support/)).toBeVisible({ timeout: 1_000 });
   await expect(page.getByRole('button', { name: 'Replay' })).toHaveCount(0);
 });
 

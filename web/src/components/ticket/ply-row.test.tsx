@@ -21,9 +21,9 @@ describe('PlyRow', () => {
     expect(stamped()).toBe(2);
   });
 
-  it('strikes the on-hold ply and marks none current', () => {
+  it('puts Reply on hold and marks none current', () => {
     render(<PlyRow plies={ticketPlies(ticketAt('failed'))} />);
     expect(screen.queryByRole('listitem', { current: 'step' })).not.toBeInTheDocument();
-    expect(screen.getAllByRole('listitem')[2]).toHaveAttribute('data-state', 'on-hold');
+    expect(screen.getAllByRole('listitem')[3]).toHaveAttribute('data-state', 'on-hold');
   });
 });

@@ -15,12 +15,6 @@ const ERROR_COPY: Record<number, string> = {
   429: 'Too many requests. Please try again later.',
 };
 
-/** Whether the thread may offer an email; shares the card's query, so it costs no request. */
-export function useEmailOffered(ticketId: string): boolean {
-  const { data } = useQuery({ queryKey: notificationQueryKey(ticketId), queryFn: () => getNotification(ticketId) });
-  return !!data?.available && data.state === 'none';
-}
-
 /** "Email me when it's ready". Hidden when email is off or the ticket already has its reply. */
 export function NotifyCard({ ticketId }: { ticketId: string }) {
   const queryClient = useQueryClient();
@@ -50,11 +44,11 @@ export function NotifyCard({ ticketId }: { ticketId: string }) {
 
   if (data.state === 'confirmed' || data.state === 'sent') {
     return (
-      <Card title="You’ll get an email">
+      <Card title="You'll get an email">
         <p role="status">
-          {data.state === 'sent' ? 'We emailed' : 'We’ll email'}{' '}
+          {data.state === 'sent' ? 'We emailed' : "We'll email"}{' '}
           <span className="font-medium text-foreground">{data.maskedEmail}</span>{' '}
-          {data.state === 'sent' ? 'about this ticket.' : 'when there’s news.'}
+          {data.state === 'sent' ? 'about this ticket.' : "when there's news."}
         </p>
       </Card>
     );
@@ -70,7 +64,7 @@ export function NotifyCard({ ticketId }: { ticketId: string }) {
       await mutation.mutateAsync({ email: value, turnstileToken: token });
     } catch (err) {
       const status = err instanceof ApiError ? err.status : 0;
-      setError(ERROR_COPY[status] ?? 'We couldn’t send the confirmation email. Please try again.');
+      setError(ERROR_COPY[status] ?? "We couldn't send the confirmation email. Please try again.");
       // A 409 means someone already set an address; show the real state instead of the form.
       if (status === 409) void queryClient.invalidateQueries({ queryKey: notificationQueryKey(ticketId) });
     } finally {
@@ -79,9 +73,9 @@ export function NotifyCard({ ticketId }: { ticketId: string }) {
   }
 
   return (
-    <Card title="Don’t want to wait?">
+    <Card title="Don't want to wait?">
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
-        <p>We’ll email you when your reply is ready. You’ll confirm your address first.</p>
+        <p>We&apos;ll email you when your reply is ready. You&apos;ll confirm your address first.</p>
         <div className="flex flex-col gap-2">
           <Label htmlFor="notify-email">Email address</Label>
           <Input

@@ -3,7 +3,7 @@ import { FormHeader } from '@/components/form/form-header';
 import { FormFoot, FormPanel } from '@/components/form/form-panel';
 import { TicketThread } from '@/components/ticket/ticket-thread';
 import { Button } from '@/components/ui/button';
-import { DEMO_MESSAGE, DEMO_REFERENCE, DEMO_REPLY, DEMO_SUBJECT } from './demo-script';
+import { DEMO_MESSAGE, DEMO_REFERENCE, DEMO_REPLY, DEMO_SUBJECT, DEMO_TIMES } from './demo-script';
 import { useDemoPlayback } from './use-demo-playback';
 
 // A sample ticket that plays through the real form header, ply stack and thread. It is
@@ -25,13 +25,11 @@ export function DemoTicket({ className }: { className?: string }) {
           referenceNumber={DEMO_REFERENCE}
         />
         <PlyRow plies={frame.plies} liveClock />
-        <div className="p-4 sm:p-5.5">
-          <TicketThread demo description={DEMO_MESSAGE} createdAt={new Date(0).toISOString()} support={frame.support} />
-        </div>
+        <TicketThread demo description={DEMO_MESSAGE} createdAt={DEMO_TIMES[0]} support={frame.support} />
       </div>
       {canReplay && (
         <FormFoot className="justify-end">
-          <Button variant="outline" size="sm" onClick={replay}>
+          <Button variant="tb" onClick={replay}>
             Replay
           </Button>
         </FormFoot>

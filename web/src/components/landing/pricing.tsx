@@ -26,23 +26,23 @@ function TierCard({ tier, index }: { tier: Tier; index: number }) {
     <li
       ref={ref}
       style={style}
-      className={cn('flex min-w-0 flex-col gap-4 p-7', tier.featured && 'on-hero', className)}
+      className={cn('flex min-w-0 flex-col gap-3.5 p-7', tier.featured && 'on-hero', className)}
     >
       <div className="flex items-start justify-between gap-3">
-        <h3 className="label-caps text-base">{tier.name}</h3>
+        <h3 className="button-caps text-base">{tier.name}</h3>
         {tier.featured && <PopularStamp />}
       </div>
       <p className="flex items-baseline gap-1">
-        <span className="font-mono text-4xl tracking-tight">{tier.price}</span>
+        <span className="font-mono text-[2.75rem] leading-none font-bold">{tier.price}</span>
         {tier.cadence && <span className="font-mono text-sm opacity-80">{tier.cadence}</span>}
       </p>
       <p className={tier.featured ? 'opacity-85' : 'text-muted-foreground'}>{tier.blurb}</p>
-      <ul className="flex flex-col gap-1.5 text-sm">
+      <ul className="flex flex-col gap-1.5 text-[0.9375rem]">
         {tier.features.map((feature) => (
           <li key={feature}>{feature}</li>
         ))}
       </ul>
-      <Button asChild variant={tier.featured ? 'default' : 'outline'} className="mt-auto h-12">
+      <Button asChild variant={tier.featured ? 'default' : 'outline'} className="mt-auto">
         <Link to="/new" className="no-underline hover:no-underline">
           {tier.cta}
         </Link>
@@ -58,7 +58,7 @@ function PopularStamp() {
     <p
       ref={ref}
       style={style}
-      className={cn('label-caps stamp-tilt shrink-0 border-(length:--rule-width) border-current px-2 py-0.5 text-xs', stampClass)}
+      className={cn('button-caps stamp-tilt shrink-0 border-(length:--rule-width) border-current px-2.25 py-0.75 text-xs', stampClass)}
     >
       Popular
     </p>

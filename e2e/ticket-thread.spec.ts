@@ -48,7 +48,7 @@ test('a submitted ticket gets its reply live on the thread page', async ({ page 
 
   await expect(page.getByRole('heading', { name: 'Report export never starts' })).toBeVisible();
   await expect(page.getByText('The CSV export button spins and then nothing downloads.')).toBeVisible();
-  await expect(page.getByRole('status')).toHaveText(/Reviewing your request…|Writing a reply…/);
+  await expect(page.getByRole('status')).toHaveText(/Reading your request...|Writing a reply.../);
 
   await expectReply(page);
   await expect(page.getByRole('status')).toHaveCount(0);

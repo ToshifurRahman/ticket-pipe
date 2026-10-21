@@ -11,17 +11,18 @@ const SURFACE: Record<Ply['key'], string> = {
   reply: 'bg-ply-replied text-ply-replied-foreground',
 };
 
+// Waiting plies are blank paper: no fill, muted print.
 const STATE_SURFACE: Partial<Record<PlyState, string>> = {
   live: 'bg-ply-live text-ply-live-foreground',
   'on-hold': 'bg-ply-on-hold text-ply-on-hold-foreground',
-  waiting: 'bg-background text-muted-foreground',
+  waiting: 'bg-transparent text-muted-foreground',
 };
 
 const STATE_TEXT: Record<PlyState, string> = {
-  done: '',
+  done: '-',
   live: 'in progress',
   waiting: '-',
-  'on-hold': 'on hold',
+  'on-hold': '-',
 };
 
 const SR_STATE: Record<PlyState, string> = {
@@ -43,33 +44,29 @@ export function PlyRow({ plies, liveClock = false }: { plies: Ply[]; liveClock?:
     <ol aria-label="Progress" className="grid grid-cols-4 border-b border-rule">
       {plies.map((ply) => {
         const stamp = stampProps(counts, ply.key);
+        const filled = ply.state !== 'waiting';
         return (
           <li
             key={stamp.key}
             data-state={ply.state}
             aria-current={ply.state === 'live' ? 'step' : undefined}
             className={cn(
-              'flex min-w-0 flex-col gap-1 px-1.5 py-3 sm:gap-2 sm:px-4 sm:py-4',
-              ply.n > 1 && 'border-l border-rule',
+              'min-h-18 min-w-0 border-r px-2 py-2 sm:px-3.5 sm:py-2.5 last:border-r-0',
+              filled && 'border-r-transparent',
               STATE_SURFACE[ply.state] ?? SURFACE[ply.key],
               stamp.className
             )}
           >
-            <span aria-hidden className="font-mono text-xs">
+            <span aria-hidden className="block font-mono text-xs">
               {ply.n}
             </span>
-            <span
-              className={cn(
-                'label-caps text-xs tracking-normal sm:text-sm sm:tracking-(--tracking-label)',
-                ply.state === 'on-hold' && 'line-through decoration-2'
-              )}
-            >
+            <span className="label-caps mt-1.5 block text-[0.6875rem] tracking-[0.04em] sm:text-[0.8125rem] sm:tracking-(--tracking-label)">
               {ply.label}
               <span className="sr-only">
                 {`, stage ${ply.n}, ${SR_STATE[ply.state]}`}
               </span>
             </span>
-            <span className="font-mono text-xs">
+            <span className="mt-1 block font-mono text-[0.625rem] sm:text-xs">
               {ply.time ? (
                 printedTime(ply.time)
               ) : liveClock && ply.state === 'live' ? (

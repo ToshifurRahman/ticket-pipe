@@ -32,7 +32,7 @@ export type PlyKey = 'received' | 'triage' | 'draft' | 'reply';
 /** One cell of the form's ply stack. `time` is an ISO timestamp, set once the stage landed. */
 export type Ply = { n: 1 | 2 | 3 | 4; key: PlyKey; label: string; state: PlyState; time: string | null };
 
-// waiting / live / done wording per stage; on hold reads like waiting, struck through.
+// waiting / live / done wording per stage.
 const PLY_LABELS: Record<PlyKey, [waiting: string, live: string, done: string]> = {
   received: ['Received', 'Received', 'Received'],
   triage: ['Triage', 'Triaging', 'Triaged'],
@@ -58,19 +58,17 @@ export function onHoldTime(ticket: Pick<TicketDetail, 'events' | 'status'>): str
 }
 
 /**
- * Received, Triage, Draft, Reply. The first unfinished stage is live while the pipeline works
- * and on hold when the team has the ticket: then nothing is live. Reply is never live.
+ * Received, Triage, Draft, Reply. The first unfinished stage is live while the pipeline works.
+ * When the team has the ticket the first three plies read done and Reply is on hold, as the
+ * Relay Full Demo draws it; nothing is live. Reply is never live.
  */
 export function ticketPlies(ticket: TicketDetail): Ply[] {
   const { status, phases } = ticket;
-  const done = [
-    true,
-    phases.triage.status === 'completed',
-    phases.draft.status === 'completed',
-    status === 'completed',
-  ];
   const working = status === 'queued' || status === 'processing';
   const held = status === 'failed' || status === 'needs_attention';
+  const done = held
+    ? [true, true, true, false]
+    : [true, phases.triage.status === 'completed', phases.draft.status === 'completed', status === 'completed'];
   const firstOpen = done.indexOf(false);
   const times = [
     ticket.createdAt,
@@ -81,20 +79,14 @@ export function ticketPlies(ticket: TicketDetail): Ply[] {
   const keys: PlyKey[] = ['received', 'triage', 'draft', 'reply'];
 
   return keys.map((key, i) => {
-    const state: PlyState = done[i]
-      ? 'done'
-      : i === firstOpen && i < 3 && working
-        ? 'live'
-        : i === firstOpen && i < 3 && held
-          ? 'on-hold'
-          : 'waiting';
+    const state: PlyState = done[i] ? 'done' : held ? 'on-hold' : i === firstOpen && i < 3 && working ? 'live' : 'waiting';
     const [waiting, live, finished] = PLY_LABELS[key];
     return {
       n: (i + 1) as Ply['n'],
       key,
       state,
-      label: state === 'done' ? finished : state === 'live' ? live : waiting,
-      time: state === 'done' ? times[i] : null,
+      label: state === 'on-hold' ? 'On hold' : state === 'done' ? finished : state === 'live' ? live : waiting,
+      time: state === 'done' ? times[i] : state === 'on-hold' ? onHoldTime(ticket) : null,
     };
   });
 }

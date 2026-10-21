@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { FormHeader } from '@/components/form/form-header';
 import { FormPanel } from '@/components/form/form-panel';
-import { useEmailOffered } from '@/components/ticket/notify-card';
 import { OfficeUse } from '@/components/ticket/office-use';
 import { PlyRow } from '@/components/ticket/ply-row';
 import { TicketClosed } from '@/components/ticket/ticket-closed';
@@ -69,13 +68,12 @@ function LiveTicket({ reference }: { reference: string }) {
 }
 
 function TicketForm({ ticket }: { ticket: TicketDetail }) {
-  const emailOffered = useEmailOffered(ticket.id);
   const plies = ticketPlies(ticket);
   const support = supportSide(ticket);
   const badges = support.kind === 'working' || support.kind === 'replied' || support.kind === 'on-hold' ? support.badges : null;
 
   return (
-    <div className="grid w-full items-start gap-8 lg:grid-cols-[minmax(0,8fr)_minmax(0,4fr)]">
+    <div className="grid w-full items-start gap-8 md:grid-cols-[minmax(0,8fr)_minmax(0,4fr)]">
       <FormPanel as="article" enter aria-label="Ticket">
         <FormHeader
           kicker="Service ticket · Customer copy"
@@ -84,14 +82,7 @@ function TicketForm({ ticket }: { ticket: TicketDetail }) {
           copyable
         />
         <PlyRow plies={plies} />
-        <div className="p-4 sm:p-5.5">
-          <TicketThread
-            description={ticket.description}
-            createdAt={ticket.createdAt}
-            support={support}
-            emailOffered={emailOffered}
-          />
-        </div>
+        <TicketThread description={ticket.description} createdAt={ticket.createdAt} support={support} />
         {support.kind === 'replied' && <TicketClosed />}
       </FormPanel>
       <OfficeUse ticket={ticket} plies={plies} badges={badges} />

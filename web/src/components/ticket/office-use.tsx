@@ -1,5 +1,5 @@
 import { printedTime } from '@/lib/relative-time';
-import { humanize, onHoldTime, type Ply, type TriageBadges } from '@/lib/ticket-thread';
+import { humanize, type Ply, type TriageBadges } from '@/lib/ticket-thread';
 import type { TicketDetail } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { NotifyCard } from './notify-card';
@@ -25,10 +25,9 @@ export function OfficeUse({
   badges: TriageBadges | null;
 }) {
   const counts = useStampOnChange({ category: badges?.category ?? '', priority: badges?.priority ?? '' });
-  const held = onHoldTime(ticket);
 
   return (
-    <aside aria-label="Office use" className="flex flex-col gap-6">
+    <aside aria-label="Office use" className="flex flex-col gap-5.5">
       <h2 className="label-caps text-sm text-muted-foreground">Office use</h2>
 
       <ul aria-label="Triage" className="flex flex-wrap gap-3">
@@ -50,9 +49,8 @@ export function OfficeUse({
 
       <dl className="flex flex-col">
         {plies.map((ply) => (
-          <TimeRow key={ply.key} label={TIME_LABELS[ply.key]} time={ply.time} />
+          <TimeRow key={ply.key} label={ply.state === 'on-hold' ? 'On hold' : TIME_LABELS[ply.key]} time={ply.time} />
         ))}
-        {held && <TimeRow label="On hold" time={held} />}
       </dl>
 
       <NotifyCard ticketId={ticket.id} />
@@ -83,13 +81,13 @@ function Stamp({
   return (
     <li key={stamp.key} className={stamp.className}>
       {value && tone ? (
-        <ToneChip tone={tone} className="border-2 px-3 py-1.5 text-sm">
+        <ToneChip tone={tone} className="border-2 px-3 py-1.5 text-[0.8125rem]">
           {text}
         </ToneChip>
       ) : (
         <span
           className={cn(
-            'label-caps stamp-tilt inline-block border px-3 py-1.5 text-sm',
+            'label-caps stamp-tilt inline-block border px-3 py-1.5 text-[0.8125rem]',
             value ? 'border-input text-foreground' : 'border-rule text-muted-foreground'
           )}
         >
@@ -103,7 +101,7 @@ function Stamp({
 function TimeRow({ label, time }: { label: string; time: string | null }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-rule py-2 last:border-b-0">
-      <dt className="label-caps text-xs text-muted-foreground">{label}</dt>
+      <dt className="label-caps text-[0.6875rem] text-muted-foreground">{label}</dt>
       <dd className="font-mono text-xs">{time ? printedTime(time) : '-'}</dd>
     </div>
   );
