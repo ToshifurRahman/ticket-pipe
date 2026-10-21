@@ -52,6 +52,7 @@
       "print-form": { "$type": "duration", "$value": "480ms", "$description": "The sample form printing in, after the headline.", "$extensions": { "relay.css": ["duration-print-form"] } },
       "print-cta": { "$type": "duration", "$value": "135ms", "$description": "The hero button printing in, last.", "$extensions": { "relay.css": ["duration-print-cta"] } },
       "print-cta-delay": { "$type": "duration", "$value": "750ms", "$description": "When the hero button starts printing.", "$extensions": { "relay.css": ["duration-print-cta-delay"] } },
+      "press-delay": { "$type": "duration", "$value": "120ms", "$description": "When a confirmed stamp lands after the click.", "$extensions": { "relay.css": ["duration-press-delay"] } },
       "nudge": { "$type": "duration", "$value": "240ms", "$description": "One press of the idle nudge.", "$extensions": { "relay.css": ["duration-nudge"] } },
       "print-line": { "$type": "duration", "$value": "180ms", "$description": "One line of a reply printing, like an impact printer.", "$extensions": { "relay.css": ["duration-print-line"] } }
     },

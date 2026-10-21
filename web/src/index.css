@@ -192,6 +192,10 @@
   animation: stamp-press var(--duration-press) step-end both;
 }
 
+@utility animate-stamp-press-late {
+  animation: stamp-press var(--duration-press) step-end var(--duration-press-delay) both;
+}
+
 /* The page prints in on load: headline, then the form, then the button. Backwards fill, so
    nothing stays clipped once it has run. */
 @keyframes print-in {

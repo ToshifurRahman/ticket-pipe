@@ -26,11 +26,19 @@ describe('confirm page', () => {
     let confirms = 0;
     server.use(
       http.get('/api/notifications/confirm/abc', () =>
-        HttpResponse.json({ valid: true, referenceNumber: TICKET_REF, maskedEmail: 't•••@example.test' })
+        HttpResponse.json({
+          valid: true,
+          referenceNumber: TICKET_REF,
+          maskedEmail: 't•••@example.test',
+        })
       ),
       http.post('/api/notifications/confirm', () => {
         confirms++;
-        return HttpResponse.json({ referenceNumber: TICKET_REF, status: 'processing', maskedEmail: 't•••@example.test' });
+        return HttpResponse.json({
+          referenceNumber: TICKET_REF,
+          status: 'processing',
+          maskedEmail: 't•••@example.test',
+        });
       })
     );
     renderPage();
@@ -39,15 +47,22 @@ describe('confirm page', () => {
     expect(confirms).toBe(0);
     await userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
-    expect(await screen.findByRole('heading', { name: 'You’re all set' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'View my ticket' })).toHaveAttribute('href', `/t/${TICKET_REF}`);
+    expect(await screen.findByRole('heading', { name: "You're all set" })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View my ticket' })).toHaveAttribute(
+      'href',
+      `/t/${TICKET_REF}`
+    );
     expect(confirms).toBe(1);
   });
 
   it('shows a neutral message for an expired or used link', async () => {
-    server.use(http.get('/api/notifications/confirm/abc', () => HttpResponse.json({ valid: false })));
+    server.use(
+      http.get('/api/notifications/confirm/abc', () => HttpResponse.json({ valid: false }))
+    );
     renderPage();
-    expect(await screen.findByRole('heading', { name: /expired or was already used/ })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /expired or was already used/ })
+    ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Confirm' })).not.toBeInTheDocument();
   });
 });
