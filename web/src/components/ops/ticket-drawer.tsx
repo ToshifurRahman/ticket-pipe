@@ -67,8 +67,8 @@ function TicketDetails({ ticketId }: { ticketId: string }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="grid gap-2.5 border-b border-border pt-5.5 pr-24 pb-4.5 pl-5.5">
-        <div className="flex flex-wrap items-center gap-3">
+      <header className="grid gap-2.5 border-b border-border p-5.5 pb-4.5">
+        <div className="flex flex-wrap items-center gap-3 pr-18.5">
           <SheetTitle className="min-w-0 text-xl leading-[1.2] font-semibold break-words">
             {ticket.subject}
           </SheetTitle>
