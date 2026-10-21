@@ -40,7 +40,7 @@ export function LegalPage({ docKey }: { docKey: LegalDocKey }) {
           </Button>
         ))}
       </nav>
-      <article className="animate-print-in-2 leading-[1.55]">
+      <article className="animate-print-in-2">
         <header>
           <p className="button-caps mb-2.5 text-xs text-muted-foreground">Legal · {doc.title}</p>
           <h1 className="text-[clamp(2.25rem,5vw,4rem)] leading-none font-bold tracking-[-0.035em] text-balance">
