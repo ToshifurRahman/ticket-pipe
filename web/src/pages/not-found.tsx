@@ -17,7 +17,7 @@ export function NotFoundPage() {
           <h1 className="mt-8 font-label text-[clamp(4rem,11vw,10.5rem)] leading-[0.85] font-bold tracking-[-0.01em] uppercase">
             Page not found
           </h1>
-          <div className="leading-[1.55]">
+          <div>
             <span className="button-caps stamp-tilt mt-5 mb-2 inline-block border-3 border-destructive px-4 py-2 text-lg leading-[normal] text-destructive">
               No such page
             </span>
