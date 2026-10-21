@@ -1,7 +1,6 @@
-import { Link, NavLink, useParams } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { DEMO_NOTICE, LEGAL_DOCS, type LegalDocKey, type LegalParagraph } from '@/content/legal';
-import { NotFoundPage } from './not-found';
 
 const TABS: { key: LegalDocKey; label: string }[] = [
   { key: 'privacy', label: 'Privacy' },
@@ -27,10 +26,8 @@ function Paragraph({ text }: { text: LegalParagraph }) {
 }
 
 // One page for both documents: the tabs are links, so each document keeps its own URL.
-export function LegalPage() {
-  const { doc: key } = useParams();
-  if (!key || !Object.hasOwn(LEGAL_DOCS, key)) return <NotFoundPage />;
-  const doc = LEGAL_DOCS[key as LegalDocKey];
+export function LegalPage({ docKey }: { docKey: LegalDocKey }) {
+  const doc = LEGAL_DOCS[docKey];
 
   return (
     <div className="mx-auto w-full max-w-190">

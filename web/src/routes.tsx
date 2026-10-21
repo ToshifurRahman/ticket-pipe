@@ -44,9 +44,12 @@ export function AppRoutes() {
             </Suspense>
           }
         />
-        <Route path="legal/:doc" element={<LegalPage />} />
+        <Route path="legal/privacy" element={<LegalPage docKey="privacy" />} />
+        <Route path="legal/terms" element={<LegalPage docKey="terms" />} />
         <Route path="privacy" element={<Navigate to="/legal/privacy" replace />} />
         <Route path="terms" element={<Navigate to="/legal/terms" replace />} />
+      </Route>
+      <Route element={<PublicLayout bare />}>
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route
