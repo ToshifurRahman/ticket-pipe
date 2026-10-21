@@ -52,7 +52,12 @@ export function ReplayButton({ ticketId, reference, stage }: ReplayButtonProps) 
       >
         Confirm
       </Button>
-      <Button variant="tb" disabled={mutation.isPending} onClick={() => setConfirming(false)}>
+      <Button
+        variant="tb"
+        className="h-(--control-height-sm)"
+        disabled={mutation.isPending}
+        onClick={() => setConfirming(false)}
+      >
         Cancel
       </Button>
     </div>
