@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
+import { Stamp } from '@/components/form/stamp';
 import { FormBody, FormPanel } from '@/components/form/form-panel';
 import { FormHeader } from '@/components/form/form-header';
 import { Button } from '@/components/ui/button';
@@ -17,8 +18,7 @@ function messageFor(error: unknown): string {
   return "Couldn't sign in. Check your connection and try again.";
 }
 
-const STAMP =
-  'button-caps stamp-tilt border-3 border-current px-4 py-1.5 text-[1.25rem] motion-reduce:animate-none';
+const STAMP = 'border-3 border-current px-4 py-1.5 text-[1.25rem] motion-reduce:animate-none';
 
 export function SignInCard() {
   const queryClient = useQueryClient();
@@ -44,12 +44,12 @@ export function SignInCard() {
         />
         <FormBody>
           <div className="flex flex-wrap gap-5 pt-2 pb-3">
-            <span className={`${STAMP} animate-stamp-press-delay-1 text-ply-drafted`}>
+            <Stamp className={`${STAMP} animate-stamp-press-delay-1 text-ply-drafted`}>
               Staff only
-            </span>
-            <span className={`${STAMP} animate-stamp-press-delay-2 text-ply-live-ink`}>
+            </Stamp>
+            <Stamp className={`${STAMP} animate-stamp-press-delay-2 text-ply-live-ink`}>
               Token required
-            </span>
+            </Stamp>
           </div>
           <p className="m-0 text-base text-muted-foreground">
             Sign in with the ops token to see every ticket.

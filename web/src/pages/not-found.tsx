@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Stamp } from '@/components/form/stamp';
 import { Button } from '@/components/ui/button';
 
 // A filed-away band, as the landing stages are: the strip carries the time the page was printed.
@@ -18,9 +19,9 @@ export function NotFoundPage() {
             Page not found
           </h1>
           <div>
-            <span className="button-caps stamp-tilt mt-5 mb-2 inline-block border-3 border-destructive px-4 py-2 text-lg leading-[normal] text-destructive">
+            <Stamp className="mt-5 mb-2 border-3 border-destructive px-4 py-2 text-lg leading-[normal] text-destructive">
               No such page
-            </span>
+            </Stamp>
             <p className="mt-5 mb-7 max-w-[24em] text-xl leading-[1.55]">The page you are looking for does not exist.</p>
             <Button asChild variant="solid">
               <Link to="/" className="text-background no-underline hover:no-underline">

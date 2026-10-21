@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router-dom';
+import { Stamp } from '@/components/form/stamp';
 import { Wordmark } from '@/components/brand-mark';
 import { OpsHeaderActions } from '@/components/ops/ops-header-actions';
 import { SkipLink } from '@/components/skip-link';
@@ -13,9 +14,7 @@ export function OpsLayout() {
       <header className="border-b border-border bg-background">
         <div className="mx-auto flex h-16 w-full max-w-(--page-width) items-center gap-4 px-4">
           <Wordmark />
-          <span className="button-caps stamp-tilt border-2 border-ply-drafted px-2 py-0.5 text-xs text-ply-drafted">
-            Ops
-          </span>
+          <Stamp className="border-2 border-ply-drafted px-2 py-0.5 text-xs text-ply-drafted">Ops</Stamp>
           <div className="ml-auto flex items-center gap-3.5">
             <OpsHeaderActions />
           </div>

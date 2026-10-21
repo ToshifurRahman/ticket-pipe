@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { NotifyCard } from './notify-card';
 import { ToneChip, toneForCategory, toneForPriority, type Tone } from './tone-chip';
 import { stampProps, useStampOnChange } from './use-stamp-on-change';
+import { Stamp } from '@/components/form/stamp';
 
 const TIME_LABELS: Record<Ply['key'], string> = {
   received: 'Received',
@@ -31,14 +32,14 @@ export function OfficeUse({
       <h2 className="label-caps text-sm text-muted-foreground">Office use</h2>
 
       <ul aria-label="Triage" className="flex flex-wrap gap-3">
-        <Stamp
+        <OfficeStamp
           id="category"
           counts={counts}
           label="Category"
           value={badges ? humanize(badges.category) : null}
           tone={badges ? toneForCategory(badges.category) : null}
         />
-        <Stamp
+        <OfficeStamp
           id="priority"
           counts={counts}
           label="Priority"
@@ -58,7 +59,7 @@ export function OfficeUse({
   );
 }
 
-function Stamp({
+function OfficeStamp({
   id,
   counts,
   label,
@@ -85,14 +86,15 @@ function Stamp({
           {text}
         </ToneChip>
       ) : (
-        <span
+        <Stamp
+          caps="label"
           className={cn(
-            'label-caps stamp-tilt inline-block border px-3 py-1.5 text-meta',
+            'border px-3 py-1.5 text-meta',
             value ? 'border-input text-foreground' : 'border-rule text-muted-foreground'
           )}
         >
           {text}
-        </span>
+        </Stamp>
       )}
     </li>
   );

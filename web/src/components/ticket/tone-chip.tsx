@@ -1,3 +1,4 @@
+import { Stamp } from '@/components/form/stamp';
 import { cn } from '@/lib/utils';
 
 export type Tone = 'billing' | 'account' | 'bug' | 'tech' | 'feature' | 'low' | 'medium' | 'high' | 'urgent';
@@ -65,16 +66,17 @@ export function ToneChip({
   children: React.ReactNode;
 }) {
   return (
-    <span
+    <Stamp
+      caps="label"
       ref={chipRef}
       style={style}
       className={cn(
-        'label-caps stamp-tilt inline-block border px-2 py-0.5 text-caption',
+        'border px-2 py-0.5 text-caption',
         variant === 'outline' ? OUTLINE[tone] : cn(FILL[tone], 'border-ply-triaged-foreground text-ply-triaged-foreground'),
         className
       )}
     >
       {children}
-    </span>
+    </Stamp>
   );
 }

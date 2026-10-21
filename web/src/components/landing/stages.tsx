@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { ToneChip, type Tone } from '@/components/ticket/tone-chip';
 import { DEMO_TIMES } from './demo-script';
 import { useStampOnView } from './use-stamp-on-view';
+import { Stamp } from '@/components/form/stamp';
 
 const TOPICS: [Tone, string][] = [
   ['billing', 'Billing'],
@@ -69,13 +70,13 @@ export function Stages() {
 function StageStamp({ text }: { text: string }) {
   const { ref, className, style } = useStampOnView<HTMLSpanElement>();
   return (
-    <span
+    <Stamp
       ref={ref}
       style={style}
-      className={cn('button-caps stamp-tilt inline-block border-(length:--rule-width) border-current px-3 py-1.5 text-meta', className)}
+      className={cn('border-(length:--rule-width) border-current px-3 py-1.5 text-meta', className)}
     >
       {text}
-    </span>
+    </Stamp>
   );
 }
 

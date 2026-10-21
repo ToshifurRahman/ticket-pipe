@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { Stamp } from '@/components/form/stamp';
 import { FormHeader } from '@/components/form/form-header';
 import { FormBody, FormPanel } from '@/components/form/form-panel';
 import { Button } from '@/components/ui/button';
@@ -25,9 +26,7 @@ export function TicketSuccess({ referenceNumber, createdAt, onSubmitAnother }: T
       <FormHeader as="h2" titleRef={heading} kicker="Service ticket · Filed" title="We're on it" referenceNumber={referenceNumber} />
       <FormBody>
         <div className="flex flex-wrap items-center gap-4">
-          <span className="button-caps stamp-tilt inline-block border-2 border-current px-3 py-1 text-meta text-ply-triaged">
-            Ticket received
-          </span>
+          <Stamp className="border-2 border-current px-3 py-1 text-meta text-ply-triaged">Ticket received</Stamp>
           <span className="font-mono text-meta text-muted-foreground">{printedTime(createdAt)}</span>
         </div>
         <p className="text-base text-muted-foreground">
