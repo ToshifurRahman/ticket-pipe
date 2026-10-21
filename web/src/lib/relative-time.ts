@@ -25,3 +25,14 @@ export function printedTime(iso: string): string {
   if (Number.isNaN(date.getTime())) return '-';
   return date.toLocaleTimeString('en-GB', { hour12: false });
 }
+
+/** "just now", "7m ago", "3h ago", "2d ago": the compact form the ops table prints. */
+export function shortAgo(iso: string, now: number = Date.now()): string {
+  const time = new Date(iso).getTime();
+  if (Number.isNaN(time)) return '';
+  const minutes = Math.round((now - time) / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  return hours < 24 ? `${hours}h ago` : `${Math.round(hours / 24)}d ago`;
+}

@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { PAGE_SIZE, type OpsParams, type OpsSort } from '@/lib/ops-params';
 import { humanize } from '@/lib/ops-ticket';
-import { relativeTime } from '@/lib/relative-time';
+import { shortAgo } from '@/lib/relative-time';
 import type { OpsTicketList } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { OpsStatusBadge } from './status-badge';
@@ -142,10 +142,10 @@ export function TicketTable({
                   <OpsStatusBadge status={ticket.status} />
                 </td>
                 <td className="px-3 py-2.75 border-b border-border whitespace-nowrap text-muted-foreground">
-                  {relativeTime(ticket.updatedAt)}
+                  {shortAgo(ticket.updatedAt)}
                 </td>
                 <td className="px-3 py-2.75 border-b border-border whitespace-nowrap text-muted-foreground">
-                  {relativeTime(ticket.createdAt)}
+                  {shortAgo(ticket.createdAt)}
                 </td>
               </tr>
             ))}
