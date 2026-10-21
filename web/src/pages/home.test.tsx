@@ -80,14 +80,14 @@ describe('landing page', () => {
     vi.useFakeTimers();
     renderHome();
     expect(screen.queryByRole('button', { name: /replay/i })).not.toBeInTheDocument();
-    expect(document.body.textContent).toContain('Reviewing your request');
+    expect(document.body.textContent).toContain('Reading your request');
 
     playDemo();
-    expect(screen.getByText('Reply from support')).toBeInTheDocument();
+    expect(screen.getByText(/^Reply from support/)).toBeInTheDocument();
     const replay = screen.getByRole('button', { name: /replay/i });
 
     act(() => replay.click());
-    expect(document.body.textContent).toContain('Reviewing your request');
+    expect(document.body.textContent).toContain('Reading your request');
     expect(screen.queryByRole('button', { name: /replay/i })).not.toBeInTheDocument();
   });
 
@@ -105,11 +105,11 @@ describe('landing page', () => {
     vi.useFakeTimers();
     sessionStorage.setItem('demo-seen', '1');
     renderHome();
-    expect(screen.getByText('Reply from support')).toBeInTheDocument();
-    expect(document.body.textContent).not.toContain('Reviewing your request');
+    expect(screen.getByText(/^Reply from support/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain('Reading your request');
 
     act(() => screen.getByRole('button', { name: /replay/i }).click());
-    expect(document.body.textContent).toContain('Reviewing your request');
+    expect(document.body.textContent).toContain('Reading your request');
   });
 
   it('autoplays as usual when session storage is unavailable', () => {
@@ -121,9 +121,9 @@ describe('landing page', () => {
       throw new Error('blocked');
     });
     renderHome();
-    expect(document.body.textContent).toContain('Reviewing your request');
+    expect(document.body.textContent).toContain('Reading your request');
     playDemo();
-    expect(screen.getByText('Reply from support')).toBeInTheDocument();
+    expect(screen.getByText(/^Reply from support/)).toBeInTheDocument();
     vi.restoreAllMocks();
   });
 
@@ -141,9 +141,9 @@ describe('landing page with reduced motion', () => {
   it('shows the finished demo at once, with no replay', () => {
     stubMotion(true);
     renderHome();
-    expect(screen.getByText('Reply from support')).toBeInTheDocument();
+    expect(screen.getByText(/^Reply from support/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /replay/i })).not.toBeInTheDocument();
-    expect(document.body.textContent).not.toContain('Reviewing your request');
+    expect(document.body.textContent).not.toContain('Reading your request');
     expect(sessionStorage.getItem('demo-seen')).toBeNull();
   });
 });

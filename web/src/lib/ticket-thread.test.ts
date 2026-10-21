@@ -43,11 +43,11 @@ describe('ticketPlies', () => {
     expect(states(ticketAt('replied'))).toEqual(['done', 'done', 'done', 'done']);
   });
 
-  it('puts the stopped ply on hold with nothing live', () => {
-    expect(states(ticketAt('failed'))).toEqual(['done', 'done', 'on-hold', 'waiting']);
-    expect(states(ticketAt('needs_attention'))).toEqual(['done', 'done', 'on-hold', 'waiting']);
+  it('shows the first three plies done and Reply on hold, with nothing live', () => {
+    expect(states(ticketAt('failed'))).toEqual(['done', 'done', 'done', 'on-hold']);
+    expect(states(ticketAt('needs_attention'))).toEqual(['done', 'done', 'done', 'on-hold']);
     const atTriage = ticketAt('failed', { phases: { triage: { status: 'failed' }, draft: { status: 'pending' } } });
-    expect(states(atTriage)).toEqual(['done', 'on-hold', 'waiting', 'waiting']);
+    expect(states(atTriage)).toEqual(['done', 'done', 'done', 'on-hold']);
   });
 
   it('goes live again after a requeue', () => {
@@ -59,7 +59,7 @@ describe('ticketPlies', () => {
     expect(labels('reviewing')).toEqual(['Received', 'Triaging', 'Draft', 'Reply']);
     expect(labels('writing')).toEqual(['Received', 'Triaged', 'Drafting', 'Reply']);
     expect(labels('replied')).toEqual(['Received', 'Triaged', 'Drafted', 'Replied']);
-    expect(labels('failed')).toEqual(['Received', 'Triaged', 'Draft', 'Reply']);
+    expect(labels('failed')).toEqual(['Received', 'Triaged', 'Drafted', 'On hold']);
   });
 
   it('times a finished ply from its latest event only', () => {

@@ -14,8 +14,8 @@ export function HomePage() {
     <>
       <Hero />
       <Stages />
-      <div className="bg-background px-4 py-22 sm:px-6">
-        <div className="mx-auto flex max-w-6xl flex-col gap-22">
+      <div className="bg-background px-4 py-22">
+        <div className="mx-auto flex max-w-(--content-width) flex-col gap-22">
           <Pricing />
           <Faq />
         </div>

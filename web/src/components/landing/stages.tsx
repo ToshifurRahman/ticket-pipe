@@ -39,20 +39,20 @@ export function Stages() {
         {FEATURES.map(({ n, label, body }, i) => (
           <li
             key={n}
-            className={cn('sticky min-h-75 px-4 shadow-[0_-14px_18px_-14px_rgb(0_0_0/0.35)] sm:px-6 md:min-h-85', BAND[i], STICK[i])}
+            className={cn('sticky min-h-75 px-4 shadow-[0_-14px_18px_-14px_rgb(0_0_0/0.35)] md:min-h-85', BAND[i], STICK[i])}
           >
-            <div className="mx-auto max-w-6xl">
+            <div className="mx-auto max-w-(--content-width)">
               <div className="flex h-(--strip) items-center gap-4 border-b border-current">
-                <span aria-hidden className="font-mono text-sm">
+                <span aria-hidden className="font-mono text-[0.8125rem]">
                   {i + 1}
                 </span>
-                <span aria-hidden className="label-caps text-base">
+                <span aria-hidden className="label-caps text-[0.9375rem]">
                   {label}
                 </span>
-                <span className="ml-auto font-mono text-sm">{printedTime(DEMO_TIMES[i])}</span>
+                <span className="ml-auto font-mono text-[0.8125rem]">{printedTime(DEMO_TIMES[i])}</span>
               </div>
               <div className="grid items-end gap-8 pt-8 pb-10 md:grid-cols-[7fr_5fr] md:gap-12">
-                <h3 className="font-label text-[clamp(4rem,11vw,10.5rem)] leading-[0.85] font-bold tracking-tight uppercase">{label}</h3>
+                <h3 className="font-label text-[clamp(4rem,11vw,10.5rem)] leading-[0.85] font-bold tracking-[-0.01em] uppercase">{label}</h3>
                 <div className="flex flex-col items-start gap-5">
                   <p className="max-w-[24em] text-xl">{body}</p>
                   {i === 1 ? <Legend /> : <StageStamp text={i === 0 ? `Filed ${printedTime(DEMO_TIMES[0])}` : i === 2 ? 'Reply ready' : 'Sent to thread'} />}
@@ -72,7 +72,7 @@ function StageStamp({ text }: { text: string }) {
     <span
       ref={ref}
       style={style}
-      className={cn('label-caps stamp-tilt inline-block border-(length:--rule-width) border-current px-3 py-1.5 text-sm', className)}
+      className={cn('button-caps stamp-tilt inline-block border-(length:--rule-width) border-current px-3 py-1.5 text-[0.8125rem]', className)}
     >
       {text}
     </span>
@@ -92,7 +92,7 @@ function Legend() {
 function ChipRow({ label, chips, offset }: { label: string; chips: [Tone, string][]; offset: number }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="label-caps w-18 text-xs">{label}</span>
+      <span className="button-caps w-full text-[0.6875rem] sm:w-18">{label}</span>
       {chips.map(([tone, text], i) => (
         <LegendChip key={tone} tone={tone} delayMs={(offset + i) * 90}>
           {text}

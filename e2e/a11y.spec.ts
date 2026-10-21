@@ -6,7 +6,7 @@ import { linkIn, uniqueAddress, waitForMail } from './helpers/mailpit';
 import { E2E_OPS_TOKEN, opsCookie } from './helpers/ops-session';
 import { stubTurnstile } from './helpers/turnstile';
 
-// Story 6.8: every page and its key states, in both themes, must have no axe violations at
+// Story 6.8: every page and its key states must have no axe violations at
 // WCAG 2.1 AA, with no horizontal scroll at 360px, and a sensible keyboard order. Contrast is
 // only checkable in a real browser, which is why this is not a component test. Reduced motion
 // shows the landing demo's final frame, so contrast is not measured mid-animation.
@@ -16,7 +16,6 @@ import { stubTurnstile } from './helpers/turnstile';
 test.describe.configure({ mode: 'default' });
 test.use({ reducedMotion: 'reduce' });
 
-const THEMES = ['dark', 'light'] as const;
 const UNKNOWN_REF = 'TICK-0000000000000-AAAAAAAA';
 const created: string[] = [];
 let completed: { id: string; ref: string };
@@ -67,10 +66,6 @@ async function optedInTicket(page: Page) {
   const address = uniqueAddress();
   expect((await page.request.post(`/api/tickets/${ticketId}/notification`, { data: { email: address }, headers: asClient() })).status()).toBe(201);
   return { ref: referenceNumber, address };
-}
-
-async function useTheme(page: Page, theme: (typeof THEMES)[number]) {
-  await page.addInitScript((value) => localStorage.setItem('theme', value), theme);
 }
 
 async function expectNoViolations(page: Page, label: string) {
@@ -156,14 +151,11 @@ const visits: Visit[] = [
   },
 ];
 
-for (const theme of THEMES) {
-  for (const visit of visits) {
-    test(`no axe violations: ${visit.name} (${theme})`, async ({ page }) => {
-      await useTheme(page, theme);
-      await visit.open(page);
-      await expectNoViolations(page, `${visit.name} / ${theme}`);
-    });
-  }
+for (const visit of visits) {
+  test(`no axe violations: ${visit.name}`, async ({ page }) => {
+    await visit.open(page);
+    await expectNoViolations(page, visit.name);
+  });
 }
 
 test('the ticket submitted from /new shows an accessible confirmation', async ({ page }) => {
@@ -204,6 +196,7 @@ test.describe('keyboard', () => {
       if (path === '/ops') await signInWithCookie(page, request);
       await page.goto(path);
       await page.locator('#main').waitFor(); // the ops layout is lazy-loaded
+      if (path === '/new') await page.getByLabel('Subject').waitFor(); // so is the form
       await page.keyboard.press('Tab');
 
       const skip = page.getByRole('link', { name: 'Skip to content' });

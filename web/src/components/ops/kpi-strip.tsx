@@ -20,7 +20,7 @@ export function KpiStrip() {
   const kpis = data ? computeKpis(data) : null;
 
   return (
-    <dl aria-label="Last 24 hours" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <dl aria-label="Last 24 hours" className="grid grid-cols-2 gap-3 md:grid-cols-4">
       <Tile label="Tickets · 24h" value={kpis ? String(kpis.tickets) : 'n/a'} loading={isPending} />
       <Tile label="AI success rate" value={formatPercent(kpis?.successRate ?? null)} loading={isPending} />
       <Tile label="Avg latency" value={formatSeconds(kpis?.avgLatencyMs ?? null)} loading={isPending} />

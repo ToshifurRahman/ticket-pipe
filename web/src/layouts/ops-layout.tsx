@@ -2,7 +2,6 @@ import { Outlet } from 'react-router-dom';
 import { Wordmark } from '@/components/brand-mark';
 import { OpsHeaderActions } from '@/components/ops/ops-header-actions';
 import { SkipLink } from '@/components/skip-link';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { Toaster } from '@/components/ui/sonner';
 
 // No track field and no footer: this is a working surface. The feed indicator and Sign out
@@ -19,7 +18,6 @@ export function OpsLayout() {
           </div>
           <div className="flex items-center gap-3">
             <OpsHeaderActions />
-            <ThemeToggle />
           </div>
         </div>
       </header>

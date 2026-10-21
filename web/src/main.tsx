@@ -2,6 +2,7 @@
 // stylesheet splits by unicode-range, so a Latin page only downloads the Latin files.
 import '@fontsource-variable/public-sans/wght.css';
 import '@fontsource/courier-prime/400.css';
+import '@fontsource/courier-prime/700.css';
 import '@fontsource/archivo-narrow/700.css';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';

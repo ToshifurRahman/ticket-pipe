@@ -9,16 +9,16 @@ export function Faq() {
       <div className="divide-y divide-rule border-y border-rule">
         {FAQS.map(({ q, a }) => (
           <details key={q} className="group">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 font-medium marker:hidden [&::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4.5 text-lg font-semibold marker:hidden [&::-webkit-details-marker]:hidden">
               {q}
-              <span aria-hidden className="font-mono text-muted-foreground group-open:hidden">
+              <span aria-hidden className="font-mono text-[1.375rem] leading-none font-bold group-open:hidden">
                 +
               </span>
-              <span aria-hidden className="hidden font-mono text-muted-foreground group-open:inline">
+              <span aria-hidden className="hidden font-mono text-[1.375rem] leading-none font-bold group-open:inline">
                 -
               </span>
             </summary>
-            <p className="pb-4 text-base text-muted-foreground">{a}</p>
+            <p className="max-w-[60ch] pb-4.5 text-muted-foreground">{a}</p>
           </details>
         ))}
       </div>

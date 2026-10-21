@@ -71,7 +71,7 @@ describe('notify card', () => {
   });
 
   it.each([
-    ['confirmed', /We’ll email/],
+    ['confirmed', /We'll email/],
     ['sent', /We emailed/],
   ] as const)('shows the %s state', async (state, text) => {
     renderCard({ available: true, state, maskedEmail: 't•••@example.test' });

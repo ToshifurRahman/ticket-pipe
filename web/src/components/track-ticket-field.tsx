@@ -1,9 +1,6 @@
-import { Search } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { isValidRef, normalizeRef, REF_EXAMPLE } from '@/lib/ticket-ref';
 import { cn } from '@/lib/utils';
 
@@ -12,9 +9,11 @@ type TrackFormProps = {
   autoFocus?: boolean;
   // In the header the hint floats under the field, so an error never moves the top rule.
   floatingHint?: boolean;
+  // The header's field: 200px wide (128 on a phone), padded like the demo's, not a full form field.
+  compact?: boolean;
 };
 
-export function TrackForm({ onDone, autoFocus = false, floatingHint = false }: TrackFormProps) {
+export function TrackForm({ onDone, autoFocus = false, floatingHint = false, compact = false }: TrackFormProps) {
   const navigate = useNavigate();
   const [value, setValue] = useState('');
   const [invalid, setInvalid] = useState(false);
@@ -45,7 +44,7 @@ export function TrackForm({ onDone, autoFocus = false, floatingHint = false }: T
           setValue(e.target.value);
           setInvalid(false);
         }}
-        className="font-mono placeholder:font-sans"
+        className={cn('font-mono placeholder:font-sans', compact && 'h-auto px-2.5 py-2 text-sm leading-[normal] placeholder:text-muted-foreground')}
       />
       {invalid && (
         <span
@@ -63,27 +62,11 @@ export function TrackForm({ onDone, autoFocus = false, floatingHint = false }: T
   );
 }
 
-// Wide screens get the inline field; below 640px it collapses to an icon + popover so the
-// header never wraps.
+// The header's Track field: always inline, 200px wide and 128px under the phone breakpoint.
 export function TrackTicketField() {
-  const [open, setOpen] = useState(false);
   return (
-    <>
-      <div className="relative hidden w-56 sm:block">
-        <TrackForm floatingHint />
-      </div>
-      <div className="sm:hidden">
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="icon" aria-label="Track a ticket">
-              <Search />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent>
-            <TrackForm autoFocus onDone={() => setOpen(false)} />
-          </PopoverContent>
-        </Popover>
-      </div>
-    </>
+    <div className="relative w-32 sm:w-50">
+      <TrackForm floatingHint compact />
+    </div>
   );
 }

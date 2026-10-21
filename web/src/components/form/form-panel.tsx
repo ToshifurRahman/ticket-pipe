@@ -11,7 +11,7 @@ export function FormPanel<T extends ElementType = 'section'>({ as, enter = false
   const Tag: ElementType = as ?? 'section';
   return (
     <Tag
-      className={cn('ruled min-w-0 bg-card text-card-foreground', enter && 'animate-print-in-2', className)}
+      className={cn('ruled form-surface min-w-0 bg-form text-foreground', enter && 'animate-print-in-2', className)}
       {...props}
     />
   );

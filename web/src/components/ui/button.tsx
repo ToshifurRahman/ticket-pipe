@@ -3,28 +3,28 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-// Printed caps on square stock. Primary is inverted ink, never red: red is kept for what is
-// live or urgent. States change in one step, like a stamp, never with a fade: a press sets the
-// button down a pixel, and an outline button's rule goes heavy under the pointer. Disabled is a
-// muted hairline outline (not ready yet), not a dimmed slab. Focus is the global ink outline
-// (index.css), offset off the button.
+// Printed caps on square stock, as the Relay Full Demo draws them. Default is the solid slab
+// (.btn); outline is a rule in the text colour that goes heavy under the pointer (.btn.line);
+// tb is the small text button with a hairline rule (.tb). States change in one step, like a
+// stamp, never with a fade: a press sets the button down a pixel. Disabled is the same button
+// at 45% (not ready yet). Focus is the global ink outline (index.css), offset off the button.
 const buttonVariants = cva(
-  'label-caps inline-flex shrink-0 items-center justify-center gap-2 border border-transparent text-sm whitespace-nowrap active:translate-y-px disabled:translate-y-0 disabled:cursor-not-allowed disabled:shadow-none disabled:border-input disabled:bg-transparent disabled:text-muted-foreground [&_svg]:size-4 [&_svg]:shrink-0',
+  'font-label inline-flex shrink-0 items-center leading-[normal] justify-center gap-2 border border-transparent text-sm font-bold tracking-(--tracking-button) whitespace-nowrap uppercase active:translate-y-px disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-(--opacity-disabled) [&_svg]:size-4 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/85 active:bg-primary/70',
-        outline:
-          'border-input bg-transparent text-foreground hover:border-foreground hover:bg-accent hover:shadow-[inset_0_0_0_var(--hair)_var(--foreground)] active:border-primary active:bg-primary active:text-primary-foreground',
-        secondary: 'border-border bg-secondary text-secondary-foreground hover:border-input active:border-foreground',
-        ghost: 'text-foreground hover:border-border hover:bg-accent active:border-foreground',
+        default: 'bg-primary text-primary-foreground',
+        outline: 'border-current bg-transparent text-foreground hover:shadow-[inset_0_0_0_var(--hair)_currentColor]',
+        tb: 'border-border bg-transparent text-foreground hover:border-foreground hover:shadow-[inset_0_0_0_var(--hair)_var(--foreground)] aria-pressed:border-foreground aria-pressed:bg-card',
+        ghost: 'text-foreground hover:border-border active:border-foreground',
       },
       size: {
-        default: 'h-(--control-height) px-4',
-        sm: 'h-(--control-height-sm) px-3 text-xs',
+        default: 'h-(--control-height) px-6',
+        sm: 'h-(--control-height-sm) px-4.5',
         icon: 'size-(--control-height)',
       },
     },
+    compoundVariants: [{ variant: 'tb', class: 'h-auto px-3.5 py-1.5 text-xs tracking-(--tracking-label)' }],
     defaultVariants: { variant: 'default', size: 'default' },
   }
 );

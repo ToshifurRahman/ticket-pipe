@@ -59,18 +59,18 @@ describe('ticket page: live thread', () => {
 
     const article = (await screen.findByRole('heading', { name: 'Charged twice in March' })).closest('article')!;
     expect(screen.getByText('My card was charged twice for the March invoice.')).toBeInTheDocument();
-    expect(await indicator()).toHaveTextContent('Reviewing your request…');
+    expect(await indicator()).toHaveTextContent('Reading your request...');
     expect(screen.queryByText('Billing')).not.toBeInTheDocument();
 
     // It joins its ticket's room once connected.
     expect(socket().emit).toHaveBeenCalledWith('join', TICKET_ID);
 
     await advance(ticketAt('reviewing'), 'triage.started');
-    expect(await indicator()).toHaveTextContent('Reviewing your request…');
+    expect(await indicator()).toHaveTextContent('Reading your request...');
 
     // Badges show as soon as triage finishes, before the reply.
     await advance(ticketAt('writing'), 'triage.completed');
-    expect(await screen.findByText('Writing a reply…')).toBeInTheDocument();
+    expect(await screen.findByText('Writing a reply...')).toBeInTheDocument();
     const badges = screen.getByRole('list', { name: 'Triage' });
     expect(within(badges).getByText('Billing')).toBeInTheDocument();
     expect(within(badges).getByText('High priority')).toBeInTheDocument();
@@ -97,17 +97,17 @@ describe('ticket page: live thread', () => {
 
       expect(await screen.findByText(ON_HOLD_MESSAGE)).toBeInTheDocument();
       expect(screen.queryByRole('status')).not.toBeInTheDocument();
-      // Nothing is live; the stopped ply says so and the claim of an alert is gone.
+      // Nothing is live; the last ply reads On hold, as the demo draws it.
       expect(screen.queryByRole('listitem', { current: 'step' })).not.toBeInTheDocument();
       const progress = screen.getByRole('list', { name: 'Progress' });
-      expect(within(progress).getByText(/Draft/)).toHaveTextContent(/on hold/);
+      expect(within(progress).getByText(/On hold/)).toHaveTextContent(/on hold/i);
       expect(screen.queryByText(/notified/)).not.toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Office use' })).toBeInTheDocument();
       expect(screen.queryByText(/closed/)).not.toBeInTheDocument();
       expect(socket().disconnect).not.toHaveBeenCalled();
 
       await advance(ticketAt('writing', { status: 'queued' }), 'ticket.requeued');
-      expect(await screen.findByText('Writing a reply…')).toBeInTheDocument();
+      expect(await screen.findByText('Writing a reply...')).toBeInTheDocument();
       expect(screen.queryByText(ON_HOLD_MESSAGE)).not.toBeInTheDocument();
 
       await advance(ticketAt('replied'), 'ticket.completed');
@@ -125,7 +125,7 @@ describe('ticket page: live thread', () => {
     await act(async () => socket().serverEmit('connect'));
 
     expect(socket().emit).toHaveBeenLastCalledWith('join', TICKET_ID);
-    expect(await screen.findByText('Writing a reply…')).toBeInTheDocument();
+    expect(await screen.findByText('Writing a reply...')).toBeInTheDocument();
     expect(lookups).toBeGreaterThan(before);
   });
 
