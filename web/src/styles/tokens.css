@@ -97,6 +97,7 @@
   --duration-print-form: 480ms;
   --duration-print-cta: 135ms;
   --duration-print-cta-delay: 750ms;
+  --duration-press-delay: 120ms;
   --duration-nudge: 240ms;
   --duration-print-line: 180ms;
   --opacity-overlay: 80%;
