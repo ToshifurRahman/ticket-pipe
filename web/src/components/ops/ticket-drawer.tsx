@@ -5,6 +5,7 @@ import { ApiError } from '@/lib/api';
 import { getOpsEvents, getOpsTicket, listAiInteractions, opsKeys } from '@/lib/ops-api';
 import { groupTimeline, humanize, replayStage, stateReason } from '@/lib/ops-ticket';
 import type { AiInteraction, OpsTicketDetail } from '@/lib/types';
+import { printedTime } from '@/lib/relative-time';
 import { cn } from '@/lib/utils';
 import { ReplayButton } from './replay-button';
 import { OpsStatusBadge } from './status-badge';
@@ -66,7 +67,7 @@ function TicketDetails({ ticketId }: { ticketId: string }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="grid gap-2.5 border-b border-border pt-5.5 pr-14 pb-4.5 pl-5.5">
+      <header className="grid gap-2.5 border-b border-border pt-5.5 pr-24 pb-4.5 pl-5.5">
         <div className="flex flex-wrap items-center gap-3">
           <SheetTitle className="min-w-0 text-xl leading-[1.2] font-semibold break-words">
             {ticket.subject}
@@ -205,7 +206,7 @@ function Timeline({ ticketId }: { ticketId: string }) {
                 {item.count > 1 && <span className="text-muted-foreground"> ×{item.count}</span>}
               </span>
               <span className="text-muted-foreground">
-                {new Date(item.occurredAt).toLocaleTimeString()}
+                {printedTime(item.occurredAt)}
               </span>
               {item.detail && (
                 <details className="w-full text-xs text-muted-foreground">

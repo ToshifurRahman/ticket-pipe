@@ -38,7 +38,7 @@ export function KpiStrip() {
   return (
     <dl
       aria-label="Last 24 hours"
-      className="grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-4"
+      className="my-4 grid grid-cols-2 gap-px border border-border bg-border md:grid-cols-4"
     >
       <Tile label="Tickets · 24h" value={kpis ? String(kpis.tickets) : 'n/a'} loading={isPending} />
       <Tile

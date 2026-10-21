@@ -46,7 +46,12 @@ export function ConfirmPage() {
         <p role="status">
           {status === 'completed'
             ? `Your reply is ready. We're emailing ${maskedEmail} too.`
-            : `We'll email ${maskedEmail} when there's news on ${referenceNumber}.`}
+            : (
+              <>
+                We'll email {maskedEmail} when there's news on{' '}
+                <span className="font-mono whitespace-nowrap">{referenceNumber}</span>.
+              </>
+            )}
         </p>
         <div>
           <Button asChild variant="solid">
