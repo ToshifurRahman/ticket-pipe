@@ -29,7 +29,7 @@ Transparency: the customer **watches their ticket being understood and answered,
 - Public: submit a ticket (Turnstile-protected), track it by reference (`TICK-<13 digits>-<8 HEX>`), opt in to an email when the reply is ready (double opt-in, `/confirm/:token`). Recent tickets are remembered in the browser.
 - Ops: KPI strip (24h tickets, AI success, latency, fallback rate), status tabs, sortable/paginated table, ticket drawer with the full event history, replay for failed / needs-attention tickets, live feed status, sign out.
 - Ticket states the UI must express: received, triaging, drafting, completed (replied), failed, needs_attention, requeued. Failed/needs-attention show the customer one neutral message, never error details.
-- Other routes: `/privacy`, `/terms`, 404.
+- Other routes: `/legal/:doc` (`privacy`, `terms`; `/privacy` and `/terms` redirect to it), 404.
 
 ## Capabilities and Constraints
 

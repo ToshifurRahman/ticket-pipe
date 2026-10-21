@@ -130,8 +130,8 @@ const visits: Visit[] = [
     },
   },
   { name: 'ticket not found', open: async (p) => { await p.goto(`/t/${UNKNOWN_REF}`); await expect(p.getByRole('heading', { name: /couldn't find that ticket/ })).toBeVisible(); } },
-  { name: 'privacy', open: async (p) => { await p.goto('/privacy'); await expect(p.getByRole('heading', { level: 1 })).toBeVisible(); } },
-  { name: 'terms', open: async (p) => { await p.goto('/terms'); await expect(p.getByRole('heading', { level: 1 })).toBeVisible(); } },
+  { name: 'privacy', open: async (p) => { await p.goto('/legal/privacy'); await expect(p.getByRole('heading', { level: 1 })).toBeVisible(); } },
+  { name: 'terms', open: async (p) => { await p.goto('/legal/terms'); await expect(p.getByRole('heading', { level: 1 })).toBeVisible(); } },
   { name: '404', open: async (p) => { await p.goto('/no-such-page'); await expect(p.getByRole('heading', { level: 1 })).toBeVisible(); } },
   { name: 'ops signed out', open: async (p) => { await p.goto('/ops'); await expect(p.getByLabel('Ops token')).toBeVisible(); } },
   {

@@ -1,6 +1,8 @@
 import { brand } from '@/config/brand';
 
-export type LegalSection = { heading: string; body: string[] };
+// A paragraph is plain text, or text with one link inside it.
+export type LegalParagraph = string | { before: string; link: { label: string; href: string }; after: string };
+export type LegalSection = { heading: string; body: LegalParagraph[] };
 export type LegalDoc = {
   title: string;
   updated: string;
@@ -56,7 +58,7 @@ export const PRIVACY: LegalDoc = {
     {
       heading: 'Stored in your browser',
       body: [
-        'Your light or dark choice, and the last few ticket references so you can find them again. That stays on your device and you can clear it any time.',
+        'Your last few ticket references, so you can find them again. That stays on your device and you can clear it any time.',
       ],
     },
     {
@@ -68,7 +70,11 @@ export const PRIVACY: LegalDoc = {
     {
       heading: 'Questions',
       body: [
-        `Open an issue on the project’s GitHub page: ${brand.repoUrl}/issues`,
+        {
+          before: 'Open an issue on the project’s ',
+          link: { label: 'GitHub page', href: `${brand.repoUrl}/issues` },
+          after: '.',
+        },
         'Didn’t ask for an email from us? Ignore it. Nothing is sent unless the link is confirmed.',
       ],
     },
@@ -112,3 +118,6 @@ export const TERMS: LegalDoc = {
     },
   ],
 };
+
+export const LEGAL_DOCS = { privacy: PRIVACY, terms: TERMS } as const;
+export type LegalDocKey = keyof typeof LEGAL_DOCS;
