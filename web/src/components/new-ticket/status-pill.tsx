@@ -1,4 +1,5 @@
 import type { TicketStatus } from '@/lib/types';
+import { Stamp } from '@/components/form/stamp';
 import { cn } from '@/lib/utils';
 
 // Customers see three states. Failures and tickets awaiting review share one neutral label:
@@ -19,8 +20,8 @@ export function statusLabel(status: TicketStatus): string {
 export function StatusPill({ status }: { status: TicketStatus }) {
   const { label, tone } = PILLS[status];
   return (
-    <span className={cn('label-caps stamp-tilt inline-block shrink-0 border border-current px-2 py-px text-[0.6875rem]', tone)}>
+    <Stamp caps="label" className={cn('shrink-0 border border-current px-2 py-0.5 text-caption', tone)}>
       {label}
-    </span>
+    </Stamp>
   );
 }

@@ -37,7 +37,7 @@ export function RecentTickets({ tickets, onForget }: RecentTicketsProps) {
       <h2 id="recent-tickets-heading" className="label-caps mb-3.5 text-sm">
         Your recent tickets
       </h2>
-      <p className="-mt-1.5 mb-3 font-mono text-[0.6875rem] text-muted-foreground">Remembered on this browser only</p>
+      <p className="-mt-1.5 mb-3 font-mono text-caption text-muted-foreground">Remembered on this browser only</p>
       <ul className="flex flex-col">
         {tickets.map((t, i) => {
           const status = statuses[i]?.data?.status;

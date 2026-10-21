@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { PRICING_HEADING, TIERS, type Tier } from '@/content/landing';
 import { cn } from '@/lib/utils';
 import { useStampOnView } from './use-stamp-on-view';
+import { Stamp } from '@/components/form/stamp';
 
 export function Pricing() {
   return (
@@ -53,14 +54,14 @@ function TierCard({ tier, index }: { tier: Tier; index: number }) {
 
 // Inked on the featured tier like an office stamp, a little askew, after the tier has swept in.
 function PopularStamp() {
-  const { ref, className: stampClass, style } = useStampOnView<HTMLParagraphElement>({ delayMs: 400 });
+  const { ref, className: stampClass, style } = useStampOnView<HTMLSpanElement>({ delayMs: 400 });
   return (
-    <p
+    <Stamp
       ref={ref}
       style={style}
-      className={cn('button-caps stamp-tilt shrink-0 border-(length:--rule-width) border-current px-2.25 py-0.75 text-xs', stampClass)}
+      className={cn('shrink-0 border-(length:--rule-width) border-current px-2.25 py-0.75 text-xs', stampClass)}
     >
       Popular
-    </p>
+    </Stamp>
   );
 }

@@ -11,7 +11,7 @@ import { ReplayButton } from './replay-button';
 import { OpsStatusBadge } from './status-badge';
 
 const CALL_TH =
-  'button-caps border-b border-border py-1.5 pr-2 text-[0.6875rem] whitespace-nowrap text-muted-foreground';
+  'button-caps border-b border-border py-1.5 pr-2 text-caption whitespace-nowrap text-muted-foreground';
 const CALL_TD = 'border-b border-border py-1.5 pr-2';
 
 type TicketDrawerProps = { ticketId: string | null; onClose: () => void };
@@ -96,7 +96,7 @@ function TicketDetails({ ticketId }: { ticketId: string }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="button-caps m-0 mb-2.5 text-[0.6875rem] text-muted-foreground">{title}</h3>
+      <h3 className="button-caps m-0 mb-2.5 text-caption text-muted-foreground">{title}</h3>
       {children}
     </section>
   );
@@ -252,7 +252,7 @@ function AiCalls({ ticketId }: { ticketId: string }) {
         <p className="m-0 text-sm text-muted-foreground">No AI calls recorded.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-[0.8125rem]">
+          <table className="w-full text-left text-meta">
             <thead>
               <tr>
                 <th scope="col" className={CALL_TH}>
@@ -276,7 +276,7 @@ function AiCalls({ ticketId }: { ticketId: string }) {
                   <td className={cn(CALL_TD, 'font-mono text-xs')}>
                     {call.model}
                     {call.provider === 'backup' && (
-                      <span className="ml-1.5 border border-muted-foreground px-1.5 text-[0.6875rem] text-muted-foreground">
+                      <span className="ml-1.5 border border-muted-foreground px-1.5 text-caption text-muted-foreground">
                         fallback
                       </span>
                     )}

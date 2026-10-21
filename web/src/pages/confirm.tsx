@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { FormHeader } from '@/components/form/form-header';
 import { FormBody, FormPanel } from '@/components/form/form-panel';
+import { Stamp } from '@/components/form/stamp';
 import { Button } from '@/components/ui/button';
 import { brand } from '@/config/brand';
 import { confirmNotification, previewConfirmation } from '@/lib/notifications-api';
@@ -40,9 +41,9 @@ export function ConfirmPage() {
     const { referenceNumber, status, maskedEmail } = confirm.data;
     return (
       <Panel title="You're all set" referenceNumber={referenceNumber}>
-        <span className="button-caps stamp-tilt animate-stamp-press-late justify-self-start border-2 border-current px-3 py-1 text-[0.8125rem] text-ply-triaged motion-reduce:animate-none">
+        <Stamp className="animate-stamp-press-late justify-self-start border-2 border-current px-3 py-1 text-meta text-ply-triaged motion-reduce:animate-none">
           Confirmed
-        </span>
+        </Stamp>
         <p role="status">
           {status === 'completed'
             ? `Your reply is ready. We're emailing ${maskedEmail} too.`

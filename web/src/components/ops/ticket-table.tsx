@@ -12,7 +12,7 @@ const PRIORITY_TONE: Record<string, string> = {
   high: 'text-priority-high',
 };
 const TH =
-  'button-caps border-b border-border px-3 py-2.75 text-[0.6875rem] whitespace-nowrap text-muted-foreground';
+  'button-caps border-b border-border px-3 py-2.75 text-caption whitespace-nowrap text-muted-foreground';
 
 type TicketTableProps = {
   data: OpsTicketList | undefined;

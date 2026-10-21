@@ -15,7 +15,7 @@ export function OpsStatusBadge({ status }: { status: TicketStatus }) {
   return (
     <span
       className={cn(
-        'label-caps inline-flex shrink-0 items-center gap-1.75 border border-current px-2.25 py-px text-[0.6875rem] whitespace-nowrap',
+        'label-caps inline-flex shrink-0 items-center gap-1.75 border border-current px-2.25 py-px text-caption whitespace-nowrap',
         TONES[status]
       )}
     >

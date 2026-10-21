@@ -12,7 +12,7 @@ function Tile({ label, value, loading }: { label: string; value: string; loading
   const [number, unit] = splitUnit(value);
   return (
     <div className="bg-background px-4.5 py-3.5">
-      <dt className="button-caps text-[0.6875rem] text-muted-foreground">{label}</dt>
+      <dt className="button-caps text-caption text-muted-foreground">{label}</dt>
       <dd
         className={
           loading
@@ -22,7 +22,7 @@ function Tile({ label, value, loading }: { label: string; value: string; loading
       >
         {loading ? '' : number}
         {!loading && unit && (
-          <small className="text-[0.8125rem] font-normal text-muted-foreground">{unit}</small>
+          <small className="text-meta font-normal text-muted-foreground">{unit}</small>
         )}
       </dd>
     </div>

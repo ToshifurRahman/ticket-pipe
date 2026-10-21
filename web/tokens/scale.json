@@ -8,7 +8,9 @@
         "label": { "$type": "fontFamily", "$value": "'Archivo Narrow', 'Arial Narrow', ui-sans-serif, sans-serif", "$extensions": { "relay.css": ["font-family-label"] } }
       },
       "size": {
+        "caption": { "$type": "dimension", "$value": "0.6875rem", "$extensions": { "relay.css": ["font-size-caption"] } },
         "xs": { "$type": "dimension", "$value": "0.75rem", "$extensions": { "relay.css": ["font-size-xs"] } },
+        "meta": { "$type": "dimension", "$value": "0.8125rem", "$extensions": { "relay.css": ["font-size-meta"] } },
         "sm": { "$type": "dimension", "$value": "0.875rem", "$extensions": { "relay.css": ["font-size-sm"] } },
         "base": { "$type": "dimension", "$value": "1rem", "$extensions": { "relay.css": ["font-size-base"] } },
         "lg": { "$type": "dimension", "$value": "1.125rem", "$extensions": { "relay.css": ["font-size-lg"] } },

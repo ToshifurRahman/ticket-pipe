@@ -24,7 +24,7 @@ export function SiteHeader() {
                 <a
                   key={link.href}
                   href={link.href}
-                  className="button-caps text-[0.8125rem] text-foreground no-underline hover:no-underline"
+                  className="button-caps text-meta text-foreground no-underline hover:no-underline"
                 >
                   {link.label}
                 </a>
