@@ -25,9 +25,9 @@ State toggles (ticket, confirm), the "Demo pages" dock, "Demo: fill an example",
 - **Lighthouse SEO is not asserted on `/confirm/:token` and `/ops`.** Both are `noindex` on purpose (a private link and a staff console), so the `is-crawlable` audit fails them by design. See `lighthouserc.cjs`.
 - **Breakpoints `521px` and `901px`** in `web/src/index.css` are hardcoded to the demo's values and carry a `ds-allow-hardcode` comment with the reason.
 
-## Copy that needs a decision
+## Copy kept by decision
 
-Two lines promise a speed the pipeline cannot guarantee. They match the demo word for word and are kept until someone rules on them:
+Two lines promise a speed the pipeline cannot guarantee. They match the demo word for word. Ruled "keep" on 2026-10-22:
 
 - `/new` lead: "Most replies arrive within a minute."
 - `/new` success panel: "A reply usually arrives within a minute."
