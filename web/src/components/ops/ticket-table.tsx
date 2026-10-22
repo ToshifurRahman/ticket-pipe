@@ -123,6 +123,9 @@ export function TicketTable({
                   >
                     {ticket.referenceNumber}
                   </button>
+                  <span aria-hidden="true" className="mt-1.5 block sm:hidden">
+                    <OpsStatusBadge status={ticket.status} />
+                  </span>
                 </td>
                 <td className="max-w-(--cell-max) truncate px-3 py-2.75 border-b border-border">
                   {ticket.subject}

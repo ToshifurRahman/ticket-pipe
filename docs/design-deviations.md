@@ -8,6 +8,25 @@ The Relay Full Demo (https://claude.ai/artifact/KgujCr5HHmouNMgx9bHwzo) is the d
 | --- | --- | --- | --- |
 | `--input` (field border, `rule-forest` in `web/tokens/colors.json`) | `#1F3A2E` | `#5E8A73` | A field boundary must reach 3:1 against its ground (WCAG 1.4.11). The demo's value is about 1.5:1. `--form-rule` keeps the demo's `#1F3A2E` for decorative ruling, where contrast is not required. |
 
+## Finish review fixes (story 6.18, 2026-10-22)
+
+Approved fixes from the finish review. They are deliberate departures from the demo.
+
+| Where | Demo | `web/` | Why |
+| --- | --- | --- | --- |
+| `/new` layout below `md` | Single implicit grid track | `grid-cols-[minmax(0,1fr)]`, `min-w-0` on the aside | The implicit track grew to the recent-tickets rows and caused horizontal scroll at 375px after a ticket was filed. |
+| Landing FAQ, Replied card, On-hold message | "flagged for a person to follow up in the same thread", "never lost", "waiting in our team's queue" | "put on hold and flagged for the team", "stays on file", "flagged for the team"; the page updates "if it moves" | The pipeline has no human follow-up: the ops console can only replay a ticket. PRODUCT.md forbids promises it cannot keep. |
+| Snag email | Subject "We're looking into TICK-…", "we're looking into it", "You'll get one more email when your reply is ready." | Subject "A snag on TICK-…", "It's on hold and flagged for the team.", "If a reply follows, we'll email you." | Same reason. |
+| Ops table below `sm` | Status only in its own column | The status badge also sits under the reference (decorative, `aria-hidden`) | Status, category and priority were off-screen on a phone, so a needs-attention row looked like the rest. |
+| Ticket "Office use" stamps before triage | A bare "-" | "Category -" and "Priority -" | The labels were screen-reader only, so the empty stamps looked broken. |
+| Emails: form number | A narrow right-hand cell | Its own ruled row under the subject | The reference broke mid-string and the kicker wrapped at 375px. |
+
+## Kept by decision
+
+- **On hold plies.** The demo always puts "On hold" on ply 4 and shows plies 1 to 3 as done. The finish review noted that Triaged and Drafted are painted done when triage failed. Kept as the demo has it (decision of 2026-10-20, confirmed 2026-10-22).
+- **Pricing buttons** all go to `/new`. Pricing is cosmetic (PRODUCT.md).
+- **`/new` hero** stays above the success panel, as in the demo.
+
 ## Demo-only aids that are not ported
 
 State toggles (ticket, confirm), the "Demo pages" dock, "Demo: fill an example", the demo token hint and "Demo: open the email link". The fake human check is the real Turnstile. The ops sign-in uses the real session, not a demo token.

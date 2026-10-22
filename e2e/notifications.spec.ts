@@ -72,7 +72,7 @@ test('a ticket that needs attention sends one snag email, then the reply after a
 
   // Confirming after the outcome catches up with the snag email.
   const afterConfirm = await waitForMail(address, 2);
-  expect(afterConfirm[1].subject).toMatch(/looking into/i);
+  expect(afterConfirm[1].subject).toMatch(/snag/i);
 
   await stripFakeMarkers(ticketId);
   const cookie = await opsCookie(request);

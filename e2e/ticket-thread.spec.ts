@@ -7,7 +7,7 @@ import { stubTurnstile } from './helpers/turnstile';
 // The thread follows a ticket live, against the real API, worker, queue and socket, with the
 // fake LLM (category "general", priority "medium"). No test reloads the page after submitting.
 
-const ON_HOLD = /waiting in our team.s queue/;
+const ON_HOLD = /flagged for the team/;
 const created: string[] = [];
 
 test.afterAll(async () => {
