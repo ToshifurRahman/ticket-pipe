@@ -104,7 +104,7 @@ const visits: Visit[] = [
     },
   },
   { name: 'ticket completed', open: async (p) => { await p.goto(`/t/${completed.ref}`); await expect(p.getByText(/^Reply from support/)).toBeVisible(); } },
-  { name: 'ticket needs attention', open: async (p) => { await p.goto(`/t/${attention.ref}`); await expect(p.getByText(/waiting in our team.s queue/)).toBeVisible(); await expect(p.getByLabel('Email address')).toBeVisible(); } },
+  { name: 'ticket needs attention', open: async (p) => { await p.goto(`/t/${attention.ref}`); await expect(p.getByText(/flagged for the team/)).toBeVisible(); await expect(p.getByLabel('Email address')).toBeVisible(); } },
   {
     name: 'ticket with the email card pending',
     open: async (p) => {

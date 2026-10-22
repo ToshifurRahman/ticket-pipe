@@ -19,7 +19,7 @@ export function NewTicketPage() {
         </p>
       </div>
 
-      <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_340px] md:items-start">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-8 md:grid-cols-[minmax(0,1fr)_340px] md:items-start">
         {created ? (
           <TicketSuccess referenceNumber={created.ref} createdAt={created.createdAt} onSubmitAnother={() => setCreated(null)} />
         ) : (
@@ -34,7 +34,7 @@ export function NewTicketPage() {
           </FormPanel>
         )}
 
-        <aside>
+        <aside className="min-w-0">
           <RecentTickets tickets={tickets} onForget={forget} />
         </aside>
       </div>

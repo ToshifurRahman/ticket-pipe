@@ -73,11 +73,13 @@ function OfficeStamp({
   tone: Tone | null;
 }) {
   const stamp = stampProps(counts, id);
-  const text = (
+  const text = value ? (
     <>
       <span className="sr-only">{label}: </span>
-      {value ?? '-'}
+      {value}
     </>
+  ) : (
+    `${label} -`
   );
   return (
     <li key={stamp.key} className={stamp.className}>

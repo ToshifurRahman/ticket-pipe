@@ -23,7 +23,7 @@ export const FEATURES: Feature[] = [
   {
     n: '04',
     label: 'Replied',
-    body: 'The answer lands in the same thread. Anything that needs a person is put on hold for the team, never lost.',
+    body: "The answer lands in the same thread. Anything the AI can't answer confidently is put on hold and flagged for the team.",
   },
 ];
 
@@ -60,7 +60,7 @@ export const FAQ_HEADING = { label: 'Section C', title: 'Questions' };
 export const FAQS: Faq[] = [
   {
     q: 'Does a person ever see my ticket?',
-    a: "Yes. Every ticket is visible to the support team, and anything the AI can't answer confidently is flagged for a person to follow up in the same thread.",
+    a: "The team can see every ticket, and anything the AI can't answer confidently is put on hold and flagged for the team. The ticket page updates if it moves.",
   },
   {
     q: 'How do I find my ticket again?',
@@ -68,7 +68,7 @@ export const FAQS: Faq[] = [
   },
   {
     q: 'What happens if something goes wrong?',
-    a: "Your ticket is never lost. It's marked On hold for the team, and the page updates as soon as it's picked back up.",
+    a: "Your ticket stays on file. It's marked On hold and flagged for the team, and the page updates if it moves again.",
   },
   {
     q: 'Is my message kept private?',

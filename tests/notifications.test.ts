@@ -161,16 +161,16 @@ describe('outcome emails', () => {
       await pendingNotifications();
     }
     expect(mailTo(email)).toHaveLength(1);
-    expect(mailTo(email)[0].subject).toMatch(/looking into/);
+    expect(mailTo(email)[0].subject).toMatch(/A snag on/);
     await updateTicketStatus(t.id, 'completed');
     await notifyIfDue(t.id);
     await pendingNotifications();
-    expect(mailTo(email).map((m) => m.subject)).toEqual([expect.stringMatching(/looking into/), expect.stringMatching(/reply is ready/)]);
+    expect(mailTo(email).map((m) => m.subject)).toEqual([expect.stringMatching(/A snag on/), expect.stringMatching(/reply is ready/)]);
   });
 
   it.each([
-    ['failed', /looking into/],
-    ['needs_attention', /looking into/],
+    ['failed', /A snag on/],
+    ['needs_attention', /A snag on/],
   ])('catches up on confirm when the ticket is already %s', async (status, subject) => {
     const t = await ticket(status);
     const email = `k-${randomUUID()}@example.test`;

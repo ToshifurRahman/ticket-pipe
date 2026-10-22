@@ -8,7 +8,7 @@ import { stampProps, useStampOnChange } from './use-stamp-on-change';
 
 /** Shown when failed or needs_attention. It claims no alert: only a person picking it up moves it. */
 export const ON_HOLD_MESSAGE =
-  "Your request needs a person to look at it, so it's waiting in our team's queue. This page updates by itself when it moves again. You can leave and come back with your reference.";
+  "Your request is on hold and flagged for the team. This page updates by itself if it moves again. You can leave and come back with your reference.";
 
 const WORKING_NOTE = 'You can leave this page. It keeps your place, and your reference brings you back.';
 

@@ -65,5 +65,6 @@ test('an operator signs in, finds a ticket that needs attention and replays it l
   await page.keyboard.press('Escape');
   await page.getByRole('tab', { name: /^All/ }).click();
   const row = page.getByRole('row').filter({ hasText: referenceNumber });
-  await expect(row.getByText('Completed')).toBeVisible({ timeout: 15_000 });
+  // The Status column is the last badge; the one under the ref is phone-only and aria-hidden.
+  await expect(row.getByText('Completed').last()).toBeVisible({ timeout: 15_000 });
 });

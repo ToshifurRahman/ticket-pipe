@@ -1,0 +1,428 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-22T00:00:00Z",
+  "title": "Design System: Relay",
+  "authority": {
+    "url": "https://claude.ai/artifact/KgujCr5HHmouNMgx9bHwzo",
+    "deviations": "docs/design-deviations.md",
+    "tokenSources": [
+      "web/tokens/colors.json",
+      "web/tokens/scale.json"
+    ]
+  },
+  "extensions": {
+    "colorMeta": {
+      "forest": {
+        "role": "neutral",
+        "displayName": "forest",
+        "canonical": "#08130F",
+        "usage": "Carbon ground; ink on a light ply"
+      },
+      "scrim-black": {
+        "role": "neutral",
+        "displayName": "scrim-black",
+        "canonical": "#000000",
+        "usage": "Scrim behind a drawer (55% opacity)"
+      },
+      "forest-2": {
+        "role": "neutral",
+        "displayName": "forest-2",
+        "canonical": "#0E1D17",
+        "usage": "Card and popover surface"
+      },
+      "forest-3": {
+        "role": "neutral",
+        "displayName": "forest-3",
+        "canonical": "#152A21",
+        "usage": "Raised surface: secondary, muted, accent hover"
+      },
+      "form-ground": {
+        "role": "neutral",
+        "displayName": "form-ground",
+        "canonical": "#0B1511",
+        "usage": "Ground a service form is printed on"
+      },
+      "form-rule": {
+        "role": "neutral",
+        "displayName": "form-rule",
+        "canonical": "#1F3A2E",
+        "usage": "Decorative ruling inside a form and its outer edge (about 1.5:1)"
+      },
+      "form-mute": {
+        "role": "neutral",
+        "displayName": "form-mute",
+        "canonical": "#A3CCB7",
+        "usage": "Secondary text on a form"
+      },
+      "hair-forest": {
+        "role": "neutral",
+        "displayName": "hair-forest",
+        "canonical": "#1D3529",
+        "usage": "Decorative ruling on carbon (border, rule)"
+      },
+      "rule-forest": {
+        "role": "neutral",
+        "displayName": "rule-forest",
+        "canonical": "#5E8A73",
+        "usage": "Control boundary on carbon, 3:1 or better"
+      },
+      "bone": {
+        "role": "neutral",
+        "displayName": "bone",
+        "canonical": "#E8F3EC",
+        "usage": "Ink on carbon; primary action fill; link; focus ring"
+      },
+      "mute-forest": {
+        "role": "neutral",
+        "displayName": "mute-forest",
+        "canonical": "#93AE9F",
+        "usage": "Secondary text on carbon"
+      },
+      "coral": {
+        "role": "accent",
+        "displayName": "coral",
+        "canonical": "#FF7062",
+        "usage": "Urgent and field errors only"
+      },
+      "ply-bone": {
+        "role": "accent",
+        "displayName": "ply-bone",
+        "canonical": "#E4EEE8",
+        "usage": "Ply 1, Received"
+      },
+      "ply-mint": {
+        "role": "accent",
+        "displayName": "ply-mint",
+        "canonical": "#34C98B",
+        "usage": "Ply 2, Triaged"
+      },
+      "ply-orange": {
+        "role": "accent",
+        "displayName": "ply-orange",
+        "canonical": "#FF7A1A",
+        "usage": "Ply 3, Drafted"
+      },
+      "ply-green": {
+        "role": "accent",
+        "displayName": "ply-green",
+        "canonical": "#166534",
+        "usage": "Ply 4, Replied"
+      },
+      "ply-yellow": {
+        "role": "accent",
+        "displayName": "ply-yellow",
+        "canonical": "#FFD84D",
+        "usage": "The live ply"
+      },
+      "ply-edge": {
+        "role": "accent",
+        "displayName": "ply-edge",
+        "canonical": "#3FA766",
+        "usage": "The Replied ply edge"
+      },
+      "hold-forest": {
+        "role": "accent",
+        "displayName": "hold-forest",
+        "canonical": "#56645D",
+        "usage": "On hold slab"
+      },
+      "ink-on-ply": {
+        "role": "accent",
+        "displayName": "ink-on-ply",
+        "canonical": "#04140C",
+        "usage": "Ink on the mint ply"
+      },
+      "ink-on-orange": {
+        "role": "accent",
+        "displayName": "ink-on-orange",
+        "canonical": "#1A0A00",
+        "usage": "Ink on the orange ply"
+      },
+      "ink-on-yellow": {
+        "role": "accent",
+        "displayName": "ink-on-yellow",
+        "canonical": "#1A1400",
+        "usage": "Ink on the live ply"
+      },
+      "hero": {
+        "role": "accent",
+        "displayName": "hero",
+        "canonical": "#044F34",
+        "usage": "Hero and top bar band"
+      },
+      "billing": {
+        "role": "accent",
+        "displayName": "billing",
+        "canonical": "#F2B84B",
+        "usage": "Topic: billing"
+      },
+      "account": {
+        "role": "accent",
+        "displayName": "account",
+        "canonical": "#B79CFF",
+        "usage": "Topic: account"
+      },
+      "bug": {
+        "role": "accent",
+        "displayName": "bug",
+        "canonical": "#FF8A7A",
+        "usage": "Topic: bug"
+      },
+      "tech": {
+        "role": "accent",
+        "displayName": "tech",
+        "canonical": "#7FB0FF",
+        "usage": "Topic: technical"
+      },
+      "feature": {
+        "role": "accent",
+        "displayName": "feature",
+        "canonical": "#4FD9CB",
+        "usage": "Topic: feature request"
+      },
+      "low": {
+        "role": "accent",
+        "displayName": "low",
+        "canonical": "#C9D6CF",
+        "usage": "Priority: low"
+      },
+      "med": {
+        "role": "accent",
+        "displayName": "med",
+        "canonical": "#F5DD5A",
+        "usage": "Priority: medium"
+      },
+      "high": {
+        "role": "accent",
+        "displayName": "high",
+        "canonical": "#FFA04D",
+        "usage": "Priority: high"
+      }
+    },
+    "typographyMeta": {
+      "label": {
+        "displayName": "Archivo Narrow caps",
+        "purpose": "Printed labels, kickers, chips, buttons, table heads. Weight 700, tracking 0.08em (labels) or 0.1em (controls)."
+      },
+      "body": {
+        "displayName": "Public Sans Variable",
+        "purpose": "Reading text, titles, inputs. 16px, line-height 1.55."
+      },
+      "mono": {
+        "displayName": "Courier Prime",
+        "purpose": "References, times, counters, KPIs; tabular figures."
+      }
+    },
+    "typeScale": {
+      "caption": "0.6875rem",
+      "xs": "0.75rem",
+      "meta": "0.8125rem",
+      "sm": "0.875rem",
+      "base": "1rem",
+      "lg": "1.125rem",
+      "xl": "1.25rem",
+      "2xl": "1.5rem",
+      "3xl": "1.875rem",
+      "4xl": "2.25rem",
+      "5xl": "3rem"
+    },
+    "spacing": {
+      "unit": "4px",
+      "hair": "1px",
+      "rule": "2px"
+    },
+    "radius": {
+      "none": "0"
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "stamp",
+        "value": "90ms steps(2, jump-none)",
+        "purpose": "A stage lands; hover and press change in one step."
+      },
+      {
+        "name": "press",
+        "value": "135ms step-end, scale 1.15 then -3deg",
+        "purpose": "Rubber stamp; lands 120ms after a click."
+      },
+      {
+        "name": "print-head",
+        "value": "270ms steps(3)",
+        "purpose": "Headline prints in; also rate tier sweep."
+      },
+      {
+        "name": "print-form",
+        "value": "480ms steps(6), after print-head",
+        "purpose": "Form prints in."
+      },
+      {
+        "name": "print-cta",
+        "value": "135ms steps(1) at 750ms",
+        "purpose": "Hero button prints in."
+      },
+      {
+        "name": "print-line",
+        "value": "180ms per line",
+        "purpose": "Reply prints line by line."
+      },
+      {
+        "name": "nudge",
+        "value": "240ms step-end x2",
+        "purpose": "Idle hero button presses itself down."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation and transition none",
+        "purpose": "All motion off under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "521px"
+      },
+      {
+        "name": "md",
+        "value": "901px"
+      }
+    ],
+    "layout": {
+      "page": "1232px",
+      "content": "1200px",
+      "controlHeight": "48px",
+      "controlHeightSm": "40px",
+      "tableMin": "820px",
+      "captchaSlot": "65px"
+    },
+    "emails": {
+      "maxWidth": "560px",
+      "fonts": {
+        "caps": "Archivo Narrow, Arial Narrow, Arial, sans-serif",
+        "mono": "Courier Prime, Courier New, Courier, monospace",
+        "body": "Public Sans, Arial, Helvetica, sans-serif"
+      },
+      "palette": {
+        "hero": "#044F34",
+        "bone": "#E8F3EC",
+        "ink": "#08130F",
+        "rule": "#C9D6CF",
+        "mute": "#56645D"
+      }
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-default",
+      "description": "Printed caps on square bone stock.",
+      "html": "<button class=\"ds-btn\">Submit</button>",
+      "css": ".ds-btn{font-family:'Archivo Narrow','Arial Narrow',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.1em;height:48px;padding:0 24px;border:0;border-radius:0;background:#E8F3EC;color:#08130F;font-size:14px} .ds-btn:hover{box-shadow:inset 0 0 0 1px currentColor} .ds-btn:focus-visible{outline:3px solid #E8F3EC;outline-offset:2px} .ds-btn:active{transform:translateY(1px)}"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Ruled field with the 3:1 boundary.",
+      "html": "<input class=\"ds-input\" placeholder=\"Subject\">",
+      "css": ".ds-input{height:48px;width:240px;padding:0 12px;background:transparent;color:#E8F3EC;border:1px solid #5E8A73;border-radius:0;font:16px 'Public Sans',sans-serif} .ds-input:hover,.ds-input:focus-visible{border-color:#E8F3EC;outline:none} .ds-input[aria-invalid=true]{border-color:#FF7062}"
+    },
+    {
+      "name": "Ply Row",
+      "kind": "custom",
+      "refersTo": "form-panel",
+      "description": "Four equal ply cells; the third is shown as the live one.",
+      "html": "<ol class=\"ds-plies\"><li class=\"ds-p1\">1 Received</li><li class=\"ds-p2\">2 Triaged</li><li class=\"ds-p3\">3 Drafted</li><li class=\"ds-p4\">4 Replied</li></ol>",
+      "css": ".ds-plies{display:grid;grid-template-columns:repeat(4,1fr);margin:0;padding:0;list-style:none;font:700 13px 'Archivo Narrow','Arial Narrow',sans-serif;text-transform:uppercase;letter-spacing:.08em} .ds-plies li{min-height:72px;padding:10px 14px} .ds-p1{background:#E4EEE8;color:#08130F} .ds-p2{background:#34C98B;color:#04140C} .ds-p3{background:#FFD84D;color:#1A1400} .ds-p4{background:transparent;color:#93AE9F}"
+    },
+    {
+      "name": "Tone Chip",
+      "kind": "chip",
+      "refersTo": "tone-chip",
+      "description": "Tilted outline stamp for category or priority.",
+      "html": "<span class=\"ds-chip\">Billing</span>",
+      "css": ".ds-chip{display:inline-block;transform:rotate(-3deg);border:1px solid #F2B84B;color:#F2B84B;padding:2px 8px;font:700 11px 'Archivo Narrow','Arial Narrow',sans-serif;text-transform:uppercase;letter-spacing:.08em}"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "status-badge",
+      "description": "Ops status with a square pip.",
+      "html": "<span class=\"ds-badge\"><i></i>Needs attention</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;gap:7px;border:1px solid #FFA04D;color:#FFA04D;padding:1px 9px;font:700 11px 'Archivo Narrow','Arial Narrow',sans-serif;text-transform:uppercase;letter-spacing:.08em} .ds-badge i{width:7px;height:7px;background:currentColor}"
+    },
+    {
+      "name": "Form Panel",
+      "kind": "card",
+      "refersTo": "form-panel",
+      "description": "One ruled sheet with a header.",
+      "html": "<section class=\"ds-form\"><header><p>Service ticket · Customer copy</p><h2>Cannot log in</h2></header></section>",
+      "css": ".ds-form{background:#0B1511;color:#E8F3EC;border:1px solid #1F3A2E;max-width:420px} .ds-form header{padding:18px 22px} .ds-form p{margin:0 0 6px;font:700 12px 'Archivo Narrow','Arial Narrow',sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#A3CCB7} .ds-form h2{margin:0;font:600 26px/1.15 'Public Sans',sans-serif}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Carbon Set",
+    "overview": "Relay files each support request as a carbonless multi-part service form; each pipeline stage stamps its own ply. Dark only, forest-black ground, flat square fields, hard-step motion. The Relay Full Demo is the design authority.",
+    "keyCharacteristics": [
+      "Radius 0, no shadows, blur or gradients",
+      "Archivo Narrow caps, Courier Prime numbers, Public Sans reading",
+      "Single 90ms steps(2) stamp; no easing",
+      "Yellow is the live ply; coral is urgent only",
+      "No light theme, no toggle"
+    ],
+    "rules": [
+      {
+        "name": "The Yellow Is Live Rule",
+        "body": "Yellow marks the one ply in progress and nothing else (the ops badge for processing uses it as ink). Never use it as decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Coral Is Urgent Rule",
+        "body": "Coral is for urgent priority and field errors. No other use.",
+        "section": "colors"
+      },
+      {
+        "name": "The Field Edge Rule",
+        "body": "A control boundary uses `rule-forest` (`input`), which clears 3:1. `form-rule` and `hair-forest` are decorative ruling only; never put them on a control. This `input` value is a listed deviation from the demo.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ink Pairing Rule",
+        "body": "Every ply has its own ink (`ink-on-ply`, `ink-on-orange`, `ink-on-yellow`, forest, bone). Do not pair a ply with another ply's ink.",
+        "section": "colors"
+      },
+      {
+        "name": "The Three Jobs Rule",
+        "body": "Caps labels never carry sentences; Courier never carries prose; Public Sans never prints a label.",
+        "section": "colors"
+      },
+      {
+        "name": "The No Easing Rule",
+        "body": "Every transition is a hard step. No fades, springs or cubic-bezier curves.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "take values from `tokens.css` variables; add a token in the JSON first, then run `bun run tokens`.",
+      "keep every state change a hard step (90ms `steps(2)` or the stepped print).",
+      "print labels in Archivo Narrow caps, numbers in Courier Prime, sentences in Public Sans.",
+      "wrap new form surfaces in FormPanel so ruling and form colours come for free.",
+      "give each ply its own ink and keep the live ply the only yellow."
+    ],
+    "donts": [
+      "add a light theme, a theme toggle, rounded corners, shadows, blur, gradients or glow.",
+      "use coral for anything but urgent and errors.",
+      "put a decorative rule colour on a control boundary.",
+      "use easing, fades or springs.",
+      "put architecture or tech detail on the site, or copy the retired violet/starfield look.",
+      "hardcode hex in components (the only literals are the theme-color meta tag, the two breakpoints, and email inline styles)."
+    ]
+  },
+  "knownItems": [
+    "Ops list on 375px clips the Subject column without an ellipsis (cosmetic; the drawer shows the full title).",
+    "The empty gap above NOTIFY ME / SUBMIT on a phone is the Turnstile slot reserved for Cloudflare's 65px widget; it only looks empty when the widget is stubbed in captures.",
+    "On hold always sits on ply 4 with plies 1 to 3 painted done, as in the demo.",
+    "The two within-a-minute /new copy lines are kept by decision."
+  ]
+}
