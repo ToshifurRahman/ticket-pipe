@@ -1,647 +1,116 @@
 # Ticket-Pipeline
 
-An AI-powered ticket processing system that automatically analyzes support tickets, performs intelligent triage, and generates response drafts using LLMs. Built with Hono on Bun, PostgreSQL, AWS SQS, and LangChain.
+A support-ticket pipeline. A customer submits a ticket, a background worker triages it with an LLM and drafts a reply, and the customer watches it happen live. Staff get an ops console with live updates, alerts and replay for failures.
 
-![Bun](https://img.shields.io/badge/bun-v1.3+-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-13+-blue)
+Built with Bun, Hono, PostgreSQL, Redis, AWS SQS, Socket.io and React.
 
-## Table of Contents
+![The customer flow: submit a ticket, watch it triaged, read the reply](docs/screenshots/customer-flow.gif)
 
-- [Quick Start](#quick-start)
-- [Architecture Overview](#architecture-overview)
-- [Features](#features)
-- [Web App](#web-app)
-- [Ops Email Alerts](#ops-email-alerts)
-- [Customer Email](#customer-email)
-- [Ticket History](#ticket-history)
-- [AI Observability](#ai-observability)
-- [Project Structure](#project-structure)
-- [Development Guide](#development-guide)
+## What it shows
 
-## Quick Start
+- **LLMs in a real pipeline.** Two stages (triage, then draft), each returning schema-validated JSON, with timeouts, retries and a backup provider.
+- **Async work done properly.** An SQS queue and a worker with per-stage retries, replay from the stage that failed, and escalation to ops when retries run out.
+- **Observability.** Every provider call is recorded (outcome, latency, tokens) and summarised in the ops console.
+- **Privacy by construction.** Public views, the ops feed and alerts are built field by field, and guard tests fail if anything else publishes to them.
+- **Tests at every layer.** Vitest, Playwright end to end, and accessibility checks.
 
-### Prerequisites
+## Architecture
 
-- **Bun** v1.3 or higher (the runtime for the API, worker and scripts, and the package manager; there is no `package-lock.json`, only `bun.lock`). Bun runs TypeScript directly.
-- **Node.js** v20 or higher (only the test runner, Vitest, runs on Node)
-- **PostgreSQL** 13 or higher
-- **AWS Account** (for SQS)
-- **API Keys**:
-  - Google AI Studio API Key (Gemini, free tier — primary LLM provider)
-  - Portkey API Key (for AI gateway & fallback routing)
-  - GROQ API Key (optional, used as the backup LLM provider)
-  - LangSmith API Key (for LangChain tracing)
-
-### Installation
-
-1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd ticket-pipe
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   bun install
-   ```
-
-3. **Set up environment variables**:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your actual credentials
-   ```
-
-4. **Set up the database**:
-   ```bash
-   bun run migrate
-   ```
-
-5. **Set up AWS infrastructure** (SQS queue, etc.). `docker compose up -d` does this for you: a one-shot `setup` service creates the queues once LocalStack is healthy, and LocalStack keeps its state in a volume. To run it by hand:
-   ```bash
-   bun run setup
-   ```
-
-### Running Locally
-
-**Terminal 1 - Start the API server**:
-```bash
-bun run dev
 ```
-The server will start on `http://localhost:3000`
-
-**Terminal 2 - Start the background worker**:
-```bash
-bun run worker
+Customer / Ops (React app)
+        │  HTTP + Socket.io
+        ▼
+Hono API (Bun) ──► PostgreSQL ◄──┐
+        │                        │
+        ▼                        │
+   AWS SQS queue ──► Worker ─────┘
+                       │
+                       ▼
+                 ai-service ──► llm-client ──► Portkey ──► primary LLM
+                                                    └────► backup LLM (on failure)
 ```
 
-### Verify It's Working
+1. `POST /api/tickets` stores the ticket as `queued` and sends a message to SQS.
+2. The worker picks it up and runs **triage** (category, priority, sentiment, escalation, team), then **draft** (customer reply, internal note, next steps).
+3. Each step and outcome is written to `ticket_events` and pushed live to the customer's page and the ops feed.
+4. A stage that fails is retried up to 3 times. After that the ticket goes to `needs_attention`, ops is alerted, and staff can replay it.
+
+## How the AI works
+
+All model calls go through `src/lib/llm-client.ts`.
+
+- **Structured output.** Each call forces a named function schema, and the result is validated with Zod (`TriageOutputSchema`, `DraftOutputSchema`). Malformed output is recorded as `invalid_response` and treated as a failure. It is one forced call per stage, not an agent loop.
+- **Providers.** Requests go through the Portkey gateway to Google (Gemini, primary) and Groq (backup), set by `PRIMARY_GATEWAY` and `BACKUP_GATEWAY`. If the primary fails or times out (`AI_TIMEOUT_MS`, default 30s), the backup answers.
+- **Recording.** Every call is written to `ai_interactions`, and a failed write never blocks the ticket. See [AI observability](docs/ai-observability.md).
+- **No provider needed to try it.** `LLM_MODE=fake` returns canned output at the provider boundary. Everything above it (validation, retries, events) still runs. See [Testing without an AI provider](docs/web-app.md#testing-without-an-ai-provider).
+
+## Quick start
+
+**Needs:** Bun 1.3+, Node 20+ (Vitest only), Docker.
 
 ```bash
-# Submit a ticket
+bun install
+cp .env.example .env     # fill in the values below
+docker compose up -d     # Postgres, Redis, LocalStack (SQS/SNS), Mailpit; creates the queues
+bun run migrate
+bun run dev              # API on http://localhost:3000
+bun run worker           # in a second terminal
+```
+
+In `.env`, set `PORTKEY_API_KEY`, `GOOGLE_API_KEY` (primary, Gemini) and `BACKUP_API_KEY` (Groq). To skip providers entirely, set `LLM_MODE=fake`.
+
+Try it:
+
+```bash
 curl -X POST http://localhost:3000/api/tickets \
   -H "Content-Type: application/json" \
-  -d '{
-    "subject": "Login not working",
-    "description": "I cannot log in with my password"
-  }'
+  -d '{"subject": "Login not working", "description": "I cannot log in with my password"}'
+# { "ticketId": "…", "referenceNumber": "TKT-001", "status": "queued", … }
 
-# Response example:
-# {
-#   "ticketId": "550e8400-e29b-41d4-a716-446655440000",
-#   "referenceNumber": "TKT-001",
-#   "status": "queued",
-#   "createdAt": "2026-04-30T11:05:37.964Z"
-# }
-
-# Check ticket status
-curl http://localhost:3000/api/tickets/550e8400-e29b-41d4-a716-446655440000
+curl http://localhost:3000/api/tickets/<ticketId>
 ```
 
-## Architecture Overview
+For the web UI, run `bun run build` once and open http://localhost:3000, or run `bun run web:dev` for the Vite dev server on :5173. Staff sign in at `/ops` with `OPS_TOKEN` (`dev-ops-token` locally).
 
-```
-User/Portal
-    ↓
-[Hono API Server (Bun)] → [PostgreSQL Database]
-    ↓                      ↑
-[AWS SQS Queue] ← → [Background Worker]
-                         ↓
-                  [LLM Service (LangChain/LangGraph)]
-                         ↓
-                  [Portkey Gateway + GROQ]
-                         ↓
-                  [LangSmith Tracing]
-```
-
-### Key Components
-
-#### 1. **API Server** (`src/index.ts`)
-- Hono REST API on Bun for ticket submission and status tracking
-- WebSocket support via Socket.io for real-time updates
-- Request validation using Zod schemas
-- Error handling and logging with Pino
-
-#### 2. **Background Worker** (`src/worker.ts`)
-- Long-running process that polls AWS SQS for messages
-- Processes tickets through the triage → draft pipeline
-- Implements retry logic with per-stage failure counting
-- Escalates tickets to ops dashboard when max retries exceeded
-- Manages phase transitions and event recording
-
-#### 3. **Database Layer** (`src/repositories/*`)
-- PostgreSQL for persistent storage
-- Three main tables: `tickets`, `ticket_processing`, `ticket_events`
-- Optimized indexes for fast lookups by ticket ID
-
-#### 4. **AI Service** (`src/lib/ai-service.ts` & `src/lib/llm-client.ts`)
-- **Triage Phase**: Analyzes ticket to determine category, priority, sentiment, escalation needs, and recommended team
-- **Draft Phase**: Generates customer-facing reply, internal notes, and next action steps
-- Falls back from the primary LLM provider to a backup provider on failure
-- Integrates with Portkey for request routing
-- Records every provider call (outcome, duration, tokens) to `ai_interactions` for ops review — see [AI Observability](#ai-observability)
-
-#### 5. **Queue System** (`src/lib/queue.ts`)
-- AWS SQS integration for reliable message passing
-- Handles message batching and deletion
-- Supports LocalStack for local development
-
-### Data Flow
-
-1. **Ticket Submission**: User submits ticket via `POST /api/tickets` → Stored in DB with status `queued` → Message sent to SQS
-2. **Queue Processing**: Worker polls SQS → Retrieves ticket details
-3. **Triage Phase**: LLM analyzes content → Produces category, priority, sentiment, team assignment → Stored in `ticket_processing`
-4. **Draft Phase**: LLM generates response using triage output → Produces customer reply, internal notes, next steps
-5. **Completion**: Results saved → Ticket status updated to `completed` → Real-time events broadcast to clients via Socket.io
-6. **Error Handling**: On failure at any stage → Event recorded → Retried up to MAX_ATTEMPTS (3) → Escalated to ops if max retries exceeded
-
-## Features
-
-### Core Capabilities
-- **Automated Ticket Submission**: RESTful API for creating support tickets with automatic validation
-- **Real-time Status Tracking**: WebSocket-based live updates as tickets progress through processing
-- **Reference Numbers**: Every ticket gets a unique reference number (TKT-XXX) for easy tracking
-- **Pagination & Filtering**: List tickets with filtering by status and sorting options
-
-### AI-Powered Processing
-- **Intelligent Triage**: Automatic categorization, priority assignment, sentiment analysis
-- **Smart Escalation**: AI-determined escalation flags to route complex issues to the right team
-- **Draft Response Generation**: LLM-powered customer-facing responses with internal notes
-- **Next Steps Planning**: Automated suggestion of follow-up actions for the support team
-
-### Reliability & Retry Logic
-- **Per-Stage Retry**: Each processing phase (triage, draft) retries independently with configurable retry counts
-- **Escalation on Max Failures**: Tickets that exceed retry thresholds are escalated to ops team
-- **Event Audit Trail**: Complete, permanent history of all state transitions and failures recorded as events (see [Ticket History](#ticket-history))
-- **Ops Recovery**: Ops can send a `failed` or `needs_attention` ticket back through processing without the customer resubmitting (see [Ticket Recovery](#ticket-recovery))
-
-### Developer Features
-- **Local Development Support**: Works with LocalStack for SQS, Portkey for routing, and local PostgreSQL
-- **Comprehensive Logging**: Structured logging with Pino for debugging and monitoring
-- **Socket.io Integration**: Real-time bi-directional communication for ops alerts
-
-## Ops Live Feed
-
-Ops staff can watch every ticket event across the organization over Socket.io. The feed carries
-status information only. It never includes the subject, description, AI output or an event's error text.
-
-```js
-const socket = io('http://localhost:3000');
-socket.on('ops:ticket_event', (e) => console.log(e));
-await socket.emitWithAck('ops:subscribe'); // resolves to { ok: true } once subscribed
-```
-
-Each `ops:ticket_event` payload is `{ ticketId, referenceNumber, event, occurredAt }`, where `event`
-is one of `ticket.submitted`, `triage.started`, `triage.completed`, `triage.failed`, `triage.invalid`,
-`draft.started`, `draft.completed`, `draft.failed`, `draft.invalid`, `ticket.completed`, `ticket.failed`, `ticket.needs_attention`,
-`ticket.requeued` or `ticket.requeue_failed`.
-
-When a ticket runs out of retries, ops also receives `ticket:needs_attention` with
-`{ ticketId, referenceNumber, reason, occurredAt }`. `reason` is one of `triage_retries_exhausted`,
-`draft_retries_exhausted`, `incomplete_output` or `processing_result_missing`. It is a fixed code, never the
-error message, because error messages can quote AI output or customer content. The full text stays in the
-ticket's event history (`GET /api/ops/tickets/:id`).
-
-When ops replays a ticket, the room also receives `ticket:requeued` with
-`{ ticketId, referenceNumber, previousStatus, occurredAt }`, where `previousStatus` is `failed` or `needs_attention`.
-
-**Privacy boundary.** The ops room is visible to every ops subscriber, so only
-`src/services/ops-feed.ts` may publish to it, and only identifiers, codes and timestamps. The ticket's own
-room, which only that customer joins, gets `ticket:update` with `{ event, ticketId, occurredAt }` and no AI
-output either: the page reads the reply from the public lookup.
-`tests/ops-feed.guard.test.ts` fails if any other file publishes to the ops room.
-
-Every event goes through `recordTicketEvent()` (`src/services/ticket-events.ts`), which writes the
-`ticket_events` row and publishes to the feed, so the two cannot drift apart. Publishing is best-effort
-and never affects ticket processing. Customers join only their own ticket room (`join` accepts a
-ticket UUID and nothing else), so they cannot subscribe to the feed.
-
-## Web App
-
-The UI is a React single-page app in `web/` (Vite, TypeScript, Tailwind v4, shadcn/ui). It is a separate package with its own `package.json`; the API serves the built `web/dist` on the same origin as the API, with deep links such as `/t/<reference>` falling back to `index.html`.
+## Tests and checks
 
 ```bash
-# Development: API on :3000 plus the Vite dev server on :5173 (proxies /api and /socket.io)
-bun run dev
-bun run web:dev
-
-# Production-style: build once, then the API serves it on :3000
-bun run build
-bun run dev
+bun run test        # API, worker and repository tests (Vitest on Node)
+bun run test:web    # web unit tests
+bun run test:e2e    # Playwright against the built app (needs the Docker services up)
+bun run lint        # ESLint
 ```
 
-If `web/dist` has not been built, the API starts normally and logs a warning; only the UI is missing.
+Use `bun run test`, not `bun test`: Vitest has to run on Node because `vi.mock` does not work under Bun. Stop any dev worker before `test:e2e`, since it reads the same queue.
 
-### Submitting a ticket (`/new`)
+## More detail
 
-`POST /api/tickets` accepts a subject of 3–120 characters and a description of 20–5000, counted after trimming; anything outside that is a 400 `{ "errors": { "<field>": "<message>" } }`. The form checks the same limits inline, with the same messages, before it sends anything.
-
-The form carries a Cloudflare Turnstile check and sends its token as `turnstileToken`. The API does not verify the token yet. Set the site key at build time with `VITE_TURNSTILE_SITE_KEY`; when it is unset, Cloudflare's always-pass test key is used. Each browser remembers its last five submitted references in `localStorage` and lists them on `/new` with their current status.
-
-### Following a ticket (`/t/:ref`)
-
-The ticket page reads `GET /api/tickets/ref/:ref`, joins the ticket's socket room, and refetches on every
-`ticket:update`. It shows the customer's message, a Received → Triaged → Drafted → Replied stepper, and a
-typing indicator ("Reviewing your request…", then "Writing a reply…"). Category and priority appear as soon
-as triage finishes, and the reply arrives as a support message that closes the conversation. `failed` and
-`needs_attention` both show one neutral message with no reason; the page stays connected, so a replay by the
-team brings the indicator back. Only a completed ticket disconnects.
-
-### Public and ops ticket views
-
-The customer routes return a **public view** of a ticket: its subject, description, status, event names and
-times, phase statuses, and from the AI output only `category`, `priority` and `customerReply`. They never
-return `sentiment`, `escalate`, `recommendedTeam`, `issueSummary`, `internalNote`, `nextActions` or event
-`detail` (failure reasons). `src/services/ticket-views.ts` builds the public view field by field, so a new
-field stays private until it is added there on purpose; `tests/api/ticket-redaction.test.ts` checks the exact
-set of keys.
-
-| Route | View |
+| Doc | Covers |
 |---|---|
-| `GET /api/tickets/:id`, `GET /api/tickets/ref/:ref` | Public |
-| `GET /api/tickets/:id/events` | Public (`event`, `occurredAt`) |
-| `GET /api/ops/tickets/:id` | Full: every stage output and event `detail` |
-| `GET /api/ops/tickets/:id/events` | Full, same paging |
+| [Web app](docs/web-app.md) | Pages, public vs ops views, ops console, fake LLM mode |
+| [Ops](docs/ops.md) | Live feed, sign-in, email alerts, ticket recovery and replay |
+| [Customer email](docs/customer-email.md) | Opt-in notifications and mail drivers |
+| [Ticket history](docs/ticket-history.md) | Append-only event log and paging |
+| [AI observability](docs/ai-observability.md) | `ai_interactions`, ops endpoints, example queries |
+| [DESIGN.md](DESIGN.md), [PRODUCT.md](PRODUCT.md) | Design system and product intent |
 
-The ops routes need an ops session (see [Ops sign-in](#ops-sign-in)).
-
-### Ops console (`/ops`)
-
-One page for staff. Signed out, it shows only the sign-in card (a token field that posts to `POST /api/ops/session`);
-a `401` from any console request sends the operator back to it, and **Sign out** ends the session.
-
-- **KPI strip**: tickets in the last 24 hours, AI success rate, average latency and fallback rate, from `GET /api/ops/ai-interactions/summary`.
-- **Ticket table**: All / Needs attention / Failed / Completed tabs with counts, sorting by updated or created time, and
-  20 rows a page, from `GET /api/tickets`. The tab, sort, page and open ticket live in the URL, so a reload keeps your place.
-- **Live updates**: the console joins the ops room and re-reads the list, counts, KPIs and any open drawer when it hears
-  `ops:ticket_event`, `ticket:requeued`, `ticket:failed` or `ticket:needs_attention`, so rows change with no reload.
-  The header shows whether the feed is connected. `ticket:needs_attention` and `ticket:failed` also raise a toast with an **Open** action.
-- **Detail drawer** (click a row): the full triage (category, priority, sentiment, escalate, team, summary), the customer's
-  message, the drafted reply, internal note and next actions, the event timeline (paged with **Load more**), and every AI
-  call for the ticket (step, model, latency, whether the backup provider answered, outcome).
-- **Replay**: offered for `failed` and `needs_attention` tickets, and asks once because a replay spends AI calls. It resumes at
-  the stage that did not finish. A `409` (something already moved the ticket) and a `503` (it could not be requeued and was left as it was) show as plain toasts.
-
-`web/src/pages/ops.test.tsx` and `web/src/components/ops/ticket-drawer.test.tsx` cover the console; `e2e/ops-console.spec.ts`
-signs in, filters to a `needs_attention` ticket made with `[fake:invalid-draft]`, replays it and watches the row complete.
-
-### Testing without an AI provider
-
-`LLM_MODE=fake` returns canned triage and draft output at the provider boundary, so tickets complete without Portkey or any API key. Everything above that layer still runs for real (retries, validation, `ai_interactions` rows with model `fake`, events, notifications).
-
-| Setting | Effect |
-|---|---|
-| `LLM_FAKE_DELAY_MS` | Delay per fake call (default `1500`, so the typing indicators are visible). Tests use `0`. |
-| `[fake:invalid-triage]` in a description | Triage returns blank fields, so the ticket goes to `needs_attention` |
-| `[fake:invalid-draft]` in a description | Draft returns a blank reply, so the ticket goes to `needs_attention` |
-
-The API and the worker both refuse to start with `LLM_MODE=fake` when `NODE_ENV=production`, and with any `LLM_MODE` other than `real` or `fake`.
-
-```bash
-bun run test:web    # web unit tests (Vitest + Testing Library + MSW)
-bun run test:e2e    # Playwright against the built app; needs `docker compose up -d`, `bun run migrate`, `bun run setup`
-```
-
-`test:e2e` builds the web app and starts `e2e/stack.ts`: the API and the worker in one process with
-`LLM_MODE=fake`, so submitted tickets really get processed. Stop any dev worker before running it, because it
-reads the same queue and, in real mode, would spend LLM calls on e2e tickets.
-
-## Ops Email Alerts
-
-The live feed only helps while someone has it open. When a ticket enters `needs_attention`, the worker also
-publishes one alert to an AWS SNS topic, and SNS emails it to the ops address subscribed to that topic.
+## Project structure
 
 ```
-Subject: [Ticket Pipe] TICK-1791462896000-9F2A1C07 needs attention (incomplete_output)
-
-Ticket TICK-1791462896000-9F2A1C07 needs attention.
-
-Reference: TICK-1791462896000-9F2A1C07
-Ticket ID: 3f6c…
-Reason:    incomplete_output
-Time:      2026-10-08T12:34:56.000Z
-
-Replay it from the ops console (or POST /api/tickets/3f6c…/replay with an ops session) once the cause is fixed.
-```
-
-**What SNS is used for, and what it isn't.** SNS fans a message out to servers and people (email, SMS,
-queues), which makes it the right tool for "tell ops by email". It can't push to a browser, so live updates
-stay on Redis + Socket.io. It can't email customers either: only confirmed subscribers receive SNS email.
-If several independent consumers ever need every ticket event, the same topic can fan out to one SQS queue
-per consumer. That is the scaling direction, not something built here.
-
-**Same privacy boundary as the ops feed.** The alert is built field by field from `OpsNeedsAttention`, so it
-holds the reference number, ticket id, reason code and time, and never the subject, description, AI output or
-error text. Only `src/services/ops-alerts.ts` may publish to SNS (`tests/ops-alerts.guard.test.ts`).
-
-**Behaviour**
-- One alert per ticket that actually moves into `needs_attention`. A redelivered message that finds the
-  ticket already moved sends nothing.
-- Best-effort: the worker doesn't wait for SNS. A failed or slow call (5s timeout, one retry) is logged and
-  never fails or delays processing.
-- Capped at `SNS_ALERT_MAX_PER_HOUR` (default 20) so a bad AI provider day can't flood the inbox or use up
-  SNS's free 1,000 emails a month. Past the cap, alerts are dropped and one warning is logged per hour. The
-  ticket and the live feed still have the event. The count is kept in memory, so the cap is per worker process
-  and restarts with it.
-
-**Configuration**
-
-| Variable | Purpose |
-|---|---|
-| `SNS_TOPIC_ARN` | Turns alerts on. Unset (local dev, CI, or after the AWS free plan ends) means no alerts; everything else works unchanged. |
-| `SNS_ENDPOINT` | LocalStack URL for local runs. Leave unset in production to use AWS. |
-| `SNS_ALERT_MAX_PER_HOUR` | Hourly cap, default 20. |
-
-To try it locally, `bun run setup` creates the `ticket-needs-attention` topic in LocalStack and prints its ARN.
-Set `SNS_TOPIC_ARN` to it. LocalStack doesn't send email, so subscribe a queue to the topic to see the alerts
-(as `tests/ops-alerts.localstack.test.ts` does). In production the topic, the email subscription (the recipient
-must click the confirmation link) and `sns:Publish` on that topic for the app's IAM user are set up by hand.
-
-## Customer Email
-
-A customer can ask to be emailed instead of keeping `/t/:ref` open. The "Don't want to wait?" card appears on a
-ticket that has no reply yet; `/new` is unchanged.
-
-1. The customer enters an address (Turnstile token required, 5 opt-ins per IP per hour). We email a link to
-   `/confirm/:token`. The link opens a page with a **Confirm** button, and only the button's `POST` confirms,
-   because mail scanners open links on their own and a `GET` that confirmed would let them confirm for the customer.
-2. After that, at most two more emails: **reply ready** when the ticket completes, and one **we're looking into
-   it** the first time it ends `failed` or `needs_attention`. A replay that later completes still sends the
-   reply. Confirming after the outcome already happened sends it straight away (`notifyIfDue`).
-3. Emails carry the subject, the reference and a link, never the description or the reply.
-
-The address is set once per ticket (a second attempt gets `409`) and lives alone in `ticket_notifications`, so
-no ticket query can pick it up by accident. It is masked (`t•••@gmail.com`) on every customer and ops surface,
-never logged or put in an event (`tests/notifications.guard.test.ts`), and removed with its ticket by the
-30-day retention purge. Sending is best effort, like the ops alert: an atomic claim column per email, three
-retries (1s/4s/15s) and a `notification.failed` event for ops if they run out. A daily cap (`MAIL_DAILY_CAP`,
-default 250) protects the free quota.
-
-`src/lib/mailer.ts` is the only module that sends mail, behind one interface with three drivers:
-
-| `MAIL_DRIVER` | Used for |
-| --- | --- |
-| `smtp` | Local dev and e2e. `docker compose up -d` starts Mailpit (SMTP `:1025`, inbox and API at http://localhost:8025). |
-| `brevo` | Production. Brevo's HTTPS API, because Render's free plan blocks outbound SMTP ports. Needs `BREVO_API_KEY`, `MAIL_FROM` (a sender verified in Brevo) and `PUBLIC_SITE_URL`. |
-| `memory` | Vitest. |
-
-Unset `MAIL_DRIVER` turns the feature off (the card is hidden and the opt-in endpoint answers `503`). In
-production only `brevo` is accepted. The free Brevo plan needs no card and allows 300 emails a day, but with no
-domain of our own the mail is sent from a single verified sender address (a dedicated Gmail), which fails
-DMARC alignment, so some messages may land in spam. The e2e tests (`e2e/notifications.spec.ts`) read the mail
-back through Mailpit's API.
-
-## Ops sign-in
-
-Everything staff-only sits behind a session: the ticket list (`GET /api/tickets`), replay, all of
-`/api/ops/*` and the `ops:subscribe` socket room. Customers need nothing: submitting a ticket, reading it by id or
-reference, and its live updates stay public.
-
-| Endpoint | Behaviour |
-| --- | --- |
-| `POST /api/ops/session` `{ "token": "…" }` | `200` and a session cookie when the token matches `OPS_TOKEN`. `401` for a wrong one, `429` after 5 wrong tries from one address in 15 minutes, `503` when `OPS_TOKEN` is not set. |
-| `GET /api/ops/session` | `{ "signedIn": true, "expiresAt": "…" }` or `{ "signedIn": false }`. Never `401`. |
-| `DELETE /api/ops/session` | `204`. Ends the session on the server and disconnects its live ops sockets (`ops:revoked`). |
-
-The cookie is `HttpOnly; Secure; SameSite=Strict` and holds a random 256-bit id. The server keeps only its SHA-256
-in Redis (`ops:session:<hash>`) with a fixed 12 hour life, so signing out really ends the session, and a copied
-cookie is useless afterwards. `SameSite=Strict` on one origin is the CSRF protection; the token never reaches
-browser storage. `ops:subscribe` reads the same cookie from the socket handshake and acks
-`{ ok: false, error: 'unauthorized' }` without one; a subscribed socket is removed from the room when its session
-is signed out or expires.
-
-`OPS_TOKEN` is required in production and must be at least 32 characters (`openssl rand -base64 32`). The
-brute-force counter uses the last `X-Forwarded-For` hop, which is the address the hosting proxy saw.
-
-## Ticket Recovery
-
-Ops can send a ticket that ended `failed` or `needs_attention` back through processing. The customer does
-nothing: their open ticket page gets a `ticket:update` with `ticket.requeued` and then follows the new
-attempt live.
-
-Replay is staff-only: sign in first (see [Ops sign-in](#ops-sign-in)).
-
-```bash
-curl -c jar -H 'content-type: application/json' -d '{"token":"<OPS_TOKEN>"}' http://localhost:3000/api/ops/session
-curl -b jar -X POST http://localhost:3000/api/tickets/<ticket-id>/replay
-# 200 { "success": true, "status": "queued", "previousStatus": "failed" }
-```
-
-The ticket goes back to `queued`, its `failure_reason` and `failed_at` are cleared, and `ticket.requeued` is
-recorded. Each replay is a new attempt with a fresh set of retries per stage.
-
-A replay continues from where the ticket stopped. A stage that already completed successfully never runs
-again: its saved output is reused.
-
-- **Draft failed or its output was unusable** → only the draft runs again, using the saved triage.
-- **Triage failed or its output was unusable** → triage runs again, and so does the draft, because it is
-  written from the triage.
-- **Finalizing failed** (both stages done) → no stage runs again; the ticket is only finalized.
-
-Each stage's output is checked as soon as the stage runs. Unusable output is recorded as `triage.invalid` or
-`draft.invalid`, and the ticket goes to `needs_attention` (`incomplete_output`). An invalid triage stops the
-ticket before the draft is written. The marker tells a replay which stage to start from. Older
-`needs_attention` tickets without a marker re-run any stage whose saved output is missing or unusable.
-
-The worker skips a stage based on its **saved output**, not the event history. If a worker crashes after
-saving a stage's output but before recording `*.completed`, the next attempt reuses that output and
-records `*.completed` with the detail `reused stored output`. If the history says a stage completed but
-its output is missing, the stage runs again.
-
-| Response | When |
-|---|---|
-| `200` | The ticket was requeued. |
-| `404` | No ticket with that id. |
-| `409` | The ticket is not `failed` or `needs_attention` (its current `status` is in the body). Two replays at the same moment: one wins, the other gets `409`. |
-| `503` | The message could not be sent to the queue. The ticket is put back exactly as it was, `ticket.requeue_failed` is recorded, and it can be replayed again. |
-
-There is no limit on how many times a ticket can be replayed; every replay is in its history.
-
-## Ticket History
-
-Every ticket keeps its full event history forever, from `ticket.submitted` to its final outcome, so
-support agents can look it up during a follow-up or dispute weeks later.
-
-The status lookup (`GET /api/tickets/:id` or `GET /api/tickets/ref/:referenceNumber`) returns the first
-50 events, oldest first, in `events`. If there are more, `eventsNextCursor` holds a cursor for the rest;
-otherwise it is `null`. `phases` is always worked out from the whole history, not just that first page.
-
-```bash
-# The rest of the history, a page at a time. Keep passing nextCursor back as `after` until it is null.
-curl "http://localhost:3000/api/tickets/<id>/events?limit=50"
-# { "events": [{ "event": "ticket.submitted", "occurredAt": "..." }, ...],
-#   "nextCursor": "djE6MTIz" }
-curl "http://localhost:3000/api/tickets/<id>/events?limit=50&after=djE6MTIz"
-```
-
-- The public routes leave out each event's `detail`. `GET /api/ops/tickets/:id/events` pages the same
-  history with `detail` included.
-- `limit` defaults to 50 and is clamped to 1–200. An invalid `after` cursor returns `400`, and an unknown
-  ticket returns `404`. Treat cursors as opaque.
-- Events are ordered by `ticket_events.seq`, an identity column, so order is exact even when two events
-  share a timestamp.
-- **Append-only.** Database triggers (migration `008`) reject every `UPDATE`, `DELETE` and `TRUNCATE` on
-  `ticket_events`, so history can't be lost by age, by a bug or by a stray query. Test cleanup opts in for a
-  single transaction with `set_config('app.allow_event_purge', 'on', true)`; see
-  `tests/helpers/purge-ticket-events.ts`. `tests/ticket-events.guard.test.ts` fails if code tries to change
-  the table.
-
-## AI Observability
-
-Every call to an LLM provider (primary or backup, per triage/draft attempt) is recorded in the
-`ai_interactions` table with its outcome, duration, and token usage. The AI call itself is never
-blocked or failed by a recording error — a failed write is logged and the ticket keeps processing.
-
-**Outcome values**: `success`, `http_error` (non-2xx response, with `http_status`), `network_error`
-(the request itself failed), `timeout` (exceeded `AI_TIMEOUT_MS`, default 30s), `invalid_response`
-(malformed or schema-invalid model output).
-
-**Ops endpoints**:
-- `GET /api/ops/ai-interactions` — paginated list, filterable by `provider`, `operation`, `outcome`,
-  `ticketId`, `since`/`until`
-- `GET /api/ops/ai-interactions/summary` — per `operation`+`provider` counts, success rate, average/p50/p95
-  duration, and total token usage, over a `since`/`until` window (defaults to the last 24h)
-
-**Example queries** (via `psql`):
-```sql
--- Recent failures, most recent first
-SELECT ticket_id, operation, provider, outcome, http_status, error_message, created_at
-FROM ai_interactions
-WHERE outcome != 'success'
-ORDER BY created_at DESC
-LIMIT 20;
-
--- Primary provider health over the last hour
-SELECT outcome, COUNT(*), AVG(duration_ms)
-FROM ai_interactions
-WHERE provider = 'primary' AND created_at > NOW() - INTERVAL '1 hour'
-GROUP BY outcome;
-```
-
-## Project Structure
-
-```
-ticket-pipe/
-├── src/
-│   ├── index.ts                 # Entry point: boots Socket.io + Bun.serve
-│   ├── app.ts                   # The Hono app (routes, middleware, error handling)
-│   ├── server.ts                # Bun.serve wiring for the app and Socket.io's Bun engine
-│   ├── worker.ts                # Background worker process
-│   ├── routes/
-│   │   ├── tickets.ts           # Ticket API routes
-│   │   └── health.ts            # Health check endpoint
-│   ├── controllers/
-│   │   └── tickets.ts           # Request handlers (validation, response formatting)
-│   ├── services/
-│   │   ├── tickets.ts           # Business logic (create, list, etc.)
-│   │   └── ops-alerts.ts        # SNS email alerts for needs_attention tickets
-│   ├── repositories/
-│   │   ├── tickets.ts           # Ticket table operations
-│   │   ├── processing.ts        # Triage & draft results
-│   │   └── events.ts            # Event log operations
-│   └── lib/
-│       ├── ai-service.ts        # Triage & draft execution
-│       ├── ticket-graph.ts      # LangGraph orchestration
-│       ├── ticket-phases.ts     # Phase state machine logic
-│       ├── queue.ts             # AWS SQS wrapper
-│       ├── web-app.ts           # Serves web/dist with an SPA fallback
-│       ├── sns.ts               # AWS SNS client (null when alerts are off)
-│       ├── socket.ts            # Socket.io initialization
-│       ├── db.ts                # PostgreSQL connection pool
-│       ├── logger.ts            # Pino logger setup
-│       ├── errors.ts            # Custom error classes
-│       └── reference.ts         # Reference number generation
-├── migrations/                  # Database schema migrations
-├── tests/                       # Test suite (Vitest)
-├── web/                         # React app (separate package; built to web/dist)
-├── e2e/                         # Playwright tests; stack.ts runs API + worker for them
-├── package.json                 # Dependencies and scripts
-├── tsconfig.json               # TypeScript configuration
-├── vitest.config.ts            # Test runner configuration
-├── eslint.config.js            # Linting rules
-├── .env.example                # Environment variables template
-└── README.md                   # This file
+src/
+  index.ts, server.ts, app.ts   Entry points and the Hono app
+  worker.ts                     Queue consumer: triage → draft → finish
+  routes/ controllers/          HTTP layer
+  services/                     Business logic, ops feed, alerts, notifications
+  repositories/                 PostgreSQL access
+  lib/                          llm-client, ai-service, queue, mailer, sessions, sockets
+migrations/                     Database schema
+tests/                          Vitest suite, including the privacy guard tests
+web/                            React app (Vite, Tailwind, shadcn/ui), built to web/dist
+e2e/                            Playwright tests
+scripts/                        Migrations, infra setup, screenshots
 ```
 
 ## Deployment
 
-The `Dockerfile` builds the web app and runs the API on `oven/bun`; the same image runs the worker with `docker run <image> bun src/worker.ts`. Render supports Bun both natively and through Docker, and WebSocket connections are supported on its free web services.
-
-## Development Guide
-
-### Running Tests
-
-Use `bun run test`, not `bun test`: the latter starts Bun's own test runner instead of Vitest.
-
-```bash
-# Run all tests once
-bun run test
-
-# Run tests in watch mode
-bun run test --watch
-
-# Run specific test file
-bun run test src/repositories/tickets.test.ts
-
-# Get coverage report
-bun run test --coverage
-```
-
-**Test Structure**:
-- `tests/` contains integration tests for repositories, services, and worker
-- Tests run on Node under Vitest. HTTP tests call the Hono app in-process through `tests/helpers/request.ts` (no port is opened)
-- `tests/bun-server.integration.test.ts` boots the real server under Bun, because Socket.io's Bun engine only loads there
-- Vitest cannot run on Bun: `vi.mock` does not take effect, so keep `vitest` on Node
-- Database tests use a test database (configured in vitest.config.ts)
-
-### Code Quality
-
-```bash
-# Run ESLint
-bun run lint
-
-# Format code with Prettier
-bunx prettier --write src/
-```
-
-### Local Development Workflow
-
-1. **Start LocalStack** (if using Docker Compose):
-   ```bash
-   docker-compose up -d
-   ```
-
-2. **Run migrations**:
-   ```bash
-   bun run migrate
-   ```
-
-3. **Start the server** (Terminal 1):
-   ```bash
-   bun run dev
-   ```
-
-4. **Start the worker** (Terminal 2):
-   ```bash
-   bun run worker
-   ```
-
-5. **Make API requests** and monitor logs in both terminals
-
-### Debugging
-
-**Environment Variables for Debugging**:
-```bash
-DEBUG=*                  # Enable all debug logs
-LANGCHAIN_VERBOSE=true   # Verbose LangChain output
-```
-
-**Logs**:
-- API server logs appear in Terminal 1
-- Worker logs appear in Terminal 2
-- All logs include structured context (ticketId, phase, etc.)
-
-**LangSmith Tracing**:
-Visit [LangSmith](https://smith.langchain.com) to see traces of all LLM operations, including:
-- Input prompts and parameters
-- LLM outputs and reasoning
-- Execution time and tokens used
-- Any errors or retries
+The `Dockerfile` builds the web app and runs the API on `oven/bun`. The same image runs the worker with `docker run <image> bun src/worker.ts`. The target is Render's free tier.
