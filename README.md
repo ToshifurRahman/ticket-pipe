@@ -37,7 +37,7 @@ Hono API (Bun) ──► PostgreSQL ◄──┐
 
 ## How the AI works
 
-All model calls go through `src/lib/llm-client.ts`.
+All model calls go through `apps/api/src/lib/llm-client.ts`.
 
 - **Structured output.** Each call forces a named function schema, and the result is validated with Zod (`TriageOutputSchema`, `DraftOutputSchema`). Malformed output is recorded as `invalid_response` and treated as a failure. It is one forced call per stage, not an agent loop.
 - **Providers.** Requests go through the Portkey gateway to Google (Gemini, primary) and Groq (backup), set by `PRIMARY_GATEWAY` and `BACKUP_GATEWAY`. If the primary fails or times out (`AI_TIMEOUT_MS`, default 30s), the backup answers.
@@ -52,9 +52,9 @@ All model calls go through `src/lib/llm-client.ts`.
 bun install
 cp .env.example .env     # fill in the values below
 docker compose up -d     # Postgres, Redis, LocalStack (SQS/SNS), Mailpit; creates the queues
-bun run migrate
-bun run dev              # API on http://localhost:3000
-bun run worker           # in a second terminal
+bun --filter @ticket-pipe/api migrate
+bun --filter @ticket-pipe/api dev              # API on http://localhost:3000
+bun --filter @ticket-pipe/api worker           # in a second terminal
 ```
 
 In `.env`, set `PORTKEY_API_KEY`, `GOOGLE_API_KEY` (primary, Gemini) and `BACKUP_API_KEY` (Groq). To skip providers entirely, set `LLM_MODE=fake`.
@@ -70,18 +70,17 @@ curl -X POST http://localhost:3000/api/tickets \
 curl http://localhost:3000/api/tickets/<ticketId>
 ```
 
-For the web UI, run `bun run build` once and open http://localhost:3000, or run `bun run web:dev` for the Vite dev server on :5173. Staff sign in at `/ops` with `OPS_TOKEN` (`dev-ops-token` locally).
+For the web UI, run `bun --filter @ticket-pipe/web build` once and open http://localhost:3000, or run `bun --filter @ticket-pipe/web dev` for the Vite dev server on :5173. Staff sign in at `/ops` with `OPS_TOKEN` (`dev-ops-token` locally).
 
 ## Tests and checks
 
 ```bash
-bun run test        # API, worker and repository tests (Vitest on Node)
-bun run test:web    # web unit tests
-bun run test:e2e    # Playwright against the built app (needs the Docker services up)
-bun run lint        # ESLint
+bun --filter '*' test   # API, worker, repository and web tests (Vitest on Node)
+bun run test:e2e        # Playwright against the built app (needs the Docker services up)
+bun --filter '*' lint   # ESLint
 ```
 
-Use `bun run test`, not `bun test`: Vitest has to run on Node because `vi.mock` does not work under Bun. Stop any dev worker before `test:e2e`, since it reads the same queue.
+Use `bun --filter '*' test`, not `bun test`: Vitest has to run on Node because `vi.mock` does not work under Bun. Stop any dev worker before `test:e2e`, since it reads the same queue.
 
 ## More detail
 
@@ -97,18 +96,20 @@ Use `bun run test`, not `bun test`: Vitest has to run on Node because `vi.mock` 
 ## Project structure
 
 ```
-src/
-  index.ts, server.ts, app.ts   Entry points and the Hono app
-  worker.ts                     Queue consumer: triage → draft → finish
-  routes/ controllers/          HTTP layer
-  services/                     Business logic, ops feed, alerts, notifications
-  repositories/                 PostgreSQL access
-  lib/                          llm-client, ai-service, queue, mailer, sessions, sockets
-migrations/                     Database schema
-tests/                          Vitest suite, including the privacy guard tests
-web/                            React app (Vite, Tailwind, shadcn/ui), built to web/dist
+apps/api/                       Bun workspace @ticket-pipe/api
+  src/
+    index.ts, server.ts, app.ts   Entry points and the Hono app
+    worker.ts                     Queue consumer: triage → draft → finish
+    routes/ controllers/          HTTP layer
+    services/                     Business logic, ops feed, alerts, notifications
+    repositories/                 PostgreSQL access
+    lib/                          llm-client, ai-service, queue, mailer, sessions, sockets
+  migrations/                   Database schema
+  tests/                        Vitest suite, including the privacy guard tests
+  scripts/                      Migrations, infra setup, purge
+apps/web/                       Bun workspace @ticket-pipe/web: React app (Vite, Tailwind, shadcn/ui), built to apps/web/dist
 e2e/                            Playwright tests
-scripts/                        Migrations, infra setup, screenshots
+scripts/                        Lighthouse, screenshots, gate
 ```
 
 ## Deployment

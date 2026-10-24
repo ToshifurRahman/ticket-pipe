@@ -6,7 +6,7 @@ import { resolveToken } from './build-tokens.js';
 
 // Renders the PNG favicons and the 1200x630 social card from apps/web/public/favicon.svg,
 // apps/web/src/config/brand.ts and the carbon theme's tokens. Output is committed (apps/web/public/),
-// so builds never need a browser. Run after changing the brand: `bun run brand:assets`.
+// so builds never need a browser. Run after changing the brand: `bun --filter @ticket-pipe/web brand:assets`.
 
 const publicDir = path.resolve(import.meta.dirname, '../public');
 const fontsDir = path.resolve(import.meta.dirname, '../node_modules');

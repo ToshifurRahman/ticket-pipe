@@ -6,7 +6,7 @@ import { run } from '../apps/api/src/worker.js';
 
 // Test-only: the API and the worker in one process, so Playwright starts (and stops) one
 // thing and a ticket submitted in a test is actually processed. Run with LLM_MODE=fake (see
-// playwright.config.ts). Story 7.x's src/main.ts can replace this later.
+// playwright.config.ts). Story 7.x's apps/api/src/main.ts can replace this later.
 
 assertLlmModeAllowed();
 if (process.env.LLM_MODE !== 'fake') throw new Error('e2e/stack.ts only runs with LLM_MODE=fake');

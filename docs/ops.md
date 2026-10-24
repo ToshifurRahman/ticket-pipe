@@ -28,12 +28,12 @@ When ops replays a ticket, the room also receives `ticket:requeued` with
 `{ ticketId, referenceNumber, previousStatus, occurredAt }`, where `previousStatus` is `failed` or `needs_attention`.
 
 **Privacy boundary.** The ops room is visible to every ops subscriber, so only
-`src/services/ops-feed.ts` may publish to it, and only identifiers, codes and timestamps. The ticket's own
+`apps/api/src/services/ops-feed.ts` may publish to it, and only identifiers, codes and timestamps. The ticket's own
 room, which only that customer joins, gets `ticket:update` with `{ event, ticketId, occurredAt }` and no AI
 output either: the page reads the reply from the public lookup.
-`tests/ops-feed.guard.test.ts` fails if any other file publishes to the ops room.
+`apps/api/tests/ops-feed.guard.test.ts` fails if any other file publishes to the ops room.
 
-Every event goes through `recordTicketEvent()` (`src/services/ticket-events.ts`), which writes the
+Every event goes through `recordTicketEvent()` (`apps/api/src/services/ticket-events.ts`), which writes the
 `ticket_events` row and publishes to the feed, so the two cannot drift apart. Publishing is best-effort
 and never affects ticket processing. Customers join only their own ticket room (`join` accepts a
 ticket UUID and nothing else), so they cannot subscribe to the feed.
@@ -88,7 +88,7 @@ per consumer. That is the scaling direction, not something built here.
 
 **Same privacy boundary as the ops feed.** The alert is built field by field from `OpsNeedsAttention`, so it
 holds the reference number, ticket id, reason code and time, and never the subject, description, AI output or
-error text. Only `src/services/ops-alerts.ts` may publish to SNS (`tests/ops-alerts.guard.test.ts`).
+error text. Only `apps/api/src/services/ops-alerts.ts` may publish to SNS (`apps/api/tests/ops-alerts.guard.test.ts`).
 
 **Behaviour**
 - One alert per ticket that actually moves into `needs_attention`. A redelivered message that finds the
@@ -108,9 +108,9 @@ error text. Only `src/services/ops-alerts.ts` may publish to SNS (`tests/ops-ale
 | `SNS_ENDPOINT` | LocalStack URL for local runs. Leave unset in production to use AWS. |
 | `SNS_ALERT_MAX_PER_HOUR` | Hourly cap, default 20. |
 
-To try it locally, `bun run setup` creates the `ticket-needs-attention` topic in LocalStack and prints its ARN.
+To try it locally, `bun --filter @ticket-pipe/api setup` creates the `ticket-needs-attention` topic in LocalStack and prints its ARN.
 Set `SNS_TOPIC_ARN` to it. LocalStack doesn't send email, so subscribe a queue to the topic to see the alerts
-(as `tests/ops-alerts.localstack.test.ts` does). In production the topic, the email subscription (the recipient
+(as `apps/api/tests/ops-alerts.localstack.test.ts` does). In production the topic, the email subscription (the recipient
 must click the confirmation link) and `sns:Publish` on that topic for the app's IAM user are set up by hand.
 
 

@@ -24,6 +24,6 @@ curl "http://localhost:3000/api/tickets/<id>/events?limit=50&after=djE6MTIz"
 - **Append-only.** Database triggers (migration `008`) reject every `UPDATE`, `DELETE` and `TRUNCATE` on
   `ticket_events`, so history can't be lost by age, by a bug or by a stray query. Test cleanup opts in for a
   single transaction with `set_config('app.allow_event_purge', 'on', true)`; see
-  `tests/helpers/purge-ticket-events.ts`. `tests/ticket-events.guard.test.ts` fails if code tries to change
+  `apps/api/tests/helpers/purge-ticket-events.ts`. `apps/api/tests/ticket-events.guard.test.ts` fails if code tries to change
   the table.
 

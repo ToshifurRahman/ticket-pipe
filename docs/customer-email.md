@@ -13,12 +13,12 @@ ticket that has no reply yet; `/new` is unchanged.
 
 The address is set once per ticket (a second attempt gets `409`) and lives alone in `ticket_notifications`, so
 no ticket query can pick it up by accident. It is masked (`t•••@gmail.com`) on every customer and ops surface,
-never logged or put in an event (`tests/notifications.guard.test.ts`), and removed with its ticket by the
+never logged or put in an event (`apps/api/tests/notifications.guard.test.ts`), and removed with its ticket by the
 30-day retention purge. Sending is best effort, like the ops alert: an atomic claim column per email, three
 retries (1s/4s/15s) and a `notification.failed` event for ops if they run out. A daily cap (`MAIL_DAILY_CAP`,
 default 250) protects the free quota.
 
-`src/lib/mailer.ts` is the only module that sends mail, behind one interface with three drivers:
+`apps/api/src/lib/mailer.ts` is the only module that sends mail, behind one interface with three drivers:
 
 | `MAIL_DRIVER` | Used for |
 | --- | --- |

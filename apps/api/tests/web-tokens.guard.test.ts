@@ -6,10 +6,10 @@ import { brand } from '../../web/src/config/brand.js';
 
 // apps/web/tokens/*.json is the design system's source of truth; apps/web/src/styles/tokens.css is
 // generated from it and committed. These guard the two things that drift silently: a hand
-// edit to the CSS (or a JSON edit without `bun run tokens`), and a token change that drops
+// edit to the CSS (or a JSON edit without `bun --filter @ticket-pipe/web tokens`), and a token change that drops
 // a palette pair below WCAG AA.
 
-it('tokens.css is up to date with apps/web/tokens (run `bun run tokens`)', () => {
+it('tokens.css is up to date with apps/web/tokens (run `bun --filter @ticket-pipe/web tokens`)', () => {
   expect(readFileSync(OUTPUT, 'utf8')).toBe(buildTokensCss());
 });
 

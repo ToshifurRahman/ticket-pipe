@@ -1,18 +1,18 @@
 # Web app
 
-The UI is a React single-page app in `web/` (Vite, TypeScript, Tailwind v4, shadcn/ui). It is a separate package with its own `package.json`; the API serves the built `web/dist` on the same origin as the API, with deep links such as `/t/<reference>` falling back to `index.html`.
+The UI is a React single-page app in `apps/web/` (Vite, TypeScript, Tailwind v4, shadcn/ui). It is the `@ticket-pipe/web` workspace; the API serves the built `apps/web/dist` on the same origin as the API, with deep links such as `/t/<reference>` falling back to `index.html`.
 
 ```bash
 # Development: API on :3000 plus the Vite dev server on :5173 (proxies /api and /socket.io)
-bun run dev
-bun run web:dev
+bun --filter @ticket-pipe/api dev
+bun --filter @ticket-pipe/web dev
 
 # Production-style: build once, then the API serves it on :3000
-bun run build
-bun run dev
+bun --filter @ticket-pipe/web build
+bun --filter @ticket-pipe/api dev
 ```
 
-If `web/dist` has not been built, the API starts normally and logs a warning; only the UI is missing.
+If `apps/web/dist` has not been built, the API starts normally and logs a warning; only the UI is missing.
 
 ### Submitting a ticket (`/new`)
 
@@ -34,8 +34,8 @@ team brings the indicator back. Only a completed ticket disconnects.
 The customer routes return a **public view** of a ticket: its subject, description, status, event names and
 times, phase statuses, and from the AI output only `category`, `priority` and `customerReply`. They never
 return `sentiment`, `escalate`, `recommendedTeam`, `issueSummary`, `internalNote`, `nextActions` or event
-`detail` (failure reasons). `src/services/ticket-views.ts` builds the public view field by field, so a new
-field stays private until it is added there on purpose; `tests/api/ticket-redaction.test.ts` checks the exact
+`detail` (failure reasons). `apps/api/src/services/ticket-views.ts` builds the public view field by field, so a new
+field stays private until it is added there on purpose; `apps/api/tests/api/ticket-redaction.test.ts` checks the exact
 set of keys.
 
 | Route | View |
@@ -64,7 +64,7 @@ a `401` from any console request sends the operator back to it, and **Sign out**
 - **Replay**: offered for `failed` and `needs_attention` tickets, and asks once because a replay spends AI calls. It resumes at
   the stage that did not finish. A `409` (something already moved the ticket) and a `503` (it could not be requeued and was left as it was) show as plain toasts.
 
-`web/src/pages/ops.test.tsx` and `web/src/components/ops/ticket-drawer.test.tsx` cover the console; `e2e/ops-console.spec.ts`
+`apps/web/src/pages/ops.test.tsx` and `apps/web/src/components/ops/ticket-drawer.test.tsx` cover the console; `e2e/ops-console.spec.ts`
 signs in, filters to a `needs_attention` ticket made with `[fake:invalid-draft]`, replays it and watches the row complete.
 
 
@@ -81,8 +81,8 @@ signs in, filters to a `needs_attention` ticket made with `[fake:invalid-draft]`
 The API and the worker both refuse to start with `LLM_MODE=fake` when `NODE_ENV=production`, and with any `LLM_MODE` other than `real` or `fake`.
 
 ```bash
-bun run test:web    # web unit tests (Vitest + Testing Library + MSW)
-bun run test:e2e    # Playwright against the built app; needs `docker compose up -d`, `bun run migrate`, `bun run setup`
+bun --filter @ticket-pipe/web test   # web unit tests (Vitest + Testing Library + MSW)
+bun run test:e2e    # Playwright against the built app; needs `docker compose up -d`, `bun --filter @ticket-pipe/api migrate`, `bun --filter @ticket-pipe/api setup`
 ```
 
 `test:e2e` builds the web app and starts `e2e/stack.ts`: the API and the worker in one process with

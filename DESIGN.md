@@ -71,7 +71,7 @@ components:
 
 # Design System: Relay
 
-The Relay Full Demo (https://claude.ai/artifact/KgujCr5HHmouNMgx9bHwzo) is the design authority. `web/` copies its values. Every difference, and every decision kept on purpose, is listed in [docs/design-deviations.md](docs/design-deviations.md); that file also lists the story 6.18 finish-review fixes. Do not repeat or override it here. Source of truth for tokens: `web/tokens/colors.json` and `web/tokens/scale.json` (DTCG), compiled to `web/src/styles/tokens.css` by `bun run tokens`.
+The Relay Full Demo (https://claude.ai/artifact/KgujCr5HHmouNMgx9bHwzo) is the design authority. `apps/web/` copies its values. Every difference, and every decision kept on purpose, is listed in [docs/design-deviations.md](docs/design-deviations.md); that file also lists the story 6.18 finish-review fixes. Do not repeat or override it here. Source of truth for tokens: `web/tokens/colors.json` and `web/tokens/scale.json` (DTCG), compiled to `apps/web/src/styles/tokens.css` by `bun --filter @ticket-pipe/web tokens`.
 
 ## Overview
 
@@ -226,7 +226,7 @@ Office use column (category and priority stamps, per-stage times, email opt-in c
 
 ## Email system
 
-Customer emails (`src/services/notification-emails.ts`) are Carbon Set on paper: HTML tables with inline styles, `role=presentation`, 560px maximum, white page, no external fonts, images or tracking. A hero band (#044F34) carries the four-bar mark and "RELAY" in caps; below it a ruled form (rule #C9D6CF, ink #08130F, muted #56645D) with a caps kicker "Service ticket · Customer copy", subject at 22px, the form number in its own ruled row, a four-cell ply row (replied or on hold), body at 16px/1.55, and one button in forest with bone caps. Font stacks fall back to web-safe faces: Archivo Narrow, Arial Narrow, Arial; Courier Prime, Courier New, Courier; Public Sans, Arial, Helvetica. The preheader is hidden text.
+Customer emails (`apps/api/src/services/notification-emails.ts`) are Carbon Set on paper: HTML tables with inline styles, `role=presentation`, 560px maximum, white page, no external fonts, images or tracking. A hero band (#044F34) carries the four-bar mark and "RELAY" in caps; below it a ruled form (rule #C9D6CF, ink #08130F, muted #56645D) with a caps kicker "Service ticket · Customer copy", subject at 22px, the form number in its own ruled row, a four-cell ply row (replied or on hold), body at 16px/1.55, and one button in forest with bone caps. Font stacks fall back to web-safe faces: Archivo Narrow, Arial Narrow, Arial; Courier Prime, Courier New, Courier; Public Sans, Arial, Helvetica. The preheader is hidden text.
 
 ## Accessibility contract
 
@@ -244,13 +244,13 @@ From PRODUCT.md: believable, not demonstrative.
 - Failure is calm and neutral ("On hold", "With our team") with a next step; no error details to the customer.
 - Never promise what the pipeline cannot keep: no human follow-up, no guaranteed times beyond the two kept lines below.
 - No invented customers, logos, testimonials, stats or benchmarks. Pricing is cosmetic. Architecture and tech detail stay in the README.
-- Brand name "Relay", tagline "AI help desk"; copy lives in `web/src/config/brand.ts` and `web/src/content/`.
+- Brand name "Relay", tagline "AI help desk"; copy lives in `apps/web/src/config/brand.ts` and `apps/web/src/content/`.
 - Plain language, short sentences, no em-dash filler.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** take values from `tokens.css` variables; add a token in the JSON first, then run `bun run tokens`.
+- **Do** take values from `tokens.css` variables; add a token in the JSON first, then run `bun --filter @ticket-pipe/web tokens`.
 - **Do** keep every state change a hard step (90ms `steps(2)` or the stepped print).
 - **Do** print labels in Archivo Narrow caps, numbers in Courier Prime, sentences in Public Sans.
 - **Do** wrap new form surfaces in FormPanel so ruling and form colours come for free.

@@ -2,7 +2,7 @@
 # Run a ux-ui-agent-skills gate so its receipt lands where the Stop hook reads it.
 #
 # Usage: scripts/gate.sh <gate> [args...]
-#   scripts/gate.sh lint_hardcodes.py web/src/index.css
+#   scripts/gate.sh lint_hardcodes.py apps/web/src/index.css
 #
 # A gate run from a plain shell writes receipts to .ds-receipts/, but the Stop
 # hook reads the plugin data dir. Setting CLAUDE_PLUGIN_DATA points the gate at

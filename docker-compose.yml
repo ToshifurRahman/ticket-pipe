@@ -23,7 +23,7 @@ services:
       timeout: 3s
       retries: 20
 
-  # Creates the queues and SNS topic once LocalStack is healthy (scripts/setup-infra.ts is idempotent).
+  # Creates the queues and SNS topic once LocalStack is healthy (apps/api/scripts/setup-infra.ts is idempotent).
   setup:
     image: oven/bun:1
     working_dir: /app
@@ -33,7 +33,7 @@ services:
       SQS_ENDPOINT: http://localstack:4566
       SNS_ENDPOINT: http://localstack:4566
     env_file: .env
-    command: bun scripts/setup-infra.ts
+    command: bun apps/api/scripts/setup-infra.ts
     depends_on:
       localstack:
         condition: service_healthy

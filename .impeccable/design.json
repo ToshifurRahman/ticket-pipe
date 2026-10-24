@@ -6,8 +6,8 @@
     "url": "https://claude.ai/artifact/KgujCr5HHmouNMgx9bHwzo",
     "deviations": "docs/design-deviations.md",
     "tokenSources": [
-      "web/tokens/colors.json",
-      "web/tokens/scale.json"
+      "apps/web/tokens/colors.json",
+      "apps/web/tokens/scale.json"
     ]
   },
   "extensions": {
@@ -404,7 +404,7 @@
       }
     ],
     "dos": [
-      "take values from `tokens.css` variables; add a token in the JSON first, then run `bun run tokens`.",
+      "take values from `tokens.css` variables; add a token in the JSON first, then run `bun --filter @ticket-pipe/web tokens`.",
       "keep every state change a hard step (90ms `steps(2)` or the stepped print).",
       "print labels in Archivo Narrow caps, numbers in Courier Prime, sentences in Public Sans.",
       "wrap new form surfaces in FormPanel so ruling and form colours come for free.",
