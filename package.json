@@ -2,6 +2,9 @@
   "name": "ticket-pipe",
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=24.22.1"
+  },
   "scripts": {
     "dev": "bun --env-file=.env --watch src/index.ts",
     "worker": "bun --env-file=.env --watch src/worker.ts",
