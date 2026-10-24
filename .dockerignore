@@ -1,8 +1,8 @@
 node_modules
-web/node_modules
-web/dist
+apps/*/node_modules
+apps/web/dist
 .git
 .env
 test-results
 e2e
-tests
+apps/api/tests

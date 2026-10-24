@@ -4,7 +4,7 @@ import { expect, it } from 'vitest';
 
 // Server-supplied text (ticket subjects, AI replies) must only ever reach the page as React
 // text, never as markup. Rendering it through innerHTML would turn a ticket into an XSS hole.
-const SRC = path.resolve(import.meta.dirname, '../web/src');
+const SRC = path.resolve(import.meta.dirname, '../../web/src');
 const FORBIDDEN = /dangerouslySetInnerHTML|\.innerHTML|\.outerHTML|insertAdjacentHTML/;
 
 function sourceFiles(dir: string): string[] {

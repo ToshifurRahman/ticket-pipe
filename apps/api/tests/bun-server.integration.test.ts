@@ -11,6 +11,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawn, type ChildProcess } from 'child_process';
 import { createServer } from 'net';
+import path from 'path';
 import { io as ioClient, type Socket } from 'socket.io-client';
 import { getEmitter, warmEmitter, shutdown as shutdownSocket } from '../src/lib/socket.js';
 
@@ -57,6 +58,7 @@ beforeAll(async () => {
   const port = await freePort();
   base = `http://localhost:${port}`;
   proc = spawn('bun', ['src/index.ts'], {
+    cwd: path.resolve(import.meta.dirname, '..'),
     env: { ...process.env, PORT: String(port), LLM_MODE: 'fake' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });

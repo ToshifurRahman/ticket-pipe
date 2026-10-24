@@ -1,22 +1,22 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { buildTokensCss, OUTPUT, resolveToken } from '../scripts/build-tokens';
-import { brand } from '../web/src/config/brand';
+import { buildTokensCss, OUTPUT, resolveToken } from '../../web/scripts/build-tokens.js';
+import { brand } from '../../web/src/config/brand.js';
 
-// web/tokens/*.json is the design system's source of truth; web/src/styles/tokens.css is
+// apps/web/tokens/*.json is the design system's source of truth; apps/web/src/styles/tokens.css is
 // generated from it and committed. These guard the two things that drift silently: a hand
 // edit to the CSS (or a JSON edit without `bun run tokens`), and a token change that drops
 // a palette pair below WCAG AA.
 
-it('tokens.css is up to date with web/tokens (run `bun run tokens`)', () => {
+it('tokens.css is up to date with apps/web/tokens (run `bun run tokens`)', () => {
   expect(readFileSync(OUTPUT, 'utf8')).toBe(buildTokensCss());
 });
 
 // The demo sets prices and KPIs in bold Courier Prime, so the 700 file must be loaded, or the
 // browser would synthesise the bold.
 it('loads the bold figures face wherever bold figures are used', () => {
-  const SRC = path.resolve(import.meta.dirname, '../web/src');
+  const SRC = path.resolve(import.meta.dirname, '../../web/src');
   const files = (function walk(dir: string): string[] {
     return readdirSync(dir).flatMap((name) => {
       const full = path.join(dir, name);

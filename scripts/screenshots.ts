@@ -10,7 +10,7 @@ import { stubTurnstile } from '../e2e/helpers/turnstile.js';
 // README showcase (story 6.8): PNGs of the customer flow and the ops console plus a GIF of a
 // ticket being worked live. Runs the e2e stack with the fake LLM (a visible delay per stage),
 // dark theme. Output goes to docs/screenshots/ and is committed; story 7.11 embeds it.
-// Needs `docker compose up -d` and `bun run setup`. Run: `bun run screenshots`.
+// Needs `docker compose up -d` and `bun --filter @ticket-pipe/api setup`. Run: `bun run screenshots`.
 // It uses its own database (ticket_pipe_screenshots, created and migrated here), so the ops
 // console shows only the tickets seeded below, never whatever is in the dev database.
 
@@ -93,9 +93,9 @@ async function seed() {
   }
 }
 
-run(['bun', 'run', 'build']);
+run(['bun', '--filter', '@ticket-pipe/web', 'build']);
 await ensureDatabase();
-run(['bun', 'scripts/migrate.ts']);
+run(['bun', '--filter', '@ticket-pipe/api', 'migrate']);
 await mkdir(OUT, { recursive: true });
 const videoDir = await mkdtemp(path.join(tmpdir(), 'relay-video-'));
 

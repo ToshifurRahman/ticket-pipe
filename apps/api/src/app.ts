@@ -42,7 +42,7 @@ app.route('/api/notifications', notificationsRouter);
 // Mounted before /api/ops so sign-in is reachable without a session.
 app.route('/api/ops/session', opsSessionRouter);
 app.route('/api/ops', opsRouter);
-mountWebApp(app, path.join(__dirname, '../web/dist'));
+mountWebApp(app, path.join(__dirname, '../../web/dist'));
 
 app.onError((err, c) => {
   if (err instanceof TicketNotFoundError) return c.json({ error: 'Ticket not found' }, 404);

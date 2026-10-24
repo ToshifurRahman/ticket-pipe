@@ -1,15 +1,15 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-// Builds web/src/styles/tokens.css from the DTCG source in web/tokens/. The JSON is the
+// Builds apps/web/src/styles/tokens.css from the DTCG source in apps/web/tokens/. The JSON is the
 // single source of truth: every token that names CSS properties in $extensions["relay.css"]
 // is emitted under :root: the site is dark only, so there is one set of values. Run after
 // editing a token: `bun run tokens`.
 
 type Node = { [key: string]: unknown };
 
-const TOKENS_DIR = path.resolve(import.meta.dirname, '../web/tokens');
-export const OUTPUT = path.resolve(import.meta.dirname, '../web/src/styles/tokens.css');
+const TOKENS_DIR = path.resolve(import.meta.dirname, '../tokens');
+export const OUTPUT = path.resolve(import.meta.dirname, '../src/styles/tokens.css');
 
 const read = (name: string): Node => JSON.parse(readFileSync(path.join(TOKENS_DIR, name), 'utf8'));
 

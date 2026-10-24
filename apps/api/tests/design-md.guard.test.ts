@@ -3,12 +3,12 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 // DESIGN.md records the shipped design system. Its "Colour primitives" table must list every
-// token under `primitive.color` in web/tokens/colors.json with the same hex, so a token edit
+// token under `primitive.color` in apps/web/tokens/colors.json with the same hex, so a token edit
 // fails here until the document is updated.
 
-const ROOT = path.resolve(import.meta.dirname, '..');
+const ROOT = path.resolve(import.meta.dirname, '../../..');
 const design = readFileSync(path.join(ROOT, 'DESIGN.md'), 'utf8');
-const colors = JSON.parse(readFileSync(path.join(ROOT, 'web/tokens/colors.json'), 'utf8')) as {
+const colors = JSON.parse(readFileSync(path.join(ROOT, 'apps/web/tokens/colors.json'), 'utf8')) as {
   primitive: { color: Record<string, { $value: string }> };
 };
 

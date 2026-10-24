@@ -1,15 +1,15 @@
 import { chromium } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { brand } from '../web/src/config/brand.js';
+import { brand } from '../src/config/brand.js';
 import { resolveToken } from './build-tokens.js';
 
-// Renders the PNG favicons and the 1200x630 social card from web/public/favicon.svg,
-// web/src/config/brand.ts and the carbon theme's tokens. Output is committed (web/public/),
+// Renders the PNG favicons and the 1200x630 social card from apps/web/public/favicon.svg,
+// apps/web/src/config/brand.ts and the carbon theme's tokens. Output is committed (apps/web/public/),
 // so builds never need a browser. Run after changing the brand: `bun run brand:assets`.
 
-const publicDir = path.resolve(import.meta.dirname, '../web/public');
-const fontsDir = path.resolve(import.meta.dirname, '../web/node_modules');
+const publicDir = path.resolve(import.meta.dirname, '../public');
+const fontsDir = path.resolve(import.meta.dirname, '../node_modules');
 const font = async (file: string) => (await readFile(path.join(fontsDir, file))).toString('base64');
 
 const [sans, label, mono] = await Promise.all([
@@ -98,4 +98,4 @@ try {
 } finally {
   await browser.close();
 }
-console.log('Wrote favicon-32.png, apple-touch-icon.png, og-image.png to web/public/');
+console.log('Wrote favicon-32.png, apple-touch-icon.png, og-image.png to apps/web/public/');

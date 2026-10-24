@@ -95,11 +95,11 @@ function notFoundHandler(indexFile: string | null) {
 
 // Serves the built React app with an SPA fallback. The app shell is only served when the
 // build exists, so the API, the worker and the backend tests never depend on
-// `bun run build` having run. Either way the JSON 404 for unknown /api paths is installed.
+// `bun --filter @ticket-pipe/web build` having run. Either way the JSON 404 for unknown /api paths is installed.
 export function mountWebApp<E extends Env>(app: Hono<E>, distDir: string): boolean {
   const indexFile = path.join(distDir, 'index.html');
   if (!existsSync(indexFile)) {
-    logger.warn({ distDir }, 'web/dist not built; run `bun run build`, or use the Vite dev server (bun run web:dev)');
+    logger.warn({ distDir }, 'web/dist not built; run `bun --filter @ticket-pipe/web build`, or use the Vite dev server (bun --filter @ticket-pipe/web dev)');
     app.notFound(notFoundHandler(null));
     return false;
   }

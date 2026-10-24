@@ -1,5 +1,5 @@
 {
-  "name": "ticket-pipe-web",
+  "name": "@ticket-pipe/web",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint src",
-    "test": "vitest run"
+    "test": "vitest run",
+    "tokens": "bun scripts/build-tokens.ts",
+    "brand:assets": "bun scripts/render-brand-assets.ts"
   },
   "dependencies": {
     "@fontsource-variable/public-sans": "5.3.0",

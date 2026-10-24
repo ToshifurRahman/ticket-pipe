@@ -1,8 +1,8 @@
-import { logger } from '../src/lib/logger.js';
-import { assertLlmModeAllowed } from '../src/lib/llm-client.js';
-import { init as initSocket, shutdown as shutdownSocket } from '../src/lib/socket.js';
-import { startServer } from '../src/server.js';
-import { run } from '../src/worker.js';
+import { logger } from '../apps/api/src/lib/logger.js';
+import { assertLlmModeAllowed } from '../apps/api/src/lib/llm-client.js';
+import { init as initSocket, shutdown as shutdownSocket } from '../apps/api/src/lib/socket.js';
+import { startServer } from '../apps/api/src/server.js';
+import { run } from '../apps/api/src/worker.js';
 
 // Test-only: the API and the worker in one process, so Playwright starts (and stops) one
 // thing and a ticket submitted in a test is actually processed. Run with LLM_MODE=fake (see

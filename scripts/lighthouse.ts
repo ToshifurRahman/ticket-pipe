@@ -4,7 +4,7 @@ import { removeTicket } from '../e2e/helpers/cleanup-ticket.js';
 // Local Lighthouse gate (story 6.8): >= 90 in all four categories on /, /new and /t/:ref.
 // Builds the web app, runs the e2e stack (API + worker, fake LLM) on its own port, seeds one
 // finished ticket for the /t/:ref page, then runs `lhci autorun` with lighthouserc.cjs.
-// Needs `docker compose up -d`, migrations and `bun run setup`, like the e2e tests.
+// Needs `docker compose up -d`, migrations and `bun --filter @ticket-pipe/api setup`, like the e2e tests.
 // Not part of `test:e2e`: performance scores are noisy and the run takes a few minutes.
 
 const PORT = 3101;
@@ -15,7 +15,7 @@ function run(cmd: string[], env: Record<string, string> = {}) {
   return result.exitCode;
 }
 
-if (run(['bun', 'run', 'build']) !== 0) process.exit(1);
+if (run(['bun', '--filter', '@ticket-pipe/web', 'build']) !== 0) process.exit(1);
 
 const stack = Bun.spawn(['bun', '--env-file=.env', 'e2e/stack.ts'], {
   stdio: ['ignore', 'inherit', 'inherit'],

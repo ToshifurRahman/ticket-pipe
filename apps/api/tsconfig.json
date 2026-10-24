@@ -1,13 +1,11 @@
 {
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "target": "ESNext",
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
     "lib": ["ESNext"]
   },
-  "include": ["src/**/*", "tests/**/*", "scripts/**/*"],
-  "exclude": ["web", "e2e", "playwright.config.ts"]
+  "include": ["src/**/*", "tests/**/*", "scripts/**/*"]
 }
