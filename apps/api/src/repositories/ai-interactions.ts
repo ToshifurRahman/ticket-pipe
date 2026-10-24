@@ -208,7 +208,7 @@ export async function summarizeAiInteractions(
     params.push(filters.since);
   }
   if (filters.until) {
-    conditions.push(`created_at <= $${paramIndex++}`);
+    conditions.push(`created_at <= $${paramIndex}`);
     params.push(filters.until);
   }
 

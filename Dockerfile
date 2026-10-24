@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package.json bun.lock tsconfig.base.json ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
-RUN bun install --frozen-lockfile --filter @ticket-pipe/web
+RUN bun install --frozen-lockfile --ignore-scripts
 COPY apps/web/ apps/web/
 RUN bun --filter @ticket-pipe/web build
 
