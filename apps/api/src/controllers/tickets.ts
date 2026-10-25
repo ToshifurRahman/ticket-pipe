@@ -26,13 +26,13 @@ export const DESCRIPTION_MAX = 5000;
 // value still reads "is required" rather than "needs at least N characters".
 const TicketSchema = z.object({
   subject: z
-    .string({ required_error: 'Subject is required' })
+    .string({ error: (issue) => (issue.input === undefined ? 'Subject is required' : undefined) })
     .trim()
     .min(1, 'Subject is required')
     .min(SUBJECT_MIN, `Subject needs at least ${SUBJECT_MIN} characters.`)
     .max(SUBJECT_MAX, `Subject can be at most ${SUBJECT_MAX} characters.`),
   description: z
-    .string({ required_error: 'Description is required' })
+    .string({ error: (issue) => (issue.input === undefined ? 'Description is required' : undefined) })
     .trim()
     .min(1, 'Description is required')
     .min(DESCRIPTION_MIN, `Description needs at least ${DESCRIPTION_MIN} characters.`)
@@ -46,8 +46,8 @@ const factory = createFactory();
 // Query params are lenient on purpose: anything unparseable (or 0) falls back to the
 // default, and out-of-range values are clamped rather than rejected.
 const lenientInt = (fallback: number, max = Infinity) =>
-  z.unknown().transform((v) => Math.min(max, Math.max(1, Number(v) || fallback)));
-const optionalString = z.unknown().transform((v) => (typeof v === 'string' ? v : undefined));
+  z.unknown().optional().transform((v) => Math.min(max, Math.max(1, Number(v) || fallback)));
+const optionalString = z.unknown().optional().transform((v) => (typeof v === 'string' ? v : undefined));
 
 const ListQuerySchema = z.object({
   page: lenientInt(1),
@@ -60,13 +60,13 @@ const ListQuerySchema = z.object({
 const EventsQuerySchema = z.object({
   limit: lenientInt(EVENTS_DEFAULT_LIMIT, EVENTS_MAX_LIMIT),
   // Kept raw: a present-but-undecodable cursor is a 400, and that is decided in the handler.
-  after: z.unknown(),
+  after: z.unknown().optional(),
 });
 
 export const create = factory.createHandlers(
   zValidator('json', TicketSchema, (result, c) => {
     if (result.success) return;
-    const fieldErrors = result.error.flatten().fieldErrors;
+    const fieldErrors = z.flattenError(result.error).fieldErrors;
     const errors = Object.fromEntries(Object.entries(fieldErrors).map(([k, v]) => [k, v![0]]));
     return c.json({ errors }, 400);
   }),
