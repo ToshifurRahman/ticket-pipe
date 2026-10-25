@@ -3,15 +3,16 @@
  * queue subscribed to it (standing in for the ops email subscription), and goes through the
  * real client from src/lib/sns.ts configured by SNS_TOPIC_ARN.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { SNSClient, CreateTopicCommand, SubscribeCommand } from '@aws-sdk/client-sns';
+import { CreateTopicCommand, SNSClient, SubscribeCommand } from '@aws-sdk/client-sns';
 import {
-  SQSClient,
   CreateQueueCommand,
   GetQueueAttributesCommand,
   PurgeQueueCommand,
   ReceiveMessageCommand,
+  SQSClient,
 } from '@aws-sdk/client-sqs';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
 import type { OpsNeedsAttention } from '../src/services/ops-feed.js';
 
 const endpoint = process.env.SNS_ENDPOINT ?? process.env.SQS_ENDPOINT;

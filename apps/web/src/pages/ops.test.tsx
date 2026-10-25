@@ -5,8 +5,9 @@ import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Toaster } from '@/components/ui/sonner';
+
 import { OpsHeaderActions } from '@/components/ops/ops-header-actions';
+import { Toaster } from '@/components/ui/sonner';
 import { createQueryClient } from '@/lib/query-client';
 import type { OpsSession } from '@/lib/types';
 import { createFakeSocket } from '@/test/fake-socket';
@@ -21,6 +22,7 @@ import {
   ticketList,
 } from '@/test/ops-fixtures';
 import { server } from '@/test/server';
+
 import { OpsPage } from './ops';
 
 const fakeSocket = vi.hoisted(() => ({

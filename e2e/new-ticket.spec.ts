@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+
 import { removeTicket } from './helpers/cleanup-ticket';
 import { stubTurnstile } from './helpers/turnstile';
 

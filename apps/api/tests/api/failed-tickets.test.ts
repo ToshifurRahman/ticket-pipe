@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, afterEach, afterAll } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+
 import request from '../helpers/ops-session.js';
 
 const mockEmit = vi.hoisted(() => vi.fn());
@@ -16,19 +17,19 @@ vi.mock('../../src/lib/socket.js', async (importOriginal) => {
 });
 import { app } from '../../src/app.js';
 import { pool } from '../../src/lib/db.js';
-import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
+import { enqueueTicket } from '../../src/lib/queue.js';
+import { getAllEventsByTicketId, insertEvent } from '../../src/repositories/events.js';
 import {
+  getTicketById,
   insertTicket,
   markTicketFailed,
-  getTicketById,
   updateTicketStatus,
 } from '../../src/repositories/tickets.js';
-import { getAllEventsByTicketId, insertEvent } from '../../src/repositories/events.js';
-import { enqueueTicket } from '../../src/lib/queue.js';
+import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 
 // Every emit as [room, eventName, payload].
 function emitted(): Array<[string, string, Record<string, unknown>]> {
-  return mockEmit.mock.calls.map((call, i) => [mockTo.mock.calls[i]![0], call[0], call[1]]);
+  return mockEmit.mock.calls.map((call, i) => [mockTo.mock.calls[i][0], call[0], call[1]]);
 }
 
 async function eventNames(ticketId: string): Promise<string[]> {
@@ -206,8 +207,8 @@ describe('POST /api/tickets/:id/replay — ops recovery (story 5.4)', () => {
 
     const customer = emitted().filter(([room]) => room === t.id);
     expect(customer).toHaveLength(1);
-    expect(customer[0]![1]).toBe('ticket:update');
-    expect(customer[0]![2]).toMatchObject({ event: 'ticket.requeued', ticketId: t.id });
+    expect(customer[0][1]).toBe('ticket:update');
+    expect(customer[0][2]).toMatchObject({ event: 'ticket.requeued', ticketId: t.id });
 
     const alert = emitted().find(([room, name]) => room === 'ops' && name === 'ticket:requeued');
     expect(alert).toBeDefined();

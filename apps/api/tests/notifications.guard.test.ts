@@ -2,9 +2,9 @@
  * Story 6.9 — customer email addresses are PII. One module sends mail, and nothing logs or
  * records an address. If this fails, route the change through src/services/customer-notifications.ts.
  */
-import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'fs';
 import path from 'path';
+import { describe, expect, it } from 'vitest';
 
 const SRC = path.resolve(__dirname, '../src');
 const MAILER = path.join(SRC, 'lib', 'mailer.ts');

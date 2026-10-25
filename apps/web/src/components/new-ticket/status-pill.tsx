@@ -1,5 +1,5 @@
-import type { TicketStatus } from '@/lib/types';
 import { Stamp } from '@/components/form/stamp';
+import type { TicketStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 // Customers see three states. Failures and tickets awaiting review share one neutral label:

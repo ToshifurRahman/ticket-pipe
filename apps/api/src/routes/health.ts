@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+
 import { pool } from '../lib/db.js';
 
 export const healthRouter = new Hono();

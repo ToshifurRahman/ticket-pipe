@@ -1,6 +1,6 @@
-import { getEmitter } from '../lib/socket.js';
-import { OPS_ROOM } from '../lib/rooms.js';
 import { logger } from '../lib/logger.js';
+import { OPS_ROOM } from '../lib/rooms.js';
+import { getEmitter } from '../lib/socket.js';
 
 // THE privacy boundary for the organization-wide ops feed (story 4.5).
 //

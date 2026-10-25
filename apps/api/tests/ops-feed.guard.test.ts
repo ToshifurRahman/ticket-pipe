@@ -3,9 +3,9 @@
  * Every payload built there is made of IDs, codes and timestamps. If this fails, a new emit
  * site was added: route it through src/services/ops-feed.ts instead.
  */
-import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'fs';
 import path from 'path';
+import { describe, expect, it } from 'vitest';
 
 const SRC = path.resolve(__dirname, '../src');
 const ALLOWED = path.join(SRC, 'services', 'ops-feed.ts');

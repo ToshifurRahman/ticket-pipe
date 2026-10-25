@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import type { Ply, PlyState } from '@/lib/ticket-thread';
+
 import { printedTime } from '@/lib/relative-time';
+import type { Ply, PlyState } from '@/lib/ticket-thread';
 import { cn } from '@/lib/utils';
+
 import { stampProps, useStampOnChange } from './use-stamp-on-change';
 
 const SURFACE: Record<Ply['key'], string> = {

@@ -1,16 +1,16 @@
-import { getProcessingResultByTicketId } from '../repositories/processing.js';
-import { getAllEventsByTicketId, getEventPage, type TicketEvent } from '../repositories/events.js';
-import { getTicketById, type Ticket } from '../repositories/tickets.js';
-import { getNotificationStatus, type NotificationState } from '../repositories/notifications.js';
-import { maskEmail } from '../lib/mask-email.js';
 import { encodeEventCursor } from '../lib/event-cursor.js';
+import { maskEmail } from '../lib/mask-email.js';
 import {
-  resolveTicketPhases,
+  type DraftOutput,
   type PublicTicketPhases,
+  resolveTicketPhases,
   type TicketPhases,
   type TriageOutput,
-  type DraftOutput,
 } from '../lib/ticket-phases.js';
+import { getAllEventsByTicketId, getEventPage, type TicketEvent } from '../repositories/events.js';
+import { getNotificationStatus, type NotificationState } from '../repositories/notifications.js';
+import { getProcessingResultByTicketId } from '../repositories/processing.js';
+import { getTicketById, type Ticket } from '../repositories/tickets.js';
 
 // Two views of one ticket. The full view (ops routes) has every stage output and event
 // detail. The public view (customer routes) is built from it field by field, so a field

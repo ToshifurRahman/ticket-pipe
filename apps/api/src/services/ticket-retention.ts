@@ -1,5 +1,5 @@
-import { deleteExpiredTicketBatch } from '../repositories/ticket-retention.js';
 import { logger } from '../lib/logger.js';
+import { deleteExpiredTicketBatch } from '../repositories/ticket-retention.js';
 
 // The privacy page promises this number (web/src/content/legal.ts). Change both together.
 export const RETENTION_DAYS = 30;

@@ -2,8 +2,9 @@
  * Story 5.7 — the worker emails ops (via SNS) when a ticket newly enters needs_attention.
  * SNS is a fake client that records every publish; the database and the worker are real.
  */
-import { describe, it, expect, vi, afterEach, afterAll } from 'vitest';
 import type { PublishCommand, SNSClient } from '@aws-sdk/client-sns';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+
 import type { AIService } from '../src/lib/ai-service.js';
 
 const mockSend = vi.hoisted(() => vi.fn());
@@ -42,12 +43,12 @@ vi.mock('../src/repositories/tickets.js', async (importOriginal) => {
 });
 
 import { pool } from '../src/lib/db.js';
-import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
-import { insertTicket, getTicketById } from '../src/repositories/tickets.js';
-import { getAllEventsByTicketId } from '../src/repositories/events.js';
 import { deleteMessage } from '../src/lib/queue.js';
+import { getAllEventsByTicketId } from '../src/repositories/events.js';
+import { getTicketById, insertTicket } from '../src/repositories/tickets.js';
 import { pendingAlerts } from '../src/services/ops-alerts.js';
 import { processMessage } from '../src/worker.js';
+import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 
 const TRIAGE_RESULT = {
   category: 'technical',

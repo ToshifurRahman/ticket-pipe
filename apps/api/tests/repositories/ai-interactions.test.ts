@@ -1,12 +1,13 @@
-import { describe, it, expect, afterEach, afterAll } from 'vitest';
+import { afterAll, afterEach, describe, expect, it } from 'vitest';
+
 import { pool } from '../../src/lib/db.js';
-import { insertTicket } from '../../src/repositories/tickets.js';
 import {
+  type AiInteractionRecord,
   insertAiInteraction,
   listAiInteractions,
   summarizeAiInteractions,
-  type AiInteractionRecord,
 } from '../../src/repositories/ai-interactions.js';
+import { insertTicket } from '../../src/repositories/tickets.js';
 
 const createdIds: string[] = [];
 
@@ -51,8 +52,8 @@ describe('insertAiInteraction / listAiInteractions', () => {
 
     expect(total).toBe(2);
     expect(interactions).toHaveLength(2);
-    expect(interactions[0]!.createdAt.getTime()).toBeGreaterThanOrEqual(
-      interactions[1]!.createdAt.getTime()
+    expect(interactions[0].createdAt.getTime()).toBeGreaterThanOrEqual(
+      interactions[1].createdAt.getTime()
     );
   });
 
@@ -77,12 +78,12 @@ describe('insertAiInteraction / listAiInteractions', () => {
 
     const backupOnly = await listAiInteractions({ ticketId, provider: 'backup' });
     expect(backupOnly.total).toBe(1);
-    expect(backupOnly.interactions[0]!.operation).toBe('triage');
+    expect(backupOnly.interactions[0].operation).toBe('triage');
 
     const failuresOnly = await listAiInteractions({ ticketId, outcome: 'http_error' });
     expect(failuresOnly.total).toBe(1);
-    expect(failuresOnly.interactions[0]!.httpStatus).toBe(429);
-    expect(failuresOnly.interactions[0]!.errorMessage).toBe('rate limited');
+    expect(failuresOnly.interactions[0].httpStatus).toBe(429);
+    expect(failuresOnly.interactions[0].errorMessage).toBe('rate limited');
 
     const draftOnly = await listAiInteractions({ ticketId, operation: 'draft' });
     expect(draftOnly.total).toBe(1);

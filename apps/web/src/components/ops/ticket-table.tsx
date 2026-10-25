@@ -1,9 +1,10 @@
 import { Button } from '@/components/ui/button';
-import { PAGE_SIZE, type OpsParams, type OpsSort } from '@/lib/ops-params';
+import { type OpsParams, type OpsSort, PAGE_SIZE } from '@/lib/ops-params';
 import { humanize } from '@/lib/ops-ticket';
 import { shortAgo } from '@/lib/relative-time';
 import type { OpsTicketList } from '@/lib/types';
 import { cn } from '@/lib/utils';
+
 import { OpsStatusBadge } from './status-badge';
 
 const PRIORITY_TONE: Record<string, string> = {

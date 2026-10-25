@@ -1,13 +1,14 @@
-import { describe, it, expect, afterEach, afterAll } from 'vitest';
+import { afterAll, afterEach, describe, expect, it } from 'vitest';
+
 import { pool } from '../../src/lib/db.js';
 import {
-  insertTicket,
   getTicketById,
-  updateTicketStatus,
+  insertTicket,
+  listTickets,
   markTicketFailed,
   requeueTicket,
   restoreTicketAfterFailedRequeue,
-  listTickets,
+  updateTicketStatus,
 } from '../../src/repositories/tickets.js';
 
 const createdIds: string[] = [];

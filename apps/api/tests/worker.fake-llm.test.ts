@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/lib/queue.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../src/lib/queue.js')>();
@@ -14,12 +14,12 @@ vi.mock('../src/lib/socket.js', async (importOriginal) => {
   return { ...real, getEmitter: vi.fn(() => ({ to: () => ({ emit: vi.fn() }) })) };
 });
 
-import { pool } from '../src/lib/db.js';
-import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
-import { insertTicket, getTicketById } from '../src/repositories/tickets.js';
-import { getAllEventsByTicketId } from '../src/repositories/events.js';
 import { AIService } from '../src/lib/ai-service.js';
+import { pool } from '../src/lib/db.js';
+import { getAllEventsByTicketId } from '../src/repositories/events.js';
+import { getTicketById, insertTicket } from '../src/repositories/tickets.js';
 import { processMessage } from '../src/worker.js';
+import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 
 const createdIds: string[] = [];
 const fetchSpy = vi.fn();

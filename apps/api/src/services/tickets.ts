@@ -1,18 +1,18 @@
+import { logger } from '../lib/logger.js';
+import { enqueueTicket } from '../lib/queue.js';
 import { generateReferenceNumber } from '../lib/reference.js';
 import {
+  getTicketById,
   insertTicket,
   listTickets,
-  getTicketById,
+  type ReplayableStatus,
   requeueTicket,
   restoreTicketAfterFailedRequeue,
   type Ticket,
-  type ReplayableStatus,
 } from '../repositories/tickets.js';
-import { enqueueTicket } from '../lib/queue.js';
+import { publishTicketRequeued } from './ops-feed.js';
 import { recordTicketEvent } from './ticket-events.js';
 import { emitTicketUpdate } from './ticket-updates.js';
-import { publishTicketRequeued } from './ops-feed.js';
-import { logger } from '../lib/logger.js';
 
 export { listTickets };
 export async function createTicket(subject: string, description: string): Promise<Ticket> {

@@ -1,7 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
-import { setFeedState } from '@/lib/ops-feed-status';
+
 import { opsKeys } from '@/lib/ops-api';
+import { setFeedState } from '@/lib/ops-feed-status';
 import { getSocket } from '@/lib/socket';
 
 export type OpsAlert = {

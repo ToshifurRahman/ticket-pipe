@@ -4,10 +4,12 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse, type JsonBodyType } from 'msw';
 import { toast } from 'sonner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { Toaster } from '@/components/ui/sonner';
+import type { TicketStatus } from '@/lib/types';
 import { aiCall, events, OPS_ID, opsTicket } from '@/test/ops-fixtures';
 import { server } from '@/test/server';
-import type { TicketStatus } from '@/lib/types';
+
 import { TicketDrawer } from './ticket-drawer';
 
 // No retries: a failing request should show its error state at once.
@@ -96,9 +98,12 @@ describe('the ticket drawer', () => {
     const timeline = (await screen.findByRole('heading', { name: 'Event timeline' }))
       .parentElement!;
     const items = await within(timeline).findAllByRole('listitem');
-    expect(items.map((i) => i.firstElementChild!.textContent!.replace(/\s+/g, ' ').trim())).toEqual(
-      ['ticket.received', 'triage.completed', 'draft.invalid ×3', 'ticket.needs_attention']
-    );
+    expect(items.map((i) => i.firstElementChild!.textContent.replace(/\s+/g, ' ').trim())).toEqual([
+      'ticket.received',
+      'triage.completed',
+      'draft.invalid ×3',
+      'ticket.needs_attention',
+    ]);
 
     const toggle = within(timeline).getByText('details');
     expect(toggle.closest('details')!.open).toBe(false);

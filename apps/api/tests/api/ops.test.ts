@@ -1,12 +1,13 @@
-import { describe, it, expect, afterEach, afterAll } from 'vitest';
-import request from '../helpers/ops-session.js';
+import { afterAll, afterEach, describe, expect, it } from 'vitest';
+
 import { app } from '../../src/app.js';
 import { pool } from '../../src/lib/db.js';
-import { insertTicket } from '../../src/repositories/tickets.js';
 import {
-  insertAiInteraction,
   type AiInteractionRecord,
+  insertAiInteraction,
 } from '../../src/repositories/ai-interactions.js';
+import { insertTicket } from '../../src/repositories/tickets.js';
+import request from '../helpers/ops-session.js';
 
 const createdIds: string[] = [];
 

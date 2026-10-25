@@ -1,8 +1,9 @@
-import { describe, it, expect, afterEach, afterAll } from 'vitest';
+import { afterAll, afterEach, describe, expect, it } from 'vitest';
+
 import { pool } from '../../src/lib/db.js';
-import { insertTicket } from '../../src/repositories/tickets.js';
-import { insertEvent } from '../../src/repositories/events.js';
 import { insertAiInteraction } from '../../src/repositories/ai-interactions.js';
+import { insertEvent } from '../../src/repositories/events.js';
+import { insertTicket } from '../../src/repositories/tickets.js';
 import { purgeExpiredTickets, RETENTION_DAYS } from '../../src/services/ticket-retention.js';
 import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 

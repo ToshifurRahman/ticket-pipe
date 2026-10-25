@@ -1,5 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { createClient } from 'redis';
+
 import { logger } from './logger.js';
 
 export const OPS_SESSION_COOKIE = 'ops_session';
@@ -40,7 +41,7 @@ function redis(): SessionRedis {
     if (!process.env.REDIS_URL) throw new Error('REDIS_URL environment variable is required');
     const created = createClient({ url: process.env.REDIS_URL });
     created.on('error', (err) => logger.error({ err }, 'Redis ops-session client error'));
-    client = created as unknown as SessionRedis;
+    client = created;
     void created
       .connect()
       .catch((err) => logger.error({ err }, 'Redis ops-session client failed to connect'));

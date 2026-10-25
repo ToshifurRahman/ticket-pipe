@@ -1,4 +1,5 @@
 import { createMiddleware } from 'hono/factory';
+
 import { logger } from './logger.js';
 
 export type AppEnv = { Variables: { requestId: string } };

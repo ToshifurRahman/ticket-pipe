@@ -7,11 +7,12 @@
  *
  * Requires the docker-compose stack (Postgres, Redis, LocalStack) to be running.
  */
-import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest';
 import { createServer, type Server as HttpServer } from 'http';
-import { io as ioClient, type Socket } from 'socket.io-client';
-import { createClient } from 'redis';
 import type { AddressInfo } from 'net';
+import { createClient } from 'redis';
+import { io as ioClient, type Socket } from 'socket.io-client';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+
 import type { AIService } from '../src/lib/ai-service.js';
 
 vi.mock('../src/lib/queue.js', async (importOriginal) => {
@@ -20,18 +21,18 @@ vi.mock('../src/lib/queue.js', async (importOriginal) => {
 });
 
 import { pool } from '../src/lib/db.js';
-import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
-import { newOpsCookie } from './helpers/ops-session.js';
 import { destroySession, hashSessionId } from '../src/lib/ops-session.js';
 import {
-  init as initSocket,
-  shutdown as shutdownSocket,
   getIo,
+  init as initSocket,
   revokeOpsSockets,
+  shutdown as shutdownSocket,
 } from '../src/lib/socket.js';
-import { insertTicket } from '../src/repositories/tickets.js';
 import { getAllEventsByTicketId, insertEvent } from '../src/repositories/events.js';
+import { insertTicket } from '../src/repositories/tickets.js';
 import { processMessage } from '../src/worker.js';
+import { newOpsCookie } from './helpers/ops-session.js';
+import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 
 const TRIAGE_RESULT = {
   category: 'technical',

@@ -3,9 +3,9 @@
  * module may publish to SNS. If this fails, a new publish site was added: route it through
  * src/services/ops-alerts.ts instead.
  */
-import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'fs';
 import path from 'path';
+import { describe, expect, it } from 'vitest';
 
 const SRC = path.resolve(__dirname, '../src');
 const ALLOWED = path.join(SRC, 'services', 'ops-alerts.ts');

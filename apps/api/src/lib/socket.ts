@@ -1,12 +1,13 @@
-import { Server } from 'socket.io';
+import type { Server as Engine } from '@socket.io/bun-engine';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Emitter } from '@socket.io/redis-emitter';
-import { createClient } from 'redis';
-import type { Server as Engine } from '@socket.io/bun-engine';
 import type { Server as HttpServer } from 'http';
-import { logger } from './logger.js';
-import { isUuid } from './ids.js';
+import { createClient } from 'redis';
+import { Server } from 'socket.io';
+
 import { closeCounters } from './counters.js';
+import { isUuid } from './ids.js';
+import { logger } from './logger.js';
 import { closeOpsSessionStore, lookupSession, sessionIdFromCookieHeader } from './ops-session.js';
 import { OPS_ROOM } from './rooms.js';
 

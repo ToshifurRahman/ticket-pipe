@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
-import { TrackTicketField } from '@/components/track-ticket-field';
+
 import { Wordmark } from '@/components/brand-mark';
+import { TrackTicketField } from '@/components/track-ticket-field';
 
 const LANDING_LINKS = [
   { href: '#stages', label: 'How it works' },

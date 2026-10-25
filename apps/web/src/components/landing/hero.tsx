@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
+
 import { Button } from '@/components/ui/button';
 import { brand } from '@/config/brand';
 import { cn } from '@/lib/utils';
+
 import { DemoTicket } from './demo-ticket';
 import { useIdleNudge } from './use-idle-nudge';
 

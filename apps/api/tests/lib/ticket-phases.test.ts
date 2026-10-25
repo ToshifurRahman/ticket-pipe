@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
-  resolveTicketPhases,
   resolveTicketFailureCounts,
+  resolveTicketPhases,
   type TicketEventLike,
 } from '../../src/lib/ticket-phases.js';
 

@@ -1,6 +1,7 @@
-import pg from 'pg';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
+import pg from 'pg';
 
 const { Client } = pg;
 

@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
-import { Stamp } from '@/components/form/stamp';
+
 import { Wordmark } from '@/components/brand-mark';
+import { Stamp } from '@/components/form/stamp';
 import { OpsHeaderActions } from '@/components/ops/ops-header-actions';
 import { SkipLink } from '@/components/skip-link';
 import { Toaster } from '@/components/ui/sonner';

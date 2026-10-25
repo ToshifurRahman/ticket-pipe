@@ -2,7 +2,8 @@
  * Story 6.17 — the customer mails in the Carbon Set form. The words and the links stay as 6.9 set
  * them; the HTML adds the form header and the ply strip and makes no outside requests.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
   buildConfirmEmail,
   buildReplyReadyEmail,

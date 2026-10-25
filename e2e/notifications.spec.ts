@@ -1,7 +1,8 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
+
+import { removeTicket } from './helpers/cleanup-ticket';
 import { asClient } from './helpers/client-ip';
 import { linkIn, mailCount, uniqueAddress, waitForMail } from './helpers/mailpit';
-import { removeTicket } from './helpers/cleanup-ticket';
 import { opsCookie } from './helpers/ops-session';
 import { stripFakeMarkers } from './helpers/strip-fake-marker';
 import { stubTurnstile } from './helpers/turnstile';

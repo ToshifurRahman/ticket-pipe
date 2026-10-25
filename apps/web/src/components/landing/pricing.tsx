@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { PRICING_HEADING, TIERS, type Tier } from '@/content/landing';
-import { cn } from '@/lib/utils';
-import { useStampOnView } from './use-stamp-on-view';
+
 import { Stamp } from '@/components/form/stamp';
+import { Button } from '@/components/ui/button';
+import { PRICING_HEADING, type Tier, TIERS } from '@/content/landing';
+import { cn } from '@/lib/utils';
+
+import { useStampOnView } from './use-stamp-on-view';
 
 export function Pricing() {
   return (

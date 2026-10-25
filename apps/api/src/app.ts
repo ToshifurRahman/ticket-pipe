@@ -3,9 +3,10 @@ import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
 import { TicketNotFoundError } from './lib/errors.js';
 import { logger } from './lib/logger.js';
-import { requestLogger, type AppEnv } from './lib/request-logger.js';
+import { type AppEnv, requestLogger } from './lib/request-logger.js';
 import { getEngine } from './lib/socket.js';
 import { mountWebApp } from './lib/web-app.js';
 import { healthRouter } from './routes/health.js';

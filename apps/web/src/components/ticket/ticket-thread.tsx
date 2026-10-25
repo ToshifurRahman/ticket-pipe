@@ -1,8 +1,10 @@
 import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { printedTime } from '@/lib/relative-time';
 import { humanize, type SupportSide, type TriageBadges } from '@/lib/ticket-thread';
 import { cn } from '@/lib/utils';
+
 import { ToneChip, toneForCategory, toneForPriority } from './tone-chip';
 import { stampProps, useStampOnChange } from './use-stamp-on-change';
 

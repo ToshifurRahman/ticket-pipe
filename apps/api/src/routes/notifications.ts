@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+
 import { confirm, preview } from '../controllers/notifications.js';
 
 export const notificationsRouter = new Hono();

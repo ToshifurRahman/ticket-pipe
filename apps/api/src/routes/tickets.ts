@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
-import { requireOpsSession } from '../lib/ops-auth.js';
+
 import { getStatus, optIn } from '../controllers/notifications.js';
 import { create, getById, getByRef, list, listEvents, replay } from '../controllers/tickets.js';
+import { requireOpsSession } from '../lib/ops-auth.js';
 
 export const ticketsRouter = new Hono();
 

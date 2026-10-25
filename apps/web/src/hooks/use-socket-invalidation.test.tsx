@@ -2,7 +2,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useSocketInvalidation, type InvalidationMap } from './use-socket-invalidation';
+
+import { type InvalidationMap, useSocketInvalidation } from './use-socket-invalidation';
 
 type Handler = () => void;
 const fakeSocket = vi.hoisted(() => {

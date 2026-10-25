@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { type FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { Input } from '@/components/ui/input';
 import { isValidRef, normalizeRef, REF_EXAMPLE } from '@/lib/ticket-ref';
 import { cn } from '@/lib/utils';

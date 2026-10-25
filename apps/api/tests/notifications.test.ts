@@ -2,22 +2,23 @@
  * Story 6.9 — customer email: double opt-in, one "reply ready" and at most one "snag" per ticket,
  * catch-up on confirm, and nothing leaking into the public view. Uses the in-memory mailer.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { randomUUID } from 'crypto';
-import request from './helpers/request.js';
-import opsRequest from './helpers/ops-session.js';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+
 import { app } from '../src/app.js';
-import { pool } from '../src/lib/db.js';
 import { closeCounters } from '../src/lib/counters.js';
+import { pool } from '../src/lib/db.js';
 import { sentMail } from '../src/lib/mailer.js';
-import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
-import { insertTicket, updateTicketStatus } from '../src/repositories/tickets.js';
 import { deleteExpiredTicketBatch } from '../src/repositories/ticket-retention.js';
+import { insertTicket, updateTicketStatus } from '../src/repositories/tickets.js';
 import {
   notifyIfDue,
   pendingNotifications,
   setRetryDelaysForTests,
 } from '../src/services/customer-notifications.js';
+import opsRequest from './helpers/ops-session.js';
+import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
+import request from './helpers/request.js';
 
 process.env.MAIL_DRIVER = 'memory';
 process.env.MAIL_FROM = 'relay@example.test';

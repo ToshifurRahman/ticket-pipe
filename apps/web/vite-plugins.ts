@@ -1,8 +1,10 @@
-import type { Plugin } from 'vite';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { brotliCompress, constants, gzip } from 'node:zlib';
+
+import type { Plugin } from 'vite';
+
 import { brand } from './src/config/brand';
 
 const brotli = promisify(brotliCompress);

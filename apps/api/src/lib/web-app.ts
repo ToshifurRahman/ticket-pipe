@@ -1,8 +1,9 @@
-import type { Context, Env, Hono, Next } from 'hono';
-import { getMimeType } from 'hono/utils/mime';
 import { existsSync } from 'fs';
 import { readFile, stat } from 'fs/promises';
+import type { Context, Env, Hono, Next } from 'hono';
+import { getMimeType } from 'hono/utils/mime';
 import path from 'path';
+
 import { logger } from './logger.js';
 
 const NON_APP_PATH = /^\/(api|health|socket\.io)(\/|$)/;
@@ -12,7 +13,7 @@ const API_PATH = /^\/api(\/|$)/;
 function acceptsHtml(accept: string | undefined): boolean {
   if (!accept) return true;
   return accept.split(',').some((part) => {
-    const type = part.split(';')[0]!.trim().toLowerCase();
+    const type = part.split(';')[0].trim().toLowerCase();
     return type === 'text/html' || type === 'text/*' || type === '*/*';
   });
 }
@@ -28,7 +29,7 @@ function acceptedEncodings(header: string | undefined): Encoding[] {
     const [name, ...params] = part.trim().toLowerCase().split(';');
     const q = params.map((p) => p.trim()).find((p) => p.startsWith('q='));
     if (q && Number(q.slice(2)) === 0) continue;
-    accepted.add(name!.trim());
+    accepted.add(name.trim());
   }
   return (['br', 'gzip'] as const).filter((e) => accepted.has(e) || accepted.has('*'));
 }

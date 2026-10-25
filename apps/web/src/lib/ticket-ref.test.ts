@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { isValidRef, normalizeRef } from './ticket-ref';
 
 describe('ticket-ref', () => {

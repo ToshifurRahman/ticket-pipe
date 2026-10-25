@@ -1,5 +1,6 @@
-import { useQueryClient, type QueryKey } from '@tanstack/react-query';
+import { type QueryKey, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
+
 import { getSocket } from '@/lib/socket';
 
 /** Socket event name → the query keys it makes stale. Events carry no data we render. */

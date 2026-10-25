@@ -1,11 +1,12 @@
-import { describe, it, expect, afterEach, afterAll } from 'vitest';
+import { afterAll, afterEach, describe, expect, it } from 'vitest';
+
 import { pool } from '../../src/lib/db.js';
-import { insertTicket } from '../../src/repositories/tickets.js';
 import {
-  insertEvent,
   getAllEventsByTicketId,
   getEventPage,
+  insertEvent,
 } from '../../src/repositories/events.js';
+import { insertTicket } from '../../src/repositories/tickets.js';
 import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 
 const createdIds: string[] = [];

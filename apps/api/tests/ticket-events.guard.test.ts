@@ -3,9 +3,9 @@
  * `ticket_events`; this guard catches code that tries anyway, before it ever reaches a test DB.
  * Test cleanup goes through tests/helpers/purge-ticket-events.ts, which is outside these dirs.
  */
-import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'fs';
 import path from 'path';
+import { describe, expect, it } from 'vitest';
 
 const ROOT = path.resolve(__dirname, '..');
 const DIRS = ['src', 'scripts', 'migrations'].map((dir) => path.join(ROOT, dir));

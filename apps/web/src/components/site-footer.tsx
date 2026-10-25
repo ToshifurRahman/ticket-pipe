@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+
 import { brand } from '@/config/brand';
 
 // The form's bottom rule: one hairline inside the page column. The legal links are printed

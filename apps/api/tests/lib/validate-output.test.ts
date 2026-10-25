@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
+  validateDraftOutput,
   validateProcessingOutput,
   validateTriageOutput,
-  validateDraftOutput,
 } from '../../src/lib/validate-output.js';
 import type { ProcessingResult } from '../../src/repositories/processing.js';
 

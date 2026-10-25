@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Stamp } from '@/components/form/stamp';
+
 import { FormHeader } from '@/components/form/form-header';
 import { FormBody, FormPanel } from '@/components/form/form-panel';
+import { Stamp } from '@/components/form/stamp';
 import { Button } from '@/components/ui/button';
 import { useCopy } from '@/hooks/use-copy';
 import { printedTime } from '@/lib/relative-time';

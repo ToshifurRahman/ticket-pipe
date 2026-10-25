@@ -3,12 +3,13 @@
  * failure containment and the hourly cap. SNS is a fake client here; the LocalStack round
  * trip is in ops-alerts.localstack.test.ts.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { PublishCommand, SNSClient } from '@aws-sdk/client-sns';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import { logger } from '../src/lib/logger.js';
 import type { SnsTarget } from '../src/lib/sns.js';
-import type { OpsNeedsAttention } from '../src/services/ops-feed.js';
 import { buildAlertMessage, createNeedsAttentionAlerter } from '../src/services/ops-alerts.js';
+import type { OpsNeedsAttention } from '../src/services/ops-feed.js';
 
 const TOPIC_ARN = 'arn:aws:sns:us-east-1:000000000000:ticket-needs-attention';
 const HOUR_MS = 60 * 60 * 1000;

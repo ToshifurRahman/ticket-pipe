@@ -1,11 +1,12 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import {
   addRecentTicket,
   loadRecentTickets,
   RECENT_TICKETS_LIMIT,
-  useRecentTickets,
   type RecentTicket,
+  useRecentTickets,
 } from './recent-tickets';
 
 const ticket = (n: number): RecentTicket => ({

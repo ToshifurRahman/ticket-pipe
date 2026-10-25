@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import {
-  triage,
-  LlmCallError,
-  getLlmMode,
   assertLlmModeAllowed,
+  getLlmMode,
+  LlmCallError,
   type LlmProvider,
+  triage,
 } from '../../src/lib/llm-client.js';
 
 const PROVIDER: LlmProvider = {

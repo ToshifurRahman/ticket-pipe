@@ -1,7 +1,8 @@
 import { Outlet, useMatch } from 'react-router-dom';
+
 import { SiteFooter } from '@/components/site-footer';
-import { SkipLink } from '@/components/skip-link';
 import { SiteHeader } from '@/components/site-header';
+import { SkipLink } from '@/components/skip-link';
 import { cn } from '@/lib/utils';
 
 // The landing page and the 404 are full-width bands; every other page sits in a centred column.

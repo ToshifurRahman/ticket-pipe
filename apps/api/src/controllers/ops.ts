@@ -1,6 +1,7 @@
 import { zValidator } from '@hono/zod-validator';
 import { createFactory } from 'hono/factory';
 import { z } from 'zod';
+
 import { listAiInteractions, summarizeAiInteractions } from '../repositories/ai-interactions.js';
 import { countTicketsCreatedSince, getTicketById } from '../repositories/tickets.js';
 import { buildFullTicketView } from '../services/ticket-views.js';

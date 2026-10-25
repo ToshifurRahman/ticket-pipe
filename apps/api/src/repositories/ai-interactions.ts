@@ -140,7 +140,7 @@ export async function listAiInteractions(
     `SELECT COUNT(*) FROM ai_interactions ${whereClause}`,
     params
   );
-  const total = Number(countResult.rows[0]!.count);
+  const total = Number(countResult.rows[0].count);
 
   const dataResult = await pool.query<AiInteractionRow>(
     `SELECT * FROM ai_interactions ${whereClause}

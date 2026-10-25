@@ -4,7 +4,8 @@
  * (finalize_failed) only once the receive cap is reached.
  */
 
-import { describe, it, expect, vi, afterEach, afterAll } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+
 import type { AIService } from '../src/lib/ai-service.js';
 
 const mockMarkTicketCompleted = vi.hoisted(() => vi.fn());
@@ -25,12 +26,12 @@ vi.mock('../src/repositories/tickets.js', async (importOriginal) => {
 });
 
 import { pool } from '../src/lib/db.js';
-import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
-import { insertTicket, getTicketById } from '../src/repositories/tickets.js';
+import { deleteMessage } from '../src/lib/queue.js';
 import { getAllEventsByTicketId } from '../src/repositories/events.js';
 import { getProcessingResultByTicketId } from '../src/repositories/processing.js';
-import { deleteMessage } from '../src/lib/queue.js';
+import { getTicketById, insertTicket } from '../src/repositories/tickets.js';
 import { processMessage } from '../src/worker.js';
+import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 
 const TRIAGE_RESULT = {
   category: 'technical',

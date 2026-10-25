@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
+
 import { buildTokensCss, OUTPUT, resolveToken } from '../../web/scripts/build-tokens.js';
 import { brand } from '../../web/src/config/brand.js';
 

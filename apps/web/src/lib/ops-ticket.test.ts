@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { groupTimeline, humanize, replayStage, stateReason } from './ops-ticket';
 import type { OpsTicketDetail } from './types';
 

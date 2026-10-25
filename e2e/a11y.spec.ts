@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { type APIRequestContext, expect, type Page, test } from '@playwright/test';
+
 import { removeTicket } from './helpers/cleanup-ticket';
 import { asClient } from './helpers/client-ip';
 import { linkIn, uniqueAddress, waitForMail } from './helpers/mailpit';
@@ -118,7 +119,7 @@ async function signInWithCookie(page: Page, request: APIRequestContext) {
   await page
     .context()
     .addCookies([
-      { name: name!, value: value!, url: 'http://localhost:3100', secure: true, httpOnly: true },
+      { name: name, value: value, url: 'http://localhost:3100', secure: true, httpOnly: true },
     ]);
 }
 
@@ -180,7 +181,7 @@ const visits: Visit[] = [
     open: async (p) => {
       const { address } = await optedInTicket(p);
       const [mail] = await waitForMail(address);
-      await p.goto(linkIn(mail!, '/confirm/'));
+      await p.goto(linkIn(mail, '/confirm/'));
       await expect(p.getByRole('button', { name: 'Confirm' })).toBeVisible();
     },
   },

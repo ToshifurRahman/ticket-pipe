@@ -1,10 +1,12 @@
 import { useQueries } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
+
 import { ApiError } from '@/lib/api';
 import type { RecentTicket } from '@/lib/recent-tickets';
 import { relativeTime } from '@/lib/relative-time';
 import { getTicketByRef, ticketQueryKey } from '@/lib/tickets-api';
+
 import { StatusPill } from './status-pill';
 
 type RecentTicketsProps = {

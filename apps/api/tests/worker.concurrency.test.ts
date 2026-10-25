@@ -1,5 +1,6 @@
 import { setTimeout as sleep } from 'node:timers/promises';
-import { describe, it, expect, vi, afterEach, afterAll } from 'vitest';
+
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 
 const mockQueue = vi.hoisted(
   () =>
@@ -62,11 +63,11 @@ vi.mock('../src/lib/queue.js', () => ({
 }));
 
 import { pool } from '../src/lib/db.js';
-import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 import { enqueueTicket } from '../src/lib/queue.js';
-import { insertTicket, getTicketById } from '../src/repositories/tickets.js';
 import { getAllEventsByTicketId } from '../src/repositories/events.js';
+import { getTicketById, insertTicket } from '../src/repositories/tickets.js';
 import { run } from '../src/worker.js';
+import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 
 const createdIds: string[] = [];
 

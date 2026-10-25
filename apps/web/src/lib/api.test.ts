@@ -1,7 +1,9 @@
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
-import { ApiError, request } from './api';
+
 import { server } from '@/test/server';
+
+import { ApiError, request } from './api';
 
 describe('request', () => {
   it('returns the parsed JSON body', async () => {

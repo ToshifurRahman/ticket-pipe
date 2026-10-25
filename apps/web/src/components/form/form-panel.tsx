@@ -1,4 +1,5 @@
 import type { ComponentProps, ElementType } from 'react';
+
 import { cn } from '@/lib/utils';
 
 type PanelProps<T extends ElementType> = { as?: T; enter?: boolean } & Omit<

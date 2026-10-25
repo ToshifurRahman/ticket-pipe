@@ -1,50 +1,51 @@
 import { setTimeout as sleep } from 'node:timers/promises';
+
+import { AIService } from './lib/ai-service.js';
+import { TicketNotFoundError } from './lib/errors.js';
+import { UUID_RE } from './lib/ids.js';
+import { assertLlmModeAllowed, getLlmMode } from './lib/llm-client.js';
 import { logger } from './lib/logger.js';
-import { receiveMessages, deleteMessage } from './lib/queue.js';
+import { assertMailConfigured } from './lib/mailer.js';
+import { deleteMessage, receiveMessages } from './lib/queue.js';
+import { shutdown as shutdownSocket, warmEmitter } from './lib/socket.js';
 import {
-  getTicketById,
+  resolveTicketFailureCounts,
+  resolveTicketPhases,
+  type TicketPhaseStatus,
+  type TriageOutput,
+} from './lib/ticket-phases.js';
+import {
+  type DraftFields,
+  validateDraftOutput,
+  validateProcessingOutput,
+  validateTriageOutput,
+  type ValidationResult,
+} from './lib/validate-output.js';
+import { getAllEventsByTicketId } from './repositories/events.js';
+import {
+  completeDraftOutput,
+  getProcessingResultByTicketId,
+  type ProcessingResult,
+  upsertTriageOutput,
+} from './repositories/processing.js';
+import {
   claimTicketForProcessing,
+  getTicketById,
   markTicketCompleted,
   markTicketFailed,
   markTicketNeedsAttention,
 } from './repositories/tickets.js';
+import { notifyIfDue } from './services/customer-notifications.js';
+import { alertNeedsAttention } from './services/ops-alerts.js';
 import {
-  upsertTriageOutput,
-  completeDraftOutput,
-  getProcessingResultByTicketId,
-  type ProcessingResult,
-} from './repositories/processing.js';
-import { getAllEventsByTicketId } from './repositories/events.js';
-import { recordTicketEvent, type TicketRef } from './services/ticket-events.js';
-import {
+  type FailureReason,
+  type NeedsAttentionReason,
   publishNeedsAttention,
   publishTicketFailed,
-  type NeedsAttentionReason,
-  type FailureReason,
 } from './services/ops-feed.js';
+import { recordTicketEvent, type TicketRef } from './services/ticket-events.js';
 import { startRetentionSweep } from './services/ticket-retention.js';
-import { alertNeedsAttention } from './services/ops-alerts.js';
-import { notifyIfDue } from './services/customer-notifications.js';
-import { assertMailConfigured } from './lib/mailer.js';
 import { emitTicketUpdate } from './services/ticket-updates.js';
-import { UUID_RE } from './lib/ids.js';
-import { TicketNotFoundError } from './lib/errors.js';
-import { warmEmitter, shutdown as shutdownSocket } from './lib/socket.js';
-import { AIService } from './lib/ai-service.js';
-import { assertLlmModeAllowed, getLlmMode } from './lib/llm-client.js';
-import {
-  resolveTicketPhases,
-  resolveTicketFailureCounts,
-  type TriageOutput,
-  type TicketPhaseStatus,
-} from './lib/ticket-phases.js';
-import {
-  validateProcessingOutput,
-  validateTriageOutput,
-  validateDraftOutput,
-  type DraftFields,
-  type ValidationResult,
-} from './lib/validate-output.js';
 
 assertLlmModeAllowed();
 assertMailConfigured();

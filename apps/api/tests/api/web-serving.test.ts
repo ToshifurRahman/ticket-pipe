@@ -1,11 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { Hono } from 'hono';
-import request from '../helpers/request.js';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'fs';
-import { brotliCompressSync, brotliDecompressSync, gunzipSync, gzipSync } from 'zlib';
 import { tmpdir } from 'os';
 import path from 'path';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { brotliCompressSync, brotliDecompressSync, gunzipSync, gzipSync } from 'zlib';
+
 import { mountWebApp } from '../../src/lib/web-app.js';
+import request from '../helpers/request.js';
 
 let dist: string;
 let emptyDist: string;

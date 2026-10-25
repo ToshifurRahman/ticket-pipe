@@ -1,19 +1,20 @@
 import { zValidator } from '@hono/zod-validator';
 import { createFactory } from 'hono/factory';
 import { z } from 'zod';
-import { createTicket, listTickets, replayTicket } from '../services/tickets.js';
-import { logger } from '../lib/logger.js';
-import { getTicketById, getTicketByReferenceNumber } from '../repositories/tickets.js';
-import type { TicketEvent } from '../repositories/events.js';
+
 import { decodeEventCursor } from '../lib/event-cursor.js';
+import { logger } from '../lib/logger.js';
+import type { TicketEvent } from '../repositories/events.js';
+import { getTicketById, getTicketByReferenceNumber } from '../repositories/tickets.js';
 import {
-  EVENTS_DEFAULT_LIMIT,
   buildFullTicketView,
+  EVENTS_DEFAULT_LIMIT,
   getTicketEventPageView,
   isPublicEvent,
   toPublicEvent,
   toPublicTicketView,
 } from '../services/ticket-views.js';
+import { createTicket, listTickets, replayTicket } from '../services/tickets.js';
 
 // Lengths count after trimming. web/src/lib/ticket-form.ts repeats these limits and messages
 // for inline validation; keep the two in step.
@@ -75,7 +76,7 @@ export const create = factory.createHandlers(
   zValidator('json', TicketSchema, (result, c) => {
     if (result.success) return;
     const fieldErrors = z.flattenError(result.error).fieldErrors;
-    const errors = Object.fromEntries(Object.entries(fieldErrors).map(([k, v]) => [k, v![0]]));
+    const errors = Object.fromEntries(Object.entries(fieldErrors).map(([k, v]) => [k, v[0]]));
     return c.json({ errors }, 400);
   }),
   async (c) => {

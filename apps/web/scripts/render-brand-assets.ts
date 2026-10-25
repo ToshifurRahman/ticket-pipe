@@ -1,6 +1,8 @@
-import { chromium } from '@playwright/test';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+
+import { chromium } from '@playwright/test';
+
 import { brand } from '../src/config/brand.js';
 import { resolveToken } from './build-tokens.js';
 

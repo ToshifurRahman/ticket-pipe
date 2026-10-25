@@ -1,5 +1,5 @@
-import { logger } from '../apps/api/src/lib/logger.js';
 import { assertLlmModeAllowed } from '../apps/api/src/lib/llm-client.js';
+import { logger } from '../apps/api/src/lib/logger.js';
 import { init as initSocket, shutdown as shutdownSocket } from '../apps/api/src/lib/socket.js';
 import { startServer } from '../apps/api/src/server.js';
 import { run } from '../apps/api/src/worker.js';

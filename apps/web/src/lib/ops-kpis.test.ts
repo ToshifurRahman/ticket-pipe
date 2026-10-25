@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { computeKpis, formatPercent, formatSeconds } from './ops-kpis';
 import type { AiSummaryRow, OpsSummary } from './types';
 

@@ -1,8 +1,10 @@
-import { chromium, expect, type Page } from '@playwright/test';
-import pg from 'pg';
 import { mkdir, mkdtemp, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+
+import { chromium, expect, type Page } from '@playwright/test';
+import pg from 'pg';
+
 import { removeTicket } from '../e2e/helpers/cleanup-ticket.js';
 import { stripFakeMarkers } from '../e2e/helpers/strip-fake-marker.js';
 import { stubTurnstile } from '../e2e/helpers/turnstile.js';

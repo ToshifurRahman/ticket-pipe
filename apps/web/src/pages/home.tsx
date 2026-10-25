@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+
 import { Faq } from '@/components/landing/faq';
 import { Hero } from '@/components/landing/hero';
 import { Pricing } from '@/components/landing/pricing';

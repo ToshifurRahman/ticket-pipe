@@ -1,10 +1,10 @@
 import {
-  SQSClient,
-  SendMessageCommand,
-  GetQueueUrlCommand,
-  ReceiveMessageCommand,
   DeleteMessageCommand,
+  GetQueueUrlCommand,
   MessageSystemAttributeName,
+  ReceiveMessageCommand,
+  SendMessageCommand,
+  SQSClient,
 } from '@aws-sdk/client-sqs';
 
 export interface QueueMessage {

@@ -1,19 +1,19 @@
 import {
-  triage as triageLlm,
+  type AiInteractionRecord,
+  type AiOperation,
+  insertAiInteraction,
+} from '../repositories/ai-interactions.js';
+import type { ProcessingResult } from '../repositories/processing.js';
+import {
   draft as draftLlm,
-  getPrimaryProvider,
   getBackupProvider,
+  getPrimaryProvider,
   isBackupConfigured,
   LlmCallError,
   type LlmProvider,
+  triage as triageLlm,
   type TriageOutput,
 } from './llm-client.js';
-import type { ProcessingResult } from '../repositories/processing.js';
-import {
-  insertAiInteraction,
-  type AiInteractionRecord,
-  type AiOperation,
-} from '../repositories/ai-interactions.js';
 import { logger } from './logger.js';
 
 type TriageResult = Omit<ProcessingResult, 'customerReply' | 'internalNote' | 'nextSteps'>;

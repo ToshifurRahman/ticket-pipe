@@ -3,16 +3,17 @@
  * so the Zod 3 -> 4 move cannot change what clients see. Zod's own prose for wrong-type input
  * is not pinned (it changes between majors); the response shape is.
  */
-import { afterAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'crypto';
+import { afterAll, describe, expect, it } from 'vitest';
+
 import { app } from '../../src/app.js';
-import { pool } from '../../src/lib/db.js';
 import { closeCounters } from '../../src/lib/counters.js';
-import { shutdown as shutdownSocket } from '../../src/lib/socket.js';
+import { pool } from '../../src/lib/db.js';
 import { sentMail } from '../../src/lib/mailer.js';
+import { shutdown as shutdownSocket } from '../../src/lib/socket.js';
 import { insertTicket } from '../../src/repositories/tickets.js';
-import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 import opsRequest from '../helpers/ops-session.js';
+import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 import request from '../helpers/request.js';
 
 process.env.MAIL_DRIVER = 'memory';
@@ -42,10 +43,7 @@ async function ticket() {
   return t;
 }
 const optIn = (id: string, body: unknown) =>
-  request(app)
-    .post(`/api/tickets/${id}/notification`)
-    .set('x-forwarded-for', freshIp())
-    .send(body as object);
+  request(app).post(`/api/tickets/${id}/notification`).set('x-forwarded-for', freshIp()).send(body);
 
 const GOOD_SUBJECT = 'A valid subject line';
 const GOOD_DESCRIPTION = 'A valid description that is long enough to pass the minimum.';

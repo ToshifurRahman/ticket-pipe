@@ -1,7 +1,8 @@
-import { describe, it, expect, afterAll } from 'vitest';
-import request from '../helpers/ops-session.js';
+import { afterAll, describe, expect, it } from 'vitest';
+
 import { app } from '../../src/app.js';
 import { pool } from '../../src/lib/db.js';
+import request from '../helpers/ops-session.js';
 
 afterAll(async () => {
   await pool.end();

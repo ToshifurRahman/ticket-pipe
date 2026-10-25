@@ -3,12 +3,14 @@ import { act, render, screen, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { ON_HOLD_MESSAGE } from '@/components/ticket/ticket-thread';
 import { createQueryClient } from '@/lib/query-client';
 import type { TicketDetail } from '@/lib/types';
 import { createFakeSocket } from '@/test/fake-socket';
 import { server } from '@/test/server';
 import { TICKET_ID, TICKET_REF, ticketAt } from '@/test/ticket-fixtures';
+
 import { TicketPage } from './ticket';
 
 const fakeSocket = vi.hoisted(() => ({

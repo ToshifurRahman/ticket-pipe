@@ -4,10 +4,12 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { useEffect } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+
 import { createQueryClient } from '@/lib/query-client';
 import type { NotificationView } from '@/lib/types';
 import { server } from '@/test/server';
 import { TICKET_ID } from '@/test/ticket-fixtures';
+
 import { NotifyCard } from './notify-card';
 
 vi.mock('@/components/turnstile', () => ({

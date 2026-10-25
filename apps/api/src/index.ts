@@ -1,6 +1,6 @@
+import { assertLlmModeAllowed } from './lib/llm-client.js';
 import { logger } from './lib/logger.js';
 import { assertMailConfigured } from './lib/mailer.js';
-import { assertLlmModeAllowed } from './lib/llm-client.js';
 import { assertOpsTokenConfigured } from './lib/ops-session.js';
 import { init as initSocket, shutdown as shutdownSocket } from './lib/socket.js';
 import { startServer } from './server.js';

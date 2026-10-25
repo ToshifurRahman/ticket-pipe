@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react';
+
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
 
 type Phase = 'set' | 'blank' | 'running';

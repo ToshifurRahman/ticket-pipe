@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+
 import { expect, it } from 'vitest';
+
 import { resolveToken } from '../../web/scripts/build-tokens.js';
 
 // The ply stamp is Carbon Set's one motion: a stage lands on the form in two hard frames

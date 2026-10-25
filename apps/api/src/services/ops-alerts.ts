@@ -1,6 +1,7 @@
 import { PublishCommand } from '@aws-sdk/client-sns';
-import { getSnsClient, type SnsTarget } from '../lib/sns.js';
+
 import { logger } from '../lib/logger.js';
+import { getSnsClient, type SnsTarget } from '../lib/sns.js';
 import type { OpsNeedsAttention } from './ops-feed.js';
 
 // Ops email alerts (story 5.7), sent through SNS when a ticket newly enters needs_attention.

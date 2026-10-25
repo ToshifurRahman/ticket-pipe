@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { AIService } from '../src/lib/ai-service.js';
 
 const mockEmit = vi.hoisted(() => vi.fn());
@@ -28,17 +29,17 @@ vi.mock('../src/lib/socket.js', async (importOriginal) => {
 });
 
 import { pool } from '../src/lib/db.js';
-import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
-import { insertTicket, getTicketById } from '../src/repositories/tickets.js';
+import { deleteMessage } from '../src/lib/queue.js';
 import { getAllEventsByTicketId, insertEvent } from '../src/repositories/events.js';
 import {
+  completeDraftOutput,
   getProcessingResultByTicketId,
   upsertTriageOutput,
-  completeDraftOutput,
 } from '../src/repositories/processing.js';
-import { deleteMessage } from '../src/lib/queue.js';
-import { processMessage } from '../src/worker.js';
+import { getTicketById, insertTicket } from '../src/repositories/tickets.js';
 import { replayTicket } from '../src/services/tickets.js';
+import { processMessage } from '../src/worker.js';
+import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 
 // ---- AIService mock helpers -------------------------------------------
 
@@ -274,7 +275,7 @@ describe('processMessage — ops feed privacy (story 4.5)', () => {
     await processMessage(ticket.id, 'fake-receipt', 3, mockAi()).catch(() => {});
 
     expect(alerts()).toHaveLength(1);
-    expect(Object.keys(alerts()[0]!).sort()).toEqual([
+    expect(Object.keys(alerts()[0]).sort()).toEqual([
       'occurredAt',
       'reason',
       'referenceNumber',
@@ -992,7 +993,7 @@ describe('ops recovery end to end (story 5.4)', () => {
       'draft.completed',
       'ticket.completed',
     ]);
-    expect(events[1]!.detail).toBe('reused stored output');
+    expect(events[1].detail).toBe('reused stored output');
   });
 
   it('runs triage again when the history says completed but no output was saved', async () => {

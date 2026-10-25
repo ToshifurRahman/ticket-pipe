@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
+
 import { expect, it } from 'vitest';
 
 // Server-supplied text (ticket subjects, AI replies) must only ever reach the page as React

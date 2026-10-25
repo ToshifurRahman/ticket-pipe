@@ -1,6 +1,6 @@
-import { ESLint } from 'eslint';
 import { spawnSync } from 'child_process';
-import { existsSync, readFileSync } from 'fs';
+import { ESLint } from 'eslint';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import path from 'path';
 import { expect, it } from 'vitest';
 
@@ -8,10 +8,17 @@ import { expect, it } from 'vitest';
 // the web app, e2e and scripts.
 const root = path.resolve(import.meta.dirname, '../../..');
 
+// The project service only types files that exist, so the snippet is written to a real path
+// inside the app and removed again.
 async function rulesFor(code: string, filePath: string) {
-  const eslint = new ESLint({ cwd: root });
-  const [result] = await eslint.lintText(code, { filePath: path.join(root, filePath) });
-  return result.messages.map((m) => m.ruleId);
+  const file = path.join(root, filePath);
+  writeFileSync(file, code);
+  try {
+    const [result] = await new ESLint({ cwd: root }).lintFiles([file]);
+    return result.messages.map((m) => m.ruleId ?? m.message);
+  } finally {
+    rmSync(file, { force: true });
+  }
 }
 
 it('fails a floating promise', async () => {

@@ -4,6 +4,7 @@
  * without anyone remembering to list it.
  */
 import { afterAll, describe, expect, it } from 'vitest';
+
 import { app } from '../../src/app.js';
 import { shutdown as shutdownSocket } from '../../src/lib/socket.js';
 import request from '../helpers/request.js';

@@ -1,5 +1,5 @@
-import { getEmitter } from '../lib/socket.js';
 import { logger } from '../lib/logger.js';
+import { getEmitter } from '../lib/socket.js';
 
 // Live updates for one ticket's own room, which only that ticket's customer joins.
 // The ops-room counterpart is src/services/ops-feed.ts.

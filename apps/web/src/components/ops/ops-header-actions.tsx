@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
-import { getFeedState, subscribeFeedState, type FeedState } from '@/lib/ops-feed-status';
 import { getOpsSession, opsKeys, signOut } from '@/lib/ops-api';
+import { type FeedState, getFeedState, subscribeFeedState } from '@/lib/ops-feed-status';
 import { cn } from '@/lib/utils';
 
 const FEED: Record<FeedState, { label: string; dot: string }> = {

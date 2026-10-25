@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { DEMO_FRAMES, DEMO_REFERENCE, FINAL_FRAME } from './demo-script';
+
 import { isValidRef } from '@/lib/ticket-ref';
+
+import { DEMO_FRAMES, DEMO_REFERENCE, FINAL_FRAME } from './demo-script';
 
 describe('demo script', () => {
   it('ends replied with every step done', () => {

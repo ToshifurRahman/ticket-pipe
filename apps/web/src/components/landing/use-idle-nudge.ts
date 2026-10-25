@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
 
 const EVENTS = ['scroll', 'pointerdown', 'keydown', 'touchstart'] as const;

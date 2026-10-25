@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, type FormEvent } from 'react';
-import { Stamp } from '@/components/form/stamp';
-import { FormBody, FormPanel } from '@/components/form/form-panel';
+import { type FormEvent, useState } from 'react';
+
 import { FormHeader } from '@/components/form/form-header';
+import { FormBody, FormPanel } from '@/components/form/form-panel';
+import { Stamp } from '@/components/form/stamp';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

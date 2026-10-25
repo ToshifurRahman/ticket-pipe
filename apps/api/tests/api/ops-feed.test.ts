@@ -2,7 +2,8 @@
  * Story 4.4 — the API process owns `ticket.submitted`, which no worker ever sees, so the
  * ops feed has to hear about it from here.
  */
-import { describe, it, expect, vi, afterEach, afterAll } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+
 import request from '../helpers/request.js';
 
 const mockOpsEmit = vi.hoisted(() => vi.fn());
@@ -44,7 +45,7 @@ describe('POST /api/tickets — ops feed', () => {
     await vi.waitFor(() => expect(mockOpsEmit).toHaveBeenCalledTimes(1));
 
     expect(mockTo).toHaveBeenCalledWith('ops');
-    const [name, payload] = mockOpsEmit.mock.calls[0]!;
+    const [name, payload] = mockOpsEmit.mock.calls[0];
     expect(name).toBe('ops:ticket_event');
     expect(Object.keys(payload).sort()).toEqual([
       'event',

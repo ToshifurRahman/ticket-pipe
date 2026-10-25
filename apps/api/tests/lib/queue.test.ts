@@ -1,12 +1,13 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import {
-  SQSClient,
   CreateQueueCommand,
   DeleteQueueCommand,
-  PurgeQueueCommand,
   GetQueueUrlCommand,
+  PurgeQueueCommand,
+  SQSClient,
 } from '@aws-sdk/client-sqs';
-import { enqueueTicket, receiveMessages, deleteMessage } from '../../src/lib/queue.js';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+import { deleteMessage, enqueueTicket, receiveMessages } from '../../src/lib/queue.js';
 
 const client = new SQSClient({
   endpoint: process.env.SQS_ENDPOINT,

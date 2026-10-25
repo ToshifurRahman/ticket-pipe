@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { relativeTime, shortAgo } from './relative-time';
 
 const now = Date.parse('2026-10-10T12:00:00.000Z');

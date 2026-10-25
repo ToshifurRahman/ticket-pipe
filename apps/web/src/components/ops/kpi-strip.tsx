@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { computeKpis, formatPercent, formatSeconds } from '@/lib/ops-kpis';
+
 import { getOpsSummary, opsKeys } from '@/lib/ops-api';
+import { computeKpis, formatPercent, formatSeconds } from '@/lib/ops-kpis';
 
 // "96.1%" prints as 96.1 with a small muted %, "2.4 s" as 2.4 with a small s.
 function splitUnit(text: string): [string, string] {

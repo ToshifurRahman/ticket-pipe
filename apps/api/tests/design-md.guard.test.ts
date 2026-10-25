@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 // DESIGN.md records the shipped design system. Its "Colour primitives" table must list every
@@ -18,7 +19,7 @@ function documentedColours(): Map<string, string> {
   const rows = new Map<string, string>();
   for (const line of design.split('\n')) {
     const match = ROW.exec(line);
-    if (match) rows.set(match[1]!, match[2]!);
+    if (match) rows.set(match[1], match[2]);
   }
   return rows;
 }
@@ -29,7 +30,7 @@ function frontMatterColours(): Map<string, string> {
   const colourBlock = /^colors:\n((?: {2}.*\n?)+)/m.exec(block)?.[1] ?? '';
   const rows = new Map<string, string>();
   for (const match of colourBlock.matchAll(/^ {2}([a-z0-9-]+):\s*"(#[0-9A-Fa-f]{6})"/gm))
-    rows.set(match[1]!, match[2]!);
+    rows.set(match[1], match[2]);
   return rows;
 }
 

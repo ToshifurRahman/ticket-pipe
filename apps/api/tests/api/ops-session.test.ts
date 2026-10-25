@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
 import { app } from '../../src/app.js';
 import { assertOpsTokenConfigured } from '../../src/lib/ops-session.js';
 import { shutdown as shutdownSocket } from '../../src/lib/socket.js';

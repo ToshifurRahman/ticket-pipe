@@ -8,10 +8,11 @@
  *
  * Requires the docker-compose stack (Postgres, Redis, LocalStack) to be running.
  */
-import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest';
 import { createServer, type Server as HttpServer } from 'http';
-import { io as ioClient, type Socket } from 'socket.io-client';
 import type { AddressInfo } from 'net';
+import { io as ioClient, type Socket } from 'socket.io-client';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+
 import type { AIService } from '../src/lib/ai-service.js';
 
 vi.mock('../src/lib/queue.js', async (importOriginal) => {
@@ -20,12 +21,12 @@ vi.mock('../src/lib/queue.js', async (importOriginal) => {
 });
 
 import { pool } from '../src/lib/db.js';
-import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
-import { init as initSocket, shutdown as shutdownSocket, getIo } from '../src/lib/socket.js';
 import { deleteMessage } from '../src/lib/queue.js';
-import { insertTicket, getTicketById } from '../src/repositories/tickets.js';
+import { getIo, init as initSocket, shutdown as shutdownSocket } from '../src/lib/socket.js';
 import { getAllEventsByTicketId } from '../src/repositories/events.js';
+import { getTicketById, insertTicket } from '../src/repositories/tickets.js';
 import { processMessage } from '../src/worker.js';
+import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 
 // ---- AIService stub ---------------------------------------------------
 

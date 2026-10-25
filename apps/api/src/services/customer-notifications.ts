@@ -1,10 +1,10 @@
 import { createHash, randomBytes } from 'crypto';
 import { z } from 'zod';
+
 import { hit } from '../lib/counters.js';
-import { getMailer, isMailEnabled, type MailMessage } from '../lib/mailer.js';
 import { logger } from '../lib/logger.js';
+import { getMailer, isMailEnabled, type MailMessage } from '../lib/mailer.js';
 import { maskEmail } from '../lib/mask-email.js';
-import { getTicketById, type Ticket } from '../repositories/tickets.js';
 import {
   claimCompleted,
   claimSnag,
@@ -12,18 +12,19 @@ import {
   deleteSubscription,
   getNotificationStatus,
   insertSubscription,
+  type NotificationState,
   peekByTokenHash,
   recordNotificationError,
-  type NotificationState,
 } from '../repositories/notifications.js';
-import { emitTicketUpdate } from './ticket-updates.js';
-import { recordTicketEvent } from './ticket-events.js';
+import { getTicketById, type Ticket } from '../repositories/tickets.js';
 import {
   buildConfirmEmail,
   buildReplyReadyEmail,
   buildSnagEmail,
   type EmailContext,
 } from './notification-emails.js';
+import { recordTicketEvent } from './ticket-events.js';
+import { emitTicketUpdate } from './ticket-updates.js';
 
 // Customer email (story 6.9): opt-in with a confirmation link, then at most one "reply is ready"
 // and one "snag" email per ticket. The address is PII: it is passed to the mailer and nowhere

@@ -1,12 +1,14 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
+
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { ApiError } from '@/lib/api';
 import { getOpsEvents, getOpsTicket, listAiInteractions, opsKeys } from '@/lib/ops-api';
 import { groupTimeline, humanize, replayStage, stateReason } from '@/lib/ops-ticket';
-import type { AiInteraction, OpsTicketDetail } from '@/lib/types';
 import { printedTime } from '@/lib/relative-time';
+import type { AiInteraction, OpsTicketDetail } from '@/lib/types';
 import { cn } from '@/lib/utils';
+
 import { ReplayButton } from './replay-button';
 import { OpsStatusBadge } from './status-badge';
 

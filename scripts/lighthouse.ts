@@ -1,4 +1,5 @@
 import { chromium } from '@playwright/test';
+
 import { removeTicket } from '../e2e/helpers/cleanup-ticket.js';
 
 // Local Lighthouse gate (story 6.8): >= 90 in all four categories on /, /new and /t/:ref.

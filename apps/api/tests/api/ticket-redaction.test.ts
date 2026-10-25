@@ -3,20 +3,21 @@
  * and its category/priority, and event names. Internal AI output and event detail are only on
  * the ops routes (/api/ops/tickets/:id).
  */
-import { describe, it, expect, afterAll, beforeAll } from 'vitest';
-import request from '../helpers/request.js';
-import opsRequest from '../helpers/ops-session.js';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
 import { app } from '../../src/app.js';
 import { pool } from '../../src/lib/db.js';
-import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
+import { insertEvent } from '../../src/repositories/events.js';
+import { insertProcessingResult } from '../../src/repositories/processing.js';
 import {
   insertTicket,
   markTicketFailed,
-  updateTicketStatus,
   type Ticket,
+  updateTicketStatus,
 } from '../../src/repositories/tickets.js';
-import { insertEvent } from '../../src/repositories/events.js';
-import { insertProcessingResult } from '../../src/repositories/processing.js';
+import opsRequest from '../helpers/ops-session.js';
+import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
+import request from '../helpers/request.js';
 
 const PROCESSING = {
   category: 'billing',

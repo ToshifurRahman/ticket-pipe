@@ -1,10 +1,10 @@
+import { CreateTopicCommand, SNSClient } from '@aws-sdk/client-sns';
 import {
-  SQSClient,
   CreateQueueCommand,
   GetQueueAttributesCommand,
   SetQueueAttributesCommand,
+  SQSClient,
 } from '@aws-sdk/client-sqs';
-import { SNSClient, CreateTopicCommand } from '@aws-sdk/client-sns';
 
 if (!process.env.SQS_QUEUE_NAME) throw new Error('SQS_QUEUE_NAME is required');
 if (!process.env.SQS_ENDPOINT) throw new Error('SQS_ENDPOINT is required');

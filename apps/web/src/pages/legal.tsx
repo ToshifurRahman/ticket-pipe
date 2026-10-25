@@ -1,4 +1,5 @@
 import { Link, NavLink } from 'react-router-dom';
+
 import { Button } from '@/components/ui/button';
 import { DEMO_NOTICE, LEGAL_DOCS, type LegalDocKey, type LegalParagraph } from '@/content/legal';
 

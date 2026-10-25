@@ -8,12 +8,13 @@
  *
  * Requires `bun` on PATH and the docker-compose stack (Postgres, Redis, LocalStack).
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { spawn, type ChildProcess } from 'child_process';
+import { type ChildProcess, spawn } from 'child_process';
 import { createServer } from 'net';
 import path from 'path';
 import { io as ioClient, type Socket } from 'socket.io-client';
-import { getEmitter, warmEmitter, shutdown as shutdownSocket } from '../src/lib/socket.js';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+import { getEmitter, shutdown as shutdownSocket, warmEmitter } from '../src/lib/socket.js';
 
 let proc: ChildProcess;
 let base: string;
