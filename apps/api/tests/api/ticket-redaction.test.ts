@@ -15,6 +15,12 @@ import {
   type Ticket,
   updateTicketStatus,
 } from '../../src/repositories/tickets.js';
+import type {
+  OpsEventsBody,
+  OpsTicketBody,
+  PublicEventsBody,
+  PublicTicketBody,
+} from '../helpers/api-types.js';
 import opsRequest from '../helpers/ops-session.js';
 import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 import request from '../helpers/request.js';
@@ -138,8 +144,10 @@ function expectNothingPrivate(body: unknown) {
 
 describe('public ticket view', () => {
   it('returns exactly the public fields for a completed ticket, by reference and by id', async () => {
-    const byRef = await request(app).get(`/api/tickets/ref/${completed.referenceNumber}`);
-    const byId = await request(app).get(`/api/tickets/${completed.id}`);
+    const byRef = await request(app).get<PublicTicketBody>(
+      `/api/tickets/ref/${completed.referenceNumber}`
+    );
+    const byId = await request(app).get<PublicTicketBody>(`/api/tickets/${completed.id}`);
 
     for (const res of [byRef, byId]) {
       expect(res.status).toBe(200);
@@ -163,7 +171,9 @@ describe('public ticket view', () => {
   });
 
   it('returns exactly the public fields for a failed ticket, with no failure reason', async () => {
-    const res = await request(app).get(`/api/tickets/ref/${failed.referenceNumber}`);
+    const res = await request(app).get<PublicTicketBody>(
+      `/api/tickets/ref/${failed.referenceNumber}`
+    );
 
     expect(res.status).toBe(200);
     expect([...keyPaths(res.body)].sort()).toEqual(
@@ -178,7 +188,7 @@ describe('public ticket view', () => {
   });
 
   it('pages events without detail', async () => {
-    const res = await request(app).get(`/api/tickets/${failed.id}/events`);
+    const res = await request(app).get<PublicEventsBody>(`/api/tickets/${failed.id}/events`);
 
     expect(res.status).toBe(200);
     expect([...keyPaths(res.body)].sort()).toEqual([
@@ -194,7 +204,7 @@ describe('public ticket view', () => {
 
 describe('ops ticket view', () => {
   it('returns every stage output and the event detail', async () => {
-    const res = await opsRequest(app).get(`/api/ops/tickets/${completed.id}`);
+    const res = await opsRequest(app).get<OpsTicketBody>(`/api/ops/tickets/${completed.id}`);
 
     expect(res.status).toBe(200);
     // Ops-only: the failure columns are on the full view and never on the public one.
@@ -223,7 +233,7 @@ describe('ops ticket view', () => {
     expect(res.body.events).toContainEqual({
       event: 'draft.completed',
       detail: 'reused stored output',
-      occurredAt: expect.any(String),
+      occurredAt: expect.any(String) as string,
     });
   });
 
@@ -232,11 +242,11 @@ describe('ops ticket view', () => {
     await updateTicketStatus(failed.id, 'processing');
     await markTicketFailed(failed.id, 'draft_retries_exhausted');
 
-    const ops = await opsRequest(app).get(`/api/ops/tickets/${failed.id}`);
+    const ops = await opsRequest(app).get<OpsTicketBody>(`/api/ops/tickets/${failed.id}`);
     expect(ops.body).toMatchObject({ status: 'failed', failureReason: 'draft_retries_exhausted' });
     expect(ops.body.failedAt).toBeTruthy();
 
-    const publicView = await request(app).get(`/api/tickets/${failed.id}`);
+    const publicView = await request(app).get<PublicTicketBody>(`/api/tickets/${failed.id}`);
     expect(JSON.stringify(publicView.body)).not.toContain('draft_retries_exhausted');
     expect(publicView.body).not.toHaveProperty('failureReason');
     expect(publicView.body).not.toHaveProperty('failedAt');
@@ -244,7 +254,7 @@ describe('ops ticket view', () => {
 
   it('pages events with detail', async () => {
     const res = await opsRequest(app)
-      .get(`/api/ops/tickets/${failed.id}/events`)
+      .get<OpsEventsBody>(`/api/ops/tickets/${failed.id}/events`)
       .query({ limit: 2 });
 
     expect(res.status).toBe(200);
@@ -252,12 +262,12 @@ describe('ops ticket view', () => {
     expect(typeof res.body.nextCursor).toBe('string');
 
     const rest = await opsRequest(app)
-      .get(`/api/ops/tickets/${failed.id}/events`)
+      .get<OpsEventsBody>(`/api/ops/tickets/${failed.id}/events`)
       .query({ after: res.body.nextCursor });
     expect(rest.body.events).toContainEqual({
       event: 'ticket.failed',
       detail: 'secret provider error',
-      occurredAt: expect.any(String),
+      occurredAt: expect.any(String) as string,
     });
   });
 
@@ -268,7 +278,7 @@ describe('ops ticket view', () => {
     expect(missing.status).toBe(404);
 
     const badCursor = await opsRequest(app)
-      .get(`/api/ops/tickets/${failed.id}/events`)
+      .get<OpsEventsBody>(`/api/ops/tickets/${failed.id}/events`)
       .query({ after: 'nope' });
     expect(badCursor.status).toBe(400);
   });

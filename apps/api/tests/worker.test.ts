@@ -2,14 +2,18 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vites
 
 import type { AIService } from '../src/lib/ai-service.js';
 
-const mockEmit = vi.hoisted(() => vi.fn());
+const mockEmit = vi.hoisted(() =>
+  vi.fn<(event: string, payload: Record<string, unknown>) => void>()
+);
 // Everything sent to the ops room gets its own spy, whatever the event name, so the
 // per-ticket assertions keep seeing only ticket-room traffic, and the ops assertions
 // see everything an ops client could receive.
-const mockOpsEmit = vi.hoisted(() => vi.fn());
+const mockOpsEmit = vi.hoisted(() =>
+  vi.fn<(event: string, payload: Record<string, unknown>) => void>()
+);
 const mockTo = vi.hoisted(() =>
   vi.fn((room: string) => ({
-    emit: (event: string, payload: unknown) =>
+    emit: (event: string, payload: Record<string, unknown>) =>
       room === 'ops' ? mockOpsEmit(event, payload) : mockEmit(event, payload),
   }))
 );
@@ -114,7 +118,7 @@ describe('processMessage — ops feed (story 4.4)', () => {
   const opsEvents = () =>
     mockOpsEmit.mock.calls
       .filter(([name]) => name === 'ops:ticket_event')
-      .map(([, payload]) => payload as Record<string, unknown>);
+      .map(([, payload]) => payload);
 
   // clearAllMocks() keeps implementations, so undo the throwing spy from the last test.
   afterEach(() => mockOpsEmit.mockReset());
@@ -228,9 +232,7 @@ describe('processMessage — ops feed privacy (story 4.5)', () => {
 
   const everythingOpsReceived = () => JSON.stringify(mockOpsEmit.mock.calls);
   const alerts = (name = 'ticket:failed') =>
-    mockOpsEmit.mock.calls
-      .filter(([event]) => event === name)
-      .map(([, payload]) => payload as Record<string, unknown>);
+    mockOpsEmit.mock.calls.filter(([event]) => event === name).map(([, payload]) => payload);
 
   it('sends nothing containing AI output or ticket content to ops on success, but still delivers it to the ticket room', async () => {
     mockTriage.mockResolvedValueOnce({ ...TRIAGE_RESULT, issueSummary: `summary ${SENTINEL}` });
@@ -248,11 +250,7 @@ describe('processMessage — ops feed privacy (story 4.5)', () => {
     expect(everythingOpsReceived()).not.toContain(SENTINEL);
 
     // The customer's room carries event names only; the page reads the reply from the API.
-    expect(
-      mockEmit.mock.calls.some(
-        ([, p]) => (p as Record<string, unknown>).event === 'ticket.completed'
-      )
-    ).toBe(true);
+    expect(mockEmit.mock.calls.some(([, p]) => p.event === 'ticket.completed')).toBe(true);
     expect(JSON.stringify(mockEmit.mock.calls)).not.toContain(SENTINEL);
   });
 
@@ -830,7 +828,7 @@ describe('processMessage — permanent failure (story 5.2)', () => {
     mockDraft.mockResolvedValueOnce(DRAFT_RESULT);
     await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
     const spy = vi.spyOn(pool, 'query');
-    spy.mockImplementationOnce(() => Promise.reject(new Error('db blip')));
+    spy.mockRejectedValueOnce(new Error('db blip'));
 
     await expect(processMessage(ticket.id, 'fake-receipt', 2, mockAi())).rejects.toThrow('db blip');
     spy.mockRestore();
@@ -846,8 +844,10 @@ describe('processMessage — permanent failure (story 5.2)', () => {
     const realQuery = pool.query.bind(pool);
     const spy = vi.spyOn(pool, 'query');
     // Only the pipeline's first read fails; the failure handler's own queries go through.
-    spy.mockImplementationOnce(() => Promise.reject(new Error('db blip')));
-    spy.mockImplementation(((...args: unknown[]) => (realQuery as any)(...args)) as any);
+    spy.mockRejectedValueOnce(new Error('db blip'));
+    spy.mockImplementation((...args: unknown[]) =>
+      (realQuery as (...a: unknown[]) => unknown)(...args)
+    );
 
     await processMessage(ticket.id, 'fake-receipt', 6, mockAi());
     spy.mockRestore();
@@ -928,11 +928,7 @@ describe('ops recovery end to end (story 5.4)', () => {
     expect(mockDraft).toHaveBeenCalledTimes(1);
     expect((await getTicketById(ticket.id)).status).toBe('completed');
     // The customer gets their reply, built on the triage from before the failure.
-    expect(
-      mockEmit.mock.calls.some(
-        ([, p]) => (p as Record<string, unknown>).event === 'ticket.completed'
-      )
-    ).toBe(true);
+    expect(mockEmit.mock.calls.some(([, p]) => p.event === 'ticket.completed')).toBe(true);
     expect(await getProcessingResultByTicketId(ticket.id)).toMatchObject({
       category: TRIAGE_RESULT.category,
       customerReply: DRAFT_RESULT.customerReply,

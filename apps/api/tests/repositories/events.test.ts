@@ -189,7 +189,7 @@ describe('ticket_events is append-only', () => {
     expect(await getAllEventsByTicketId(ticket.id)).toEqual([]);
 
     // A single-connection pool would reuse the purge connection; check the flag is gone anyway.
-    const { rows } = await pool.query(
+    const { rows } = await pool.query<{ flag: string | null }>(
       "SELECT current_setting('app.allow_event_purge', true) AS flag"
     );
     expect(rows[0].flag === null || rows[0].flag === '').toBe(true);

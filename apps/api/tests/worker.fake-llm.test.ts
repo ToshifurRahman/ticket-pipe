@@ -62,7 +62,7 @@ describe('LLM_MODE=fake through the worker', () => {
 
     expect((await getTicketById(ticket.id))?.status).toBe('completed');
     expect(fetchSpy).not.toHaveBeenCalled();
-    const { rows } = await pool.query(
+    const { rows } = await pool.query<{ operation: string; model: string; outcome: string }>(
       'SELECT operation, model, outcome FROM ai_interactions WHERE ticket_id = $1',
       [ticket.id]
     );

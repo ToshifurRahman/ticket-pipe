@@ -8,7 +8,9 @@ import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import type { AIService } from '../src/lib/ai-service.js';
 
 const mockSend = vi.hoisted(() => vi.fn());
-const mockOpsEmit = vi.hoisted(() => vi.fn());
+const mockOpsEmit = vi.hoisted(() =>
+  vi.fn<(event: string, payload: Record<string, unknown>) => void>()
+);
 const mockMarkNeedsAttention = vi.hoisted(() => vi.fn());
 
 vi.mock('../src/lib/sns.js', () => ({
@@ -29,7 +31,7 @@ vi.mock('../src/lib/socket.js', async (importOriginal) => {
     ...real,
     getEmitter: vi.fn(() => ({
       to: (room: string) => ({
-        emit: (event: string, payload: unknown) =>
+        emit: (event: string, payload: Record<string, unknown>) =>
           room === 'ops' ? mockOpsEmit(event, payload) : undefined,
       }),
     })),

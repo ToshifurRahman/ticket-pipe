@@ -7,6 +7,7 @@ import {
   insertAiInteraction,
 } from '../../src/repositories/ai-interactions.js';
 import { insertTicket } from '../../src/repositories/tickets.js';
+import type { AiInteractionsBody, AiSummaryBody } from '../helpers/api-types.js';
 import request from '../helpers/ops-session.js';
 
 const createdIds: string[] = [];
@@ -42,7 +43,9 @@ describe('GET /api/ops/ai-interactions', () => {
     createdIds.push(ticket.id);
     await insertAiInteraction(record({ ticketId: ticket.id }));
 
-    const res = await request(app).get('/api/ops/ai-interactions').query({ ticketId: ticket.id });
+    const res = await request(app)
+      .get<AiInteractionsBody>('/api/ops/ai-interactions')
+      .query({ ticketId: ticket.id });
 
     expect(res.status).toBe(200);
     expect(res.body.total).toBe(1);
@@ -56,7 +59,7 @@ describe('GET /api/ops/ai-interactions', () => {
 
   it('returns 400 for an invalid outcome filter', async () => {
     const res = await request(app)
-      .get('/api/ops/ai-interactions')
+      .get<AiInteractionsBody>('/api/ops/ai-interactions')
       .query({ outcome: 'not-a-real-outcome' });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'Invalid query parameters' });
@@ -64,7 +67,7 @@ describe('GET /api/ops/ai-interactions', () => {
 
   it('returns 400 for a malformed ticketId', async () => {
     const res = await request(app)
-      .get('/api/ops/ai-interactions')
+      .get<AiInteractionsBody>('/api/ops/ai-interactions')
       .query({ ticketId: 'not-a-uuid' });
     expect(res.status).toBe(400);
   });
@@ -76,7 +79,7 @@ describe('GET /api/ops/ai-interactions/summary', () => {
     createdIds.push(ticket.id);
     await insertAiInteraction(record({ ticketId: ticket.id }));
 
-    const res = await request(app).get('/api/ops/ai-interactions/summary');
+    const res = await request(app).get<AiSummaryBody>('/api/ops/ai-interactions/summary');
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('since');
@@ -93,7 +96,7 @@ describe('GET /api/ops/ai-interactions/summary', () => {
 
   it('returns 400 for a malformed since date', async () => {
     const res = await request(app)
-      .get('/api/ops/ai-interactions/summary')
+      .get<AiSummaryBody>('/api/ops/ai-interactions/summary')
       .query({ since: 'not-a-date' });
     expect(res.status).toBe(400);
   });

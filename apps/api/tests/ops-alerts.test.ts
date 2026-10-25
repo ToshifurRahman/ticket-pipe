@@ -81,7 +81,7 @@ describe('createNeedsAttentionAlerter', () => {
     expect(() => alerter.alert(needsAttention())).not.toThrow();
   });
 
-  it('returns before the publish settles', async () => {
+  it('returns before the publish settles', () => {
     const { send, target } = fakeSns(() => new Promise(() => {}));
     const alerter = createNeedsAttentionAlerter({ sns: () => target, maxPerHour: 20 });
 

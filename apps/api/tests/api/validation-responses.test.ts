@@ -12,6 +12,7 @@ import { pool } from '../../src/lib/db.js';
 import { sentMail } from '../../src/lib/mailer.js';
 import { shutdown as shutdownSocket } from '../../src/lib/socket.js';
 import { insertTicket } from '../../src/repositories/tickets.js';
+import type { AiInteractionsBody, AiSummaryBody, CreatedTicketBody } from '../helpers/api-types.js';
 import opsRequest from '../helpers/ops-session.js';
 import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 import request from '../helpers/request.js';
@@ -55,9 +56,9 @@ describe('POST /api/tickets: wrong-type and malformed bodies', () => {
     ['description is a number', { subject: GOOD_SUBJECT, description: 42 }, 'description'],
     ['description is null', { subject: GOOD_SUBJECT, description: null }, 'description'],
   ])('%s: 400 with one string message under the field', async (_name, body, field) => {
-    const res = await request(app).post('/api/tickets').send(body);
+    const res = await request(app).post<CreatedTicketBody>('/api/tickets').send(body);
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ errors: { [field]: expect.any(String) } });
+    expect(res.body).toEqual({ errors: { [field]: expect.any(String) as string } });
   });
 
   it.each([
@@ -65,7 +66,7 @@ describe('POST /api/tickets: wrong-type and malformed bodies', () => {
     ['null', 'null'],
   ])('%s body: 400 with an empty errors object', async (_name, raw) => {
     const res = await request(app)
-      .post('/api/tickets')
+      .post<CreatedTicketBody>('/api/tickets')
       .set('content-type', 'application/json')
       .send(raw);
     expect(res.status).toBe(400);
@@ -73,7 +74,7 @@ describe('POST /api/tickets: wrong-type and malformed bodies', () => {
   });
 
   it('reports both fields when both are missing', async () => {
-    const res = await request(app).post('/api/tickets').send({});
+    const res = await request(app).post<CreatedTicketBody>('/api/tickets').send({});
     expect(res.status).toBe(400);
     expect(res.body).toEqual({
       errors: { subject: 'Subject is required', description: 'Description is required' },
@@ -169,7 +170,7 @@ describe('POST /api/ops/session', () => {
 
 describe('GET /api/ops/ai-interactions query', () => {
   const list = (query: Record<string, string>) =>
-    opsRequest(app).get('/api/ops/ai-interactions').query(query);
+    opsRequest(app).get<AiInteractionsBody>('/api/ops/ai-interactions').query(query);
 
   it.each([
     ['operation', { operation: 'nope' }],
@@ -211,7 +212,7 @@ describe('GET /api/ops/ai-interactions query', () => {
 
 describe('GET /api/ops/ai-interactions/summary query', () => {
   const summary = (query: Record<string, string>) =>
-    opsRequest(app).get('/api/ops/ai-interactions/summary').query(query);
+    opsRequest(app).get<AiSummaryBody>('/api/ops/ai-interactions/summary').query(query);
 
   it.each([
     ['since', { since: 'not-a-date' }],

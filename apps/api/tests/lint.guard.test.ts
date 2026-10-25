@@ -1,8 +1,10 @@
 import { spawnSync } from 'child_process';
 import { ESLint } from 'eslint';
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, rmSync, writeFileSync } from 'fs';
 import path from 'path';
 import { expect, it } from 'vitest';
+
+import { readPackageJson } from './helpers/package-json.js';
 
 // Story 7.0.4: one root flat ESLint config, type-aware, applied the same way across the API,
 // the web app, e2e and scripts.
@@ -52,10 +54,10 @@ it('has exactly one ESLint config, at the root', () => {
 });
 
 it('runs lint from the root only', () => {
-  const pkg = (p: string) => JSON.parse(readFileSync(path.join(root, p), 'utf-8'));
-  expect(pkg('package.json').scripts.lint).toBe('eslint . --max-warnings 0');
-  expect(pkg('apps/api/package.json').scripts.lint).toBeUndefined();
-  expect(pkg('apps/web/package.json').scripts.lint).toBeUndefined();
+  const pkg = (p: string) => readPackageJson(root, p);
+  expect(pkg('package.json').scripts?.lint).toBe('eslint . --max-warnings 0');
+  expect(pkg('apps/api/package.json').scripts?.lint).toBeUndefined();
+  expect(pkg('apps/web/package.json').scripts?.lint).toBeUndefined();
 });
 
 it('lints the whole repo with zero warnings (run `bun run lint:fix`)', () => {

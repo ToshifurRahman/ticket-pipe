@@ -1,21 +1,24 @@
 import type { Hono } from 'hono';
 
-export interface TestResponse {
+/** Any Hono app, whatever its env: the helper only calls `request`. */
+export type TestApp = Pick<Hono, 'request'>;
+
+export interface TestResponse<T = unknown> {
   status: number;
-  body: any;
+  body: T;
   text: string;
   headers: Record<string, string>;
 }
 
 // A deliberately tiny stand-in for supertest's builder, over Hono's in-process
 // `app.request()`: no port is opened, and tests keep reading `res.status` / `res.body`.
-class TestRequest implements PromiseLike<TestResponse> {
+class TestRequest<T> implements PromiseLike<TestResponse<T>> {
   private headers: Record<string, string> = {};
   private params = new URLSearchParams();
   private payload: unknown;
 
   constructor(
-    private readonly app: Hono<any>,
+    private readonly app: TestApp,
     private readonly method: string,
     private readonly path: string,
     private readonly defaults?: () => Promise<Record<string, string>>
@@ -36,7 +39,7 @@ class TestRequest implements PromiseLike<TestResponse> {
     return this;
   }
 
-  private async exec(): Promise<TestResponse> {
+  private async exec(): Promise<TestResponse<T>> {
     const qs = this.params.toString();
     const url = qs ? `${this.path}${this.path.includes('?') ? '&' : '?'}${qs}` : this.path;
     const init: RequestInit = {
@@ -58,24 +61,24 @@ class TestRequest implements PromiseLike<TestResponse> {
     return {
       status: res.status,
       text,
-      body: isJson && text ? JSON.parse(text) : {},
+      body: (isJson && text ? JSON.parse(text) : {}) as T,
       headers: Object.fromEntries(res.headers),
     };
   }
 
-  then<R1 = TestResponse, R2 = never>(
-    onfulfilled?: ((value: TestResponse) => R1 | PromiseLike<R1>) | null,
+  then<R1 = TestResponse<T>, R2 = never>(
+    onfulfilled?: ((value: TestResponse<T>) => R1 | PromiseLike<R1>) | null,
     onrejected?: ((reason: unknown) => R2 | PromiseLike<R2>) | null
   ): PromiseLike<R1 | R2> {
     return this.exec().then(onfulfilled, onrejected);
   }
 }
 
-export default function request(app: Hono<any>, defaults?: () => Promise<Record<string, string>>) {
+export default function request(app: TestApp, defaults?: () => Promise<Record<string, string>>) {
   return {
-    get: (path: string) => new TestRequest(app, 'GET', path, defaults),
-    post: (path: string) => new TestRequest(app, 'POST', path, defaults),
-    put: (path: string) => new TestRequest(app, 'PUT', path, defaults),
-    delete: (path: string) => new TestRequest(app, 'DELETE', path, defaults),
+    get: <T = unknown>(path: string) => new TestRequest<T>(app, 'GET', path, defaults),
+    post: <T = unknown>(path: string) => new TestRequest<T>(app, 'POST', path, defaults),
+    put: <T = unknown>(path: string) => new TestRequest<T>(app, 'PUT', path, defaults),
+    delete: <T = unknown>(path: string) => new TestRequest<T>(app, 'DELETE', path, defaults),
   };
 }

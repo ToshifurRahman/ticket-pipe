@@ -4,6 +4,7 @@ import { app } from '../../src/app.js';
 import { pool } from '../../src/lib/db.js';
 import { insertEvent } from '../../src/repositories/events.js';
 import { insertTicket, updateTicketStatus } from '../../src/repositories/tickets.js';
+import type { PublicTicketBody } from '../helpers/api-types.js';
 import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 import request from '../helpers/request.js';
 
@@ -58,7 +59,7 @@ describe('GET /api/tickets/:id phase status accuracy', () => {
       events: ['triage.started'],
     });
 
-    const res = await request(app).get(`/api/tickets/${ticketId}`);
+    const res = await request(app).get<PublicTicketBody>(`/api/tickets/${ticketId}`);
 
     expect(res.status).toBe(200);
     expect(res.body.phases).toEqual({
@@ -73,7 +74,7 @@ describe('GET /api/tickets/:id phase status accuracy', () => {
       events: ['triage.started', 'triage.completed'],
     });
 
-    const res = await request(app).get(`/api/tickets/${ticketId}`);
+    const res = await request(app).get<PublicTicketBody>(`/api/tickets/${ticketId}`);
 
     expect(res.status).toBe(200);
     expect(res.body.phases).toEqual({
@@ -88,7 +89,7 @@ describe('GET /api/tickets/:id phase status accuracy', () => {
       events: ['triage.started', 'triage.completed', 'draft.started'],
     });
 
-    const res = await request(app).get(`/api/tickets/${ticketId}`);
+    const res = await request(app).get<PublicTicketBody>(`/api/tickets/${ticketId}`);
 
     expect(res.status).toBe(200);
     expect(res.body.phases).toEqual({
@@ -103,7 +104,7 @@ describe('GET /api/tickets/:id phase status accuracy', () => {
       events: ['triage.started', 'triage.failed', 'ticket.failed'],
     });
 
-    const res = await request(app).get(`/api/tickets/${ticketId}`);
+    const res = await request(app).get<PublicTicketBody>(`/api/tickets/${ticketId}`);
 
     expect(res.status).toBe(200);
     expect(res.body.phases).toEqual({
@@ -124,7 +125,7 @@ describe('GET /api/tickets/:id phase status accuracy', () => {
       ],
     });
 
-    const res = await request(app).get(`/api/tickets/${ticketId}`);
+    const res = await request(app).get<PublicTicketBody>(`/api/tickets/${ticketId}`);
 
     expect(res.status).toBe(200);
     expect(res.body.phases).toEqual({

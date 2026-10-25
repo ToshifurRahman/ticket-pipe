@@ -2,10 +2,12 @@ import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
 
+import { readPackageJson } from './helpers/package-json.js';
+
 // Story 7.0.1: the repo is a Bun workspace (apps/api + apps/web, one root lockfile).
 const root = path.resolve(import.meta.dirname, '../../..');
 const read = (p: string) => readFileSync(path.join(root, p), 'utf-8');
-const json = (p: string) => JSON.parse(read(p));
+const json = (p: string) => readPackageJson(root, p);
 
 describe('bun workspace layout', () => {
   it('root declares the apps/* workspaces', () => {

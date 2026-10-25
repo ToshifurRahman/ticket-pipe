@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { app } from '../../src/app.js';
 import { assertOpsTokenConfigured } from '../../src/lib/ops-session.js';
 import { shutdown as shutdownSocket } from '../../src/lib/socket.js';
+import type { OpsSessionBody } from '../helpers/api-types.js';
 import request from '../helpers/request.js';
 
 const TOKEN = process.env.OPS_TOKEN as string;
@@ -15,7 +16,10 @@ let ipCounter = 0;
 const freshIp = () => `203.0.113.${(Date.now() + ++ipCounter) % 250}-${process.pid}-${ipCounter}`;
 
 function signIn(token: unknown, ip = freshIp()) {
-  return request(app).post('/api/ops/session').set('x-forwarded-for', ip).send({ token });
+  return request(app)
+    .post<OpsSessionBody>('/api/ops/session')
+    .set('x-forwarded-for', ip)
+    .send({ token });
 }
 
 const cookieOf = (res: { headers: Record<string, string> }) =>
@@ -68,12 +72,12 @@ describe('POST /api/ops/session', () => {
 
 describe('GET /api/ops/session', () => {
   it('says whether the caller is signed in, never 401', async () => {
-    const out = await request(app).get('/api/ops/session');
+    const out = await request(app).get<OpsSessionBody>('/api/ops/session');
     expect(out.status).toBe(200);
     expect(out.body).toEqual({ signedIn: false });
 
     const cookie = cookieOf(await signIn(TOKEN));
-    const inn = await request(app).get('/api/ops/session').set('cookie', cookie);
+    const inn = await request(app).get<OpsSessionBody>('/api/ops/session').set('cookie', cookie);
     expect(inn.body.signedIn).toBe(true);
     // ~12h from now, never more.
     const remainingS = (Date.parse(inn.body.expiresAt) - Date.now()) / 1000;
@@ -93,7 +97,9 @@ describe('DELETE /api/ops/session', () => {
 
     // The browser's copy is cleared, but a copied cookie is dead too.
     expect((await request(app).get(PROTECTED).set('cookie', cookie)).status).toBe(401);
-    expect((await request(app).get('/api/ops/session').set('cookie', cookie)).body).toEqual({
+    expect(
+      (await request(app).get<OpsSessionBody>('/api/ops/session').set('cookie', cookie)).body
+    ).toEqual({
       signedIn: false,
     });
   });

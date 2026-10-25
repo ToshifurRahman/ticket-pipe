@@ -46,20 +46,20 @@ vi.mock('../src/lib/socket.js', async (importOriginal) => {
 });
 
 vi.mock('../src/lib/queue.js', () => ({
-  enqueueTicket: vi.fn(async (ticketId: string, referenceNumber: string) => {
+  enqueueTicket: vi.fn((ticketId: string, referenceNumber: string) => {
     mockQueue.push({
       ticketId,
       referenceNumber,
       receiptHandle: `receipt-${ticketId}`,
       attemptNumber: 1,
     });
+    return Promise.resolve();
   }),
-  receiveMessages: vi.fn(async (options?: { maxMessages?: number }) => {
+  receiveMessages: vi.fn((options?: { maxMessages?: number }) => {
     const maxMessages = Math.max(1, Math.min(10, Math.floor(options?.maxMessages ?? 10)));
-    if (mockQueue.length === 0) return [];
-    return mockQueue.splice(0, maxMessages);
+    return Promise.resolve(mockQueue.splice(0, maxMessages));
   }),
-  deleteMessage: vi.fn(async () => undefined),
+  deleteMessage: vi.fn(() => Promise.resolve()),
 }));
 
 import { pool } from '../src/lib/db.js';

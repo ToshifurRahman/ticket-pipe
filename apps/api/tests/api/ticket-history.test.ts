@@ -8,6 +8,7 @@ import { app } from '../../src/app.js';
 import { pool } from '../../src/lib/db.js';
 import { encodeEventCursor } from '../../src/lib/event-cursor.js';
 import { insertTicket } from '../../src/repositories/tickets.js';
+import type { PublicEventsBody, PublicTicketBody } from '../helpers/api-types.js';
 import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 import request from '../helpers/request.js';
 
@@ -50,7 +51,7 @@ async function walkHistory(
     const query: Record<string, string | number> = {};
     if (limit !== undefined) query.limit = limit;
     if (cursor) query.after = cursor;
-    const res = await request(app).get(`/api/tickets/${id}/events`).query(query);
+    const res = await request(app).get<PublicEventsBody>(`/api/tickets/${id}/events`).query(query);
     expect(res.status).toBe(200);
     events.push(...res.body.events.map((e: { event: string }) => e.event));
     cursor = res.body.nextCursor;
@@ -67,7 +68,7 @@ describe('status lookup (story 5.3)', () => {
       'triage.completed',
     ]);
 
-    const res = await request(app).get(`/api/tickets/${ticket.id}`);
+    const res = await request(app).get<PublicTicketBody>(`/api/tickets/${ticket.id}`);
 
     expect(res.status).toBe(200);
     expect(res.body.events.map((e: { event: string }) => e.event)).toEqual([
@@ -78,7 +79,7 @@ describe('status lookup (story 5.3)', () => {
     // The public view leaves out `detail`; /api/ops/tickets/:id has it.
     expect(res.body.events[0]).toEqual({
       event: 'ticket.submitted',
-      occurredAt: expect.any(String),
+      occurredAt: expect.any(String) as string,
     });
     expect(res.body.eventsNextCursor).toBeNull();
   });
@@ -87,13 +88,13 @@ describe('status lookup (story 5.3)', () => {
     const names = numbered(120);
     const ticket = await ticketWithEvents('TICK-HIST-002', names);
 
-    const res = await request(app).get(`/api/tickets/${ticket.id}`);
+    const res = await request(app).get<PublicTicketBody>(`/api/tickets/${ticket.id}`);
 
     expect(res.body.events.map((e: { event: string }) => e.event)).toEqual(names.slice(0, 50));
     expect(typeof res.body.eventsNextCursor).toBe('string');
 
     const rest = await request(app)
-      .get(`/api/tickets/${ticket.id}/events`)
+      .get<PublicEventsBody>(`/api/tickets/${ticket.id}/events`)
       .query({ after: res.body.eventsNextCursor });
     expect(rest.body.events[0].event).toBe('event-051');
   });
@@ -101,8 +102,10 @@ describe('status lookup (story 5.3)', () => {
   it('works the same by reference number', async () => {
     const ticket = await ticketWithEvents('TICK-HIST-003', numbered(60));
 
-    const byId = await request(app).get(`/api/tickets/${ticket.id}`);
-    const byRef = await request(app).get(`/api/tickets/ref/${ticket.referenceNumber}`);
+    const byId = await request(app).get<PublicTicketBody>(`/api/tickets/${ticket.id}`);
+    const byRef = await request(app).get<PublicTicketBody>(
+      `/api/tickets/ref/${ticket.referenceNumber}`
+    );
 
     expect(byRef.body.events).toEqual(byId.body.events);
     expect(byRef.body.eventsNextCursor).toBe(byId.body.eventsNextCursor);
@@ -120,7 +123,7 @@ describe('status lookup (story 5.3)', () => {
     ];
     const ticket = await ticketWithEvents('TICK-HIST-004', names);
 
-    const res = await request(app).get(`/api/tickets/${ticket.id}`);
+    const res = await request(app).get<PublicTicketBody>(`/api/tickets/${ticket.id}`);
 
     expect(res.body.events).toHaveLength(50);
     expect(res.body.phases.triage.status).toBe('completed');
@@ -137,7 +140,7 @@ describe('status lookup (story 5.3)', () => {
       [ticket.id]
     );
 
-    const res = await request(app).get(`/api/tickets/${ticket.id}`);
+    const res = await request(app).get<PublicTicketBody>(`/api/tickets/${ticket.id}`);
     expect(res.body.events.map((e: { event: string }) => e.event)).toEqual([
       'ticket.submitted',
       'ticket.completed',
@@ -169,11 +172,17 @@ describe('GET /api/tickets/:id/events (story 5.3)', () => {
   it('clamps limit to between 1 and 200', async () => {
     const ticket = await ticketWithEvents('TICK-HIST-012', numbered(250));
 
-    const big = await request(app).get(`/api/tickets/${ticket.id}/events`).query({ limit: 1000 });
-    const zero = await request(app).get(`/api/tickets/${ticket.id}/events`).query({ limit: 0 });
-    const junk = await request(app).get(`/api/tickets/${ticket.id}/events`).query({ limit: 'abc' });
+    const big = await request(app)
+      .get<PublicEventsBody>(`/api/tickets/${ticket.id}/events`)
+      .query({ limit: 1000 });
+    const zero = await request(app)
+      .get<PublicEventsBody>(`/api/tickets/${ticket.id}/events`)
+      .query({ limit: 0 });
+    const junk = await request(app)
+      .get<PublicEventsBody>(`/api/tickets/${ticket.id}/events`)
+      .query({ limit: 'abc' });
     const negative = await request(app)
-      .get(`/api/tickets/${ticket.id}/events`)
+      .get<PublicEventsBody>(`/api/tickets/${ticket.id}/events`)
       .query({ limit: -5 });
 
     expect(big.body.events).toHaveLength(200);
@@ -185,7 +194,7 @@ describe('GET /api/tickets/:id/events (story 5.3)', () => {
   it('returns an empty page for a ticket with no events', async () => {
     const ticket = await ticketWithEvents('TICK-HIST-013', []);
 
-    const res = await request(app).get(`/api/tickets/${ticket.id}/events`);
+    const res = await request(app).get<PublicEventsBody>(`/api/tickets/${ticket.id}/events`);
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ events: [], nextCursor: null });
@@ -199,7 +208,9 @@ describe('GET /api/tickets/:id/events (story 5.3)', () => {
       Buffer.from('v1:abc').toString('base64url'),
       `${encodeEventCursor(1)}!!`,
     ]) {
-      const res = await request(app).get(`/api/tickets/${ticket.id}/events`).query({ after });
+      const res = await request(app)
+        .get<PublicEventsBody>(`/api/tickets/${ticket.id}/events`)
+        .query({ after });
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ error: 'Invalid cursor' });
     }

@@ -2,10 +2,12 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
 
+import { readPackageJson } from './helpers/package-json.js';
+
 // Story 7.0.2: the whole repo is on one Zod major (4), including transitive copies.
 const root = path.resolve(import.meta.dirname, '../../..');
 const read = (p: string) => readFileSync(path.join(root, p), 'utf-8');
-const json = (p: string) => JSON.parse(read(p));
+const json = (p: string) => readPackageJson(root, p);
 
 const major = (range: string) => Number(/\d+/.exec(range)?.[0]);
 

@@ -3,6 +3,8 @@ import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 import { expect, it } from 'vitest';
 
+import { readPackageJson } from './helpers/package-json.js';
+
 // Story 7.0.3: Prettier owns the whole repo. Generated and tool-managed files are listed in
 // .prettierignore; everything else must already be formatted.
 const root = path.resolve(import.meta.dirname, '../../..');
@@ -28,7 +30,7 @@ it('leaves generated and tool-managed files alone', () => {
 });
 
 it('pins Prettier exactly so output cannot drift on install', () => {
-  const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf-8'));
-  expect(pkg.devDependencies.prettier).toMatch(/^\d+\.\d+\.\d+$/);
-  expect(pkg.scripts['format:check']).toBe('prettier --check .');
+  const pkg = readPackageJson(root, 'package.json');
+  expect(pkg.devDependencies?.prettier).toMatch(/^\d+\.\d+\.\d+$/);
+  expect(pkg.scripts?.['format:check']).toBe('prettier --check .');
 });

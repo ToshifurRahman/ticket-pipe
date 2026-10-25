@@ -45,7 +45,7 @@ async function ticketAged(ref: string, days: number): Promise<string> {
 }
 
 async function count(table: string, ticketId: string, column = 'ticket_id'): Promise<number> {
-  const { rows } = await pool.query(
+  const { rows } = await pool.query<{ n: number }>(
     `SELECT COUNT(*)::int AS n FROM ${table} WHERE ${column} = $1`,
     [ticketId]
   );

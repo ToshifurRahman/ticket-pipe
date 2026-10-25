@@ -7,6 +7,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 
 import { app } from '../../src/app.js';
 import { shutdown as shutdownSocket } from '../../src/lib/socket.js';
+import type { AiInteractionsBody } from '../helpers/api-types.js';
 import request from '../helpers/request.js';
 
 const ID = '00000000-0000-4000-8000-000000000000';
@@ -14,6 +15,9 @@ const ID = '00000000-0000-4000-8000-000000000000';
 afterAll(async () => {
   await shutdownSocket();
 });
+
+const callRoute = (method: string, path: string) =>
+  request(app)[method.toLowerCase() as 'get' | 'post' | 'put' | 'delete'](path);
 
 describe('staff-only routes', () => {
   const guarded = app.routes
@@ -30,7 +34,7 @@ describe('staff-only routes', () => {
   });
 
   it.each(guarded)('%s %s needs a session', async (method, path) => {
-    const res = await (request(app) as any)[method.toLowerCase()](path);
+    const res = await callRoute(method, path);
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ error: 'Unauthorized' });
   });
@@ -39,14 +43,16 @@ describe('staff-only routes', () => {
     ['get', '/api/tickets'],
     ['post', `/api/tickets/${ID}/replay`],
   ])('%s %s needs a session', async (method, path) => {
-    const res = await (request(app) as any)[method](path);
+    const res = await callRoute(method, path);
     expect(res.status).toBe(401);
     expect(res.body).toEqual({ error: 'Unauthorized' });
   });
 
   it('refuses a forged or malformed session cookie', async () => {
     for (const cookie of ['ops_session=forged', 'ops_session=', 'other=1', 'ops_session']) {
-      const res = await request(app).get('/api/ops/ai-interactions').set('cookie', cookie);
+      const res = await request(app)
+        .get<AiInteractionsBody>('/api/ops/ai-interactions')
+        .set('cookie', cookie);
       expect(res.status).toBe(401);
     }
   });
@@ -62,7 +68,7 @@ describe('public routes', () => {
     ['get', '/health'],
     ['get', '/api/ops/session'],
   ])('%s %s is open', async (method, path) => {
-    const res = await (request(app) as any)[method](path);
+    const res = await callRoute(method, path);
     expect(res.status).not.toBe(401);
   });
 });

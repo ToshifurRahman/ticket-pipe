@@ -2,7 +2,9 @@ import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 
 import request from '../helpers/ops-session.js';
 
-const mockEmit = vi.hoisted(() => vi.fn());
+const mockEmit = vi.hoisted(() =>
+  vi.fn<(event: string, payload: Record<string, unknown>) => void>()
+);
 const mockTo = vi.hoisted(() => vi.fn((_room: string) => ({ emit: mockEmit })));
 
 // Replays must not leave real messages on the dev queue, and the failure path needs a failing send.
@@ -25,6 +27,7 @@ import {
   markTicketFailed,
   updateTicketStatus,
 } from '../../src/repositories/tickets.js';
+import type { OpsListBody, ReplayBody } from '../helpers/api-types.js';
 import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 
 // Every emit as [room, eventName, payload].
@@ -68,10 +71,16 @@ describe('ticket list for the ops console (story 6.6)', () => {
     );
     await insertEvent(triaged.id, 'triage.completed');
 
-    const res = await request(app).get('/api/tickets?limit=100&sort=updatedAt&order=desc');
+    const res = await request(app).get<OpsListBody>(
+      '/api/tickets?limit=100&sort=updatedAt&order=desc'
+    );
 
     expect(res.status).toBe(200);
-    const byId = (id: string) => res.body.tickets.find((t: { id: string }) => t.id === id);
+    const byId = (id: string) => {
+      const ticket = res.body.tickets.find((t) => t.id === id);
+      if (!ticket) throw new Error(`ticket ${id} missing from the list`);
+      return ticket;
+    };
     expect(byId(triaged.id)).toMatchObject({ category: 'billing', priority: 'high' });
     expect(byId(fresh.id)).toMatchObject({ category: null, priority: null });
     const ids = res.body.tickets.map((t: { id: string }) => t.id);
@@ -87,7 +96,7 @@ describe('ticket list for the ops console (story 6.6)', () => {
     createdIds.push(t.id);
     await markTicketFailed(t.id, 'triage_retries_exhausted');
 
-    const res = await request(app).get('/api/tickets?status=completed&limit=5');
+    const res = await request(app).get<OpsListBody>('/api/tickets?status=completed&limit=5');
 
     // The rows are narrowed to completed tickets; the tab counts are not.
     expect(res.body.tickets.every((x: { status: string }) => x.status === 'completed')).toBe(true);
@@ -107,7 +116,9 @@ describe('ticket list for the ops console (story 6.6)', () => {
     );
 
     for (const sort of ['createdAt', 'updatedAt']) {
-      const res = await request(app).get(`/api/tickets?limit=100&sort=${sort}&order=asc`);
+      const res = await request(app).get<OpsListBody>(
+        `/api/tickets?limit=100&sort=${sort}&order=asc`
+      );
       const mine = res.body.tickets
         .map((t: { id: string }) => t.id)
         .filter((id: string) => ids.includes(id));
@@ -116,7 +127,7 @@ describe('ticket list for the ops console (story 6.6)', () => {
   });
 
   it('keeps createdAt as the default sort for existing callers', async () => {
-    const res = await request(app).get('/api/tickets?limit=100&order=asc');
+    const res = await request(app).get<OpsListBody>('/api/tickets?limit=100&order=asc');
     const times = res.body.tickets.map((t: { createdAt: string }) => Date.parse(t.createdAt));
     expect(times).toEqual([...times].sort((a: number, b: number) => a - b));
   });
@@ -129,7 +140,7 @@ describe('failed tickets in the API (story 5.2)', () => {
     createdIds.push(failed.id, waiting.id);
     await markTicketFailed(failed.id, 'triage_retries_exhausted');
 
-    const res = await request(app).get(
+    const res = await request(app).get<OpsListBody>(
       '/api/tickets?status=failed&sort=failedAt&order=asc&limit=100'
     );
 
@@ -138,20 +149,20 @@ describe('failed tickets in the API (story 5.2)', () => {
     expect(ids).toContain(failed.id);
     expect(ids).not.toContain(waiting.id);
     const row = res.body.tickets.find((t: { id: string }) => t.id === failed.id);
-    expect(row.status).toBe('failed');
-    expect(row.failureReason).toBe('triage_retries_exhausted');
-    expect(row.failedAt).toBeTruthy();
+    expect(row?.status).toBe('failed');
+    expect(row?.failureReason).toBe('triage_retries_exhausted');
+    expect(row?.failedAt).toBeTruthy();
   });
 
   it('shows no failure data on tickets that have not failed', async () => {
     const t = await insertTicket('TICK-API-FAIL-3', 'Sub', 'Desc');
     createdIds.push(t.id);
 
-    const res = await request(app).get('/api/tickets?limit=100');
+    const res = await request(app).get<OpsListBody>('/api/tickets?limit=100');
 
     const row = res.body.tickets.find((x: { id: string }) => x.id === t.id);
-    expect(row.failureReason).toBeNull();
-    expect(row.failedAt).toBeNull();
+    expect(row?.failureReason).toBeNull();
+    expect(row?.failedAt).toBeNull();
   });
 
   it('replays a failed ticket: requeues it, clears the failure data, and records ticket.requeued', async () => {
@@ -159,14 +170,14 @@ describe('failed tickets in the API (story 5.2)', () => {
     createdIds.push(t.id);
     await markTicketFailed(t.id, 'draft_retries_exhausted');
 
-    const res = await request(app).post(`/api/tickets/${t.id}/replay`);
+    const res = await request(app).post<ReplayBody>(`/api/tickets/${t.id}/replay`);
 
     expect(res.status).toBe(200);
-    const row = (await request(app).get('/api/tickets?limit=100')).body.tickets.find(
+    const row = (await request(app).get<OpsListBody>('/api/tickets?limit=100')).body.tickets.find(
       (x: { id: string }) => x.id === t.id
     );
-    expect(row.status).toBe('queued');
-    expect(row.failureReason).toBeNull();
+    expect(row?.status).toBe('queued');
+    expect(row?.failureReason).toBeNull();
     expect((await getAllEventsByTicketId(t.id)).map((e) => e.event)).toContain('ticket.requeued');
   });
 });
@@ -177,7 +188,7 @@ describe('POST /api/tickets/:id/replay — ops recovery (story 5.4)', () => {
     createdIds.push(t.id);
     await markTicketFailed(t.id, 'triage_retries_exhausted');
 
-    const res = await request(app).post(`/api/tickets/${t.id}/replay`);
+    const res = await request(app).post<ReplayBody>(`/api/tickets/${t.id}/replay`);
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true, status: 'queued', previousStatus: 'failed' });
@@ -190,7 +201,7 @@ describe('POST /api/tickets/:id/replay — ops recovery (story 5.4)', () => {
     createdIds.push(t.id);
     await updateTicketStatus(t.id, 'needs_attention');
 
-    const res = await request(app).post(`/api/tickets/${t.id}/replay`);
+    const res = await request(app).post<ReplayBody>(`/api/tickets/${t.id}/replay`);
 
     expect(res.status).toBe(200);
     expect(res.body.previousStatus).toBe('needs_attention');
@@ -203,7 +214,7 @@ describe('POST /api/tickets/:id/replay — ops recovery (story 5.4)', () => {
     createdIds.push(t.id);
     await markTicketFailed(t.id, 'draft_retries_exhausted');
 
-    await request(app).post(`/api/tickets/${t.id}/replay`);
+    await request(app).post<ReplayBody>(`/api/tickets/${t.id}/replay`);
 
     const customer = emitted().filter(([room]) => room === t.id);
     expect(customer).toHaveLength(1);
@@ -233,7 +244,7 @@ describe('POST /api/tickets/:id/replay — ops recovery (story 5.4)', () => {
       createdIds.push(t.id);
       await updateTicketStatus(t.id, status);
 
-      const res = await request(app).post(`/api/tickets/${t.id}/replay`);
+      const res = await request(app).post<ReplayBody>(`/api/tickets/${t.id}/replay`);
 
       expect(res.status).toBe(409);
       expect(res.body.status).toBe(status);
@@ -254,8 +265,8 @@ describe('POST /api/tickets/:id/replay — ops recovery (story 5.4)', () => {
     await markTicketFailed(t.id, 'processing_error');
 
     const responses = await Promise.all([
-      request(app).post(`/api/tickets/${t.id}/replay`),
-      request(app).post(`/api/tickets/${t.id}/replay`),
+      request(app).post<ReplayBody>(`/api/tickets/${t.id}/replay`),
+      request(app).post<ReplayBody>(`/api/tickets/${t.id}/replay`),
     ]);
 
     expect(responses.map((r) => r.status).sort()).toEqual([200, 409]);
@@ -270,7 +281,7 @@ describe('POST /api/tickets/:id/replay — ops recovery (story 5.4)', () => {
     const before = await getTicketById(t.id);
     vi.mocked(enqueueTicket).mockRejectedValueOnce(new Error('SQS unavailable'));
 
-    const res = await request(app).post(`/api/tickets/${t.id}/replay`);
+    const res = await request(app).post<ReplayBody>(`/api/tickets/${t.id}/replay`);
 
     expect(res.status).toBe(503);
     const after = await getTicketById(t.id);
@@ -287,9 +298,9 @@ describe('POST /api/tickets/:id/replay — ops recovery (story 5.4)', () => {
     createdIds.push(t.id);
     await markTicketFailed(t.id, 'processing_error');
     vi.mocked(enqueueTicket).mockRejectedValueOnce(new Error('SQS unavailable'));
-    await request(app).post(`/api/tickets/${t.id}/replay`);
+    await request(app).post<ReplayBody>(`/api/tickets/${t.id}/replay`);
 
-    const res = await request(app).post(`/api/tickets/${t.id}/replay`);
+    const res = await request(app).post<ReplayBody>(`/api/tickets/${t.id}/replay`);
 
     expect(res.status).toBe(200);
     expect((await getTicketById(t.id)).status).toBe('queued');

@@ -16,6 +16,13 @@ import {
   pendingNotifications,
   setRetryDelaysForTests,
 } from '../src/services/customer-notifications.js';
+import type {
+  ConfirmPreviewBody,
+  NotificationBody,
+  OpsTicketBody,
+  PublicEventsBody,
+  PublicTicketBody,
+} from './helpers/api-types.js';
 import opsRequest from './helpers/ops-session.js';
 import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 import request from './helpers/request.js';
@@ -123,11 +130,13 @@ describe('confirmation link', () => {
     const email = `p-${randomUUID()}@example.test`;
     await optIn(t.id, email);
     const token = tokenFrom(mailTo(email)[0]);
-    const preview = await request(app).get(`/api/notifications/confirm/${token}`);
-    expect(preview.body).toMatchObject({ valid: true, referenceNumber: t.referenceNumber });
-    expect((await request(app).get(`/api/tickets/${t.id}/notification`)).body.state).toBe(
-      'pending'
+    const preview = await request(app).get<ConfirmPreviewBody>(
+      `/api/notifications/confirm/${token}`
     );
+    expect(preview.body).toMatchObject({ valid: true, referenceNumber: t.referenceNumber });
+    expect(
+      (await request(app).get<NotificationBody>(`/api/tickets/${t.id}/notification`)).body.state
+    ).toBe('pending');
 
     expect((await request(app).post('/api/notifications/confirm').send({ token })).status).toBe(
       200
@@ -135,10 +144,12 @@ describe('confirmation link', () => {
     expect((await request(app).post('/api/notifications/confirm').send({ token })).status).toBe(
       410
     );
-    expect((await request(app).get(`/api/notifications/confirm/${token}`)).body.valid).toBe(false);
-    expect((await request(app).get(`/api/tickets/${t.id}/notification`)).body.state).toBe(
-      'confirmed'
-    );
+    expect(
+      (await request(app).get<ConfirmPreviewBody>(`/api/notifications/confirm/${token}`)).body.valid
+    ).toBe(false);
+    expect(
+      (await request(app).get<NotificationBody>(`/api/tickets/${t.id}/notification`)).body.state
+    ).toBe('confirmed');
   });
 
   it('rejects an expired link', async () => {
@@ -237,7 +248,7 @@ describe('outcome emails', () => {
     } finally {
       setMailerForTests(null);
     }
-    const { rows } = await pool.query(
+    const { rows } = await pool.query<{ event: string; detail: string | null }>(
       'SELECT event, detail FROM ticket_events WHERE ticket_id = $1 AND event LIKE $2',
       [t.id, 'notification.%']
     );
@@ -251,17 +262,17 @@ describe('outcome emails', () => {
 describe('what each view shows', () => {
   it('keeps the address and notification events out of the public view, masked in ops', async () => {
     const { t, email } = await confirmed();
-    const publicView = await request(app).get(`/api/tickets/${t.id}`);
+    const publicView = await request(app).get<PublicTicketBody>(`/api/tickets/${t.id}`);
     expect(JSON.stringify(publicView.body)).not.toContain(email);
     expect(
       publicView.body.events.some((e: { event: string }) => e.event.startsWith('notification.'))
     ).toBe(false);
-    const events = await request(app).get(`/api/tickets/${t.id}/events`);
+    const events = await request(app).get<PublicEventsBody>(`/api/tickets/${t.id}/events`);
     expect(
       events.body.events.some((e: { event: string }) => e.event.startsWith('notification.'))
     ).toBe(false);
 
-    const ops = await opsRequest(app).get(`/api/ops/tickets/${t.id}`);
+    const ops = await opsRequest(app).get<OpsTicketBody>(`/api/ops/tickets/${t.id}`);
     expect(ops.body.notification).toEqual({ state: 'confirmed', maskedEmail: 'c•••@example.test' });
     expect(JSON.stringify(ops.body)).not.toContain(email);
     expect(ops.body.events.map((e: { event: string }) => e.event)).toContain(

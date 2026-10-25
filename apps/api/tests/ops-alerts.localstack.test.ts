@@ -73,7 +73,7 @@ describe('alertNeedsAttention against LocalStack', () => {
       new ReceiveMessageCommand({ QueueUrl: queueUrl, MaxNumberOfMessages: 10, WaitTimeSeconds: 5 })
     );
     expect(Messages).toHaveLength(1);
-    const envelope = JSON.parse(Messages![0].Body!);
+    const envelope = JSON.parse(Messages![0].Body!) as { Subject: string; Message: string };
     const expected = ops.buildAlertMessage(alert);
     expect(envelope.Subject).toBe(
       '[Ticket Pipe] TICK-SNS-057 needs attention (processing_result_missing)'

@@ -117,14 +117,19 @@ async function connect(cookie?: string): Promise<Socket> {
 }
 
 // A socket whose handshake carries a live ops session, as the signed-in console's would.
+interface OpsAck {
+  ok: boolean;
+  error?: string;
+}
+
 async function connectOps(): Promise<Socket> {
   return connect(await newOpsCookie());
 }
 
 async function subscribeToOps(client: Socket): Promise<OpsEvent[]> {
   const received: OpsEvent[] = [];
-  client.on('ops:ticket_event', (payload: OpsEvent) => received.push(payload));
-  const ack = await client.timeout(5000).emitWithAck('ops:subscribe');
+  client.on('ops:ticket_event', (payload: unknown) => received.push(payload as OpsEvent));
+  const ack = (await client.timeout(5000).emitWithAck('ops:subscribe')) as OpsAck;
   expect(ack).toEqual({ ok: true });
   return received;
 }
@@ -224,9 +229,9 @@ describe('ops organization feed', () => {
     const ticket = await newTicket();
     const stranger = await connect();
     const got: unknown[] = [];
-    stranger.onAny((_name, payload) => got.push(payload));
+    stranger.onAny((_name: string, payload: unknown) => got.push(payload));
 
-    const ack = await stranger.timeout(5000).emitWithAck('ops:subscribe');
+    const ack = (await stranger.timeout(5000).emitWithAck('ops:subscribe')) as OpsAck;
     expect(ack).toEqual({ ok: false, error: 'unauthorized' });
     expect(await opsRoomSize()).toBe(0);
 
@@ -296,7 +301,7 @@ describe('ops organization feed', () => {
     const aRevoked = new Promise<void>((resolve) => a.once('ops:revoked', () => resolve()));
     // `a` signs out; find its hash from the server-side socket.
     const serverA = (await getIo()!.local.fetchSockets()).find((s) => s.id === a.id)!;
-    await revokeOpsSockets(serverA.data.opsSessionHash);
+    await revokeOpsSockets((serverA.data as { opsSessionHash: string }).opsSessionHash);
     await aRevoked;
     expect(await opsRoomSize()).toBe(1);
     expect(hashSessionId(bCookie.split('=')[1])).toBeTruthy();
@@ -343,7 +348,7 @@ describe('ops organization feed', () => {
     const ops = await connectOps();
     await subscribeToOps(ops);
     const alerts: Record<string, unknown>[] = [];
-    ops.on('ticket:failed', (p) => alerts.push(p));
+    ops.on('ticket:failed', (p: unknown) => alerts.push(p as Record<string, unknown>));
 
     await processMessage(ticket.id, 'fake-receipt', 3, ai).catch(() => {});
     await waitFor(
@@ -372,9 +377,10 @@ describe('ops organization feed', () => {
     await subscribeToOps(ops);
 
     const customer = await connect();
-    const completed = new Promise<Record<string, any>>((resolve) => {
-      customer.on('ticket:update', (p: Record<string, any>) => {
-        if (p.event === 'ticket.completed') resolve(p);
+    const completed = new Promise<Record<string, unknown>>((resolve) => {
+      customer.on('ticket:update', (p: unknown) => {
+        const update = p as Record<string, unknown>;
+        if (update.event === 'ticket.completed') resolve(update);
       });
     });
     customer.emit('join', ticket.id);
@@ -388,7 +394,7 @@ describe('ops organization feed', () => {
     expect(payload).toEqual({
       event: 'ticket.completed',
       ticketId: ticket.id,
-      occurredAt: expect.any(String),
+      occurredAt: expect.any(String) as string,
     });
 
     await waitFor(

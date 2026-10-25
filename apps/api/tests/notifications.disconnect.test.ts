@@ -166,7 +166,7 @@ describe('notification delivery vs. ticket processing', () => {
     expect(payload).toEqual({
       event: 'ticket.completed',
       ticketId,
-      occurredAt: expect.any(String),
+      occurredAt: expect.any(String) as string,
     });
     expect((await getTicketById(ticketId)).status).toBe('completed');
   });

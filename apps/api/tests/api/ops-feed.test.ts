@@ -6,7 +6,9 @@ import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 
 import request from '../helpers/request.js';
 
-const mockOpsEmit = vi.hoisted(() => vi.fn());
+const mockOpsEmit = vi.hoisted(() =>
+  vi.fn<(event: string, payload: Record<string, unknown>) => void>()
+);
 const mockTo = vi.hoisted(() => vi.fn(() => ({ emit: mockOpsEmit })));
 
 vi.mock('../../src/lib/socket.js', async (importOriginal) => {
@@ -16,6 +18,7 @@ vi.mock('../../src/lib/socket.js', async (importOriginal) => {
 
 import { app } from '../../src/app.js';
 import { pool } from '../../src/lib/db.js';
+import type { CreatedTicketBody } from '../helpers/api-types.js';
 import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 
 const createdIds: string[] = [];
@@ -36,7 +39,7 @@ afterAll(async () => {
 describe('POST /api/tickets — ops feed', () => {
   it('publishes ticket.submitted to the ops room with status information only', async () => {
     const res = await request(app)
-      .post('/api/tickets')
+      .post<CreatedTicketBody>('/api/tickets')
       .send({ subject: 'Private subject', description: 'Private description of the problem' });
     expect(res.status).toBe(201);
     createdIds.push(res.body.ticketId);

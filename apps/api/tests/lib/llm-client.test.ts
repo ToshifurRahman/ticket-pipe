@@ -70,7 +70,7 @@ describe('triage (llm-client)', () => {
       vi.fn().mockResolvedValue(new Response('rate limited', { status: 429 }))
     );
 
-    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e) => e);
+    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e: unknown) => e);
 
     expect(err).toBeInstanceOf(LlmCallError);
     expect((err as LlmCallError).outcome).toBe('http_error');
@@ -80,7 +80,7 @@ describe('triage (llm-client)', () => {
   it('throws network_error when fetch rejects', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection refused')));
 
-    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e) => e);
+    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e: unknown) => e);
 
     expect(err).toBeInstanceOf(LlmCallError);
     expect((err as LlmCallError).outcome).toBe('network_error');
@@ -91,7 +91,7 @@ describe('triage (llm-client)', () => {
     timeoutError.name = 'TimeoutError';
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(timeoutError));
 
-    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e) => e);
+    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e: unknown) => e);
 
     expect(err).toBeInstanceOf(LlmCallError);
     expect((err as LlmCallError).outcome).toBe('timeout');
@@ -103,7 +103,7 @@ describe('triage (llm-client)', () => {
       vi.fn().mockResolvedValue(jsonResponse(200, { choices: [{ message: {} }] }))
     );
 
-    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e) => e);
+    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e: unknown) => e);
 
     expect(err).toBeInstanceOf(LlmCallError);
     expect((err as LlmCallError).outcome).toBe('invalid_response');
@@ -119,7 +119,7 @@ describe('triage (llm-client)', () => {
       )
     );
 
-    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e) => e);
+    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e: unknown) => e);
 
     expect(err).toBeInstanceOf(LlmCallError);
     expect((err as LlmCallError).outcome).toBe('invalid_response');
@@ -136,7 +136,7 @@ describe('triage (llm-client)', () => {
       )
     );
 
-    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e) => e);
+    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e: unknown) => e);
 
     expect(err).toBeInstanceOf(LlmCallError);
     expect((err as LlmCallError).outcome).toBe('invalid_response');
