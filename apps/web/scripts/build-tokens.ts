@@ -11,7 +11,8 @@ type Node = { [key: string]: unknown };
 const TOKENS_DIR = path.resolve(import.meta.dirname, '../tokens');
 export const OUTPUT = path.resolve(import.meta.dirname, '../src/styles/tokens.css');
 
-const read = (name: string): Node => JSON.parse(readFileSync(path.join(TOKENS_DIR, name), 'utf8'));
+const read = (name: string): Node =>
+  JSON.parse(readFileSync(path.join(TOKENS_DIR, name), 'utf8')) as Node;
 
 function get(root: Node, dotted: string): Node | undefined {
   let node: unknown = root;

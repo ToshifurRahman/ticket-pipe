@@ -20,6 +20,13 @@ interface ClosableClient {
   quit(): Promise<unknown>;
 }
 
+// socket.data is `any` in socket.io's types; this is the shape this file puts on it.
+interface SocketData {
+  opsExpiry?: NodeJS.Timeout;
+  opsSessionHash?: string;
+}
+const opsData = (socket: { data: unknown }) => socket.data as SocketData;
+
 let io: Server | null = null;
 // The Bun-native transport io is bound to. The HTTP layer routes /socket.io/ requests to it
 // and registers its websocket handlers on Bun.serve (see server.ts).
@@ -65,7 +72,9 @@ export async function init(httpServer?: HttpServer): Promise<Server> {
         logger.debug({ socketId: socket.id }, 'Ignoring join for a non-ticket room');
         return;
       }
-      socket.join(ticketId);
+      Promise.resolve(socket.join(ticketId)).catch((err: unknown) =>
+        logger.error({ err, socketId: socket.id }, 'join failed')
+      );
     });
 
     // Ops staff subscribe to the organization-wide feed (`ops:ticket_event`). Only a socket
@@ -83,10 +92,10 @@ export async function init(httpServer?: HttpServer): Promise<Server> {
           if (!session) return reply({ ok: false, error: 'unauthorized' });
           if (socket.disconnected) return;
 
-          clearTimeout(socket.data.opsExpiry);
-          socket.data.opsSessionHash = session.hash;
-          socket.join(OPS_ROOM);
-          socket.data.opsExpiry = setTimeout(
+          clearTimeout(opsData(socket).opsExpiry);
+          opsData(socket).opsSessionHash = session.hash;
+          await socket.join(OPS_ROOM);
+          opsData(socket).opsExpiry = setTimeout(
             () => evict(socket),
             Math.max(session.expiresAt.getTime() - Date.now(), 0)
           );
@@ -97,7 +106,7 @@ export async function init(httpServer?: HttpServer): Promise<Server> {
         }
       }
     );
-    socket.on('disconnect', () => clearTimeout(socket.data.opsExpiry));
+    socket.on('disconnect', () => clearTimeout(opsData(socket).opsExpiry));
   });
   // The API publishes `ticket.submitted` to the ops feed, so it needs a connected emitter
   // before the first request. Redis is already known to be up at this point.
@@ -122,7 +131,7 @@ function evict(socket: {
 export async function revokeOpsSockets(sessionHash: string): Promise<void> {
   if (!io) return;
   for (const socket of await io.in(OPS_ROOM).fetchSockets()) {
-    if (socket.data.opsSessionHash === sessionHash) {
+    if (opsData(socket).opsSessionHash === sessionHash) {
       socket.leave(OPS_ROOM);
       socket.emit('ops:revoked');
     }
@@ -207,7 +216,9 @@ async function doShutdown(): Promise<void> {
   openClients = [];
 
   if (server) {
-    await new Promise<void>((resolve) => server.close(() => resolve()));
+    await new Promise<void>((resolve) => {
+      void server.close(() => resolve());
+    });
   }
   // allSettled: a client that never connected rejects on quit(), and that must not
   // turn a graceful shutdown into a crash.

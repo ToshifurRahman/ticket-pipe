@@ -13,12 +13,25 @@ export interface ProcessingResult {
   nextSteps: string[] | null;
 }
 
+interface ProcessingRow {
+  category: string;
+  priority: string;
+  sentiment: string;
+  escalate: boolean;
+  recommended_team: string;
+  issue_summary: string;
+  customer_reply: string | null;
+  internal_note: string | null;
+  next_steps: string[] | null;
+}
+
 export async function getProcessingResultByTicketId(
   ticketId: string
 ): Promise<ProcessingResult | null> {
-  const result = await pool.query('SELECT * FROM ticket_processing WHERE ticket_id = $1', [
-    ticketId,
-  ]);
+  const result = await pool.query<ProcessingRow>(
+    'SELECT * FROM ticket_processing WHERE ticket_id = $1',
+    [ticketId]
+  );
   if (!result.rows[0]) return null;
   const row = result.rows[0];
   return {
@@ -35,7 +48,9 @@ export async function getProcessingResultByTicketId(
 }
 
 export async function getTriageOutputByTicketId(ticketId: string): Promise<TriageOutput | null> {
-  const result = await pool.query(
+  const result = await pool.query<
+    Omit<ProcessingRow, 'customer_reply' | 'internal_note' | 'next_steps'>
+  >(
     `SELECT category, priority, sentiment, escalate, recommended_team, issue_summary
      FROM ticket_processing WHERE ticket_id = $1`,
     [ticketId]

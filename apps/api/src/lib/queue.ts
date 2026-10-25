@@ -88,7 +88,7 @@ export class QueueService {
       )
     );
     return (result.Messages ?? []).map((m) => ({
-      ...JSON.parse(m.Body!),
+      ...(JSON.parse(m.Body!) as Pick<QueueMessage, 'ticketId' | 'referenceNumber'>),
       receiptHandle: m.ReceiptHandle!,
       attemptNumber: Number(m.Attributes?.ApproximateReceiveCount ?? '1'),
     }));

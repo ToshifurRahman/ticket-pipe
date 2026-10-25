@@ -79,8 +79,9 @@ function createSmtpMailer(): Mailer {
 }
 
 const memoryMailer: Mailer = {
-  async send(message) {
+  send(message) {
     sentMail.push(message);
+    return Promise.resolve();
   },
 };
 

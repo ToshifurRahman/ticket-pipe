@@ -202,8 +202,11 @@ export async function listTickets(options: ListTicketsOptions): Promise<ListTick
     LIMIT $${paramIndex++} OFFSET $${paramIndex}`;
 
   const [countResult, dataResult, countsResult] = await Promise.all([
-    pool.query(countQuery, params),
-    pool.query(dataQuery, [...params, limit, offset]),
+    pool.query<{ count: string }>(countQuery, params),
+    pool.query<TicketRow & { category: string | null; priority: string | null; updated_at: Date }>(
+      dataQuery,
+      [...params, limit, offset]
+    ),
     pool.query<{ status: string; count: string }>(
       'SELECT status, COUNT(*) FROM tickets GROUP BY status'
     ),
@@ -224,7 +227,7 @@ export async function listTickets(options: ListTicketsOptions): Promise<ListTick
 }
 
 export async function countTicketsCreatedSince(since: Date, until: Date): Promise<number> {
-  const result = await pool.query(
+  const result = await pool.query<{ count: string }>(
     'SELECT COUNT(*) FROM tickets WHERE created_at >= $1 AND created_at <= $2',
     [since, until]
   );

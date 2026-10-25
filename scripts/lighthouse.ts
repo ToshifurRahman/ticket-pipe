@@ -33,7 +33,7 @@ const stack = Bun.spawn(['bun', '--env-file=.env', 'e2e/stack.ts'], {
 });
 
 let ticketId: string | undefined;
-let exitCode = 1;
+let exitCode: number;
 try {
   for (let i = 0; ; i++) {
     if (i === 60) throw new Error('the stack did not start');
