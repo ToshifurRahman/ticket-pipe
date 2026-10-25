@@ -26,7 +26,7 @@ vi.mock('@/components/turnstile', () => ({
     }));
     useEffect(() => {
       if (turnstile.autoSolve) onToken('token-0');
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: the mock reads autoSolve once when the widget appears
     }, []);
     return <div data-testid="turnstile" />;
   },

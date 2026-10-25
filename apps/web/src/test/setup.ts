@@ -6,10 +6,16 @@ import { afterAll, afterEach, beforeAll } from 'vitest';
 import { server } from './server';
 
 // jsdom has no pointer capture; Sonner (and some Radix parts) call it on a click.
-for (const method of ['setPointerCapture', 'releasePointerCapture'] as const) {
-  Element.prototype[method] ??= () => {};
+const pointerCaptureStubs = {
+  setPointerCapture: () => {},
+  releasePointerCapture: () => {},
+  hasPointerCapture: () => false,
+};
+for (const [name, value] of Object.entries(pointerCaptureStubs)) {
+  if (!(name in Element.prototype)) {
+    Object.defineProperty(Element.prototype, name, { value, configurable: true, writable: true });
+  }
 }
-Element.prototype.hasPointerCapture ??= () => false;
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 

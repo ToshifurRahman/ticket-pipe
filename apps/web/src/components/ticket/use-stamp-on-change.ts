@@ -6,7 +6,13 @@ import { useState } from 'react';
  * mid-flight stays still and only a stage that lands afterwards is stamped.
  */
 export function useStampOnChange(values: Record<string, string>): Record<string, number> {
-  const [seen, setSeen] = useState({ values, counts: {} });
+  const [seen, setSeen] = useState<{
+    values: Record<string, string>;
+    counts: Record<string, number>;
+  }>({
+    values,
+    counts: {},
+  });
 
   const changed = Object.keys(values).filter((k) => seen.values[k] !== values[k]);
   if (changed.length > 0) {

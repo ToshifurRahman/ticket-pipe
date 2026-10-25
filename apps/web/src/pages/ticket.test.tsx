@@ -53,7 +53,9 @@ function renderAt(ref: string = TICKET_REF) {
 
 async function advance(next: TicketDetail, event: string) {
   current = next;
-  await act(async () => socket().serverEmit('ticket:update', { event, ticketId: TICKET_ID }));
+  await act(() =>
+    Promise.resolve(socket().serverEmit('ticket:update', { event, ticketId: TICKET_ID }))
+  );
 }
 
 const indicator = () => screen.findByRole('status');
@@ -136,7 +138,7 @@ describe('ticket page: live thread', () => {
     const before = lookups;
 
     current = ticketAt('writing');
-    await act(async () => socket().serverEmit('connect'));
+    await act(() => Promise.resolve(socket().serverEmit('connect')));
 
     expect(socket().emit).toHaveBeenLastCalledWith('join', TICKET_ID);
     expect(await screen.findByText('Writing a reply...')).toBeInTheDocument();
@@ -205,7 +207,7 @@ describe('ticket page: other states', () => {
     ).toBeInTheDocument();
 
     fail = false;
-    await act(async () => retry.click());
+    await act(() => Promise.resolve(retry.click()));
     expect(
       await screen.findByRole('heading', { name: 'Charged twice in March' })
     ).toBeInTheDocument();

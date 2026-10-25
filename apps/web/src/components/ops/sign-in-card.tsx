@@ -61,6 +61,7 @@ export function SignInCard() {
               id="ops-token"
               type="password"
               autoComplete="current-password"
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- the token field is the only control on the sign-in card
               autoFocus
               value={token}
               aria-invalid={mutation.isError}

@@ -34,7 +34,7 @@ export function TrackForm({
     setValue('');
     setInvalid(false);
     onDone?.();
-    navigate(`/t/${ref}`);
+    void navigate(`/t/${ref}`);
   }
 
   return (
@@ -47,6 +47,7 @@ export function TrackForm({
         aria-label="Ticket reference"
         placeholder="Track a ticket"
         value={value}
+        // eslint-disable-next-line jsx-a11y/no-autofocus -- opt-in prop, off by default; the caller decides when moving focus is expected
         autoFocus={autoFocus}
         aria-invalid={invalid}
         aria-describedby={invalid ? 'track-hint' : undefined}

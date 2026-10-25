@@ -64,7 +64,7 @@ async function acknowledge(ok = true) {
   const ack = socket().emit.mock.calls.find((c) => c[0] === 'ops:subscribe')![1] as (r: {
     ok: boolean;
   }) => void;
-  await act(async () => ack({ ok }));
+  await act(() => Promise.resolve(ack({ ok })));
 }
 
 afterEach(() => void toast.dismiss());
@@ -304,9 +304,10 @@ describe('live updates', () => {
     const before = listRequests.length;
 
     list = ticketList([listedTicket({ status: 'completed', subject: 'Now resolved' })]);
-    await act(async () => {
+    await act(() => {
       for (let i = 0; i < 5; i++)
         socket().serverEmit('ops:ticket_event', { ticketId: OPS_ID, event: 'x' });
+      return Promise.resolve();
     });
 
     expect(await screen.findByText('Now resolved')).toBeInTheDocument();
@@ -322,13 +323,15 @@ describe('live updates', () => {
       await new Promise((r) => setTimeout(r, 450));
       const before = listRequests.length;
 
-      await act(async () =>
-        socket().serverEmit(event, {
-          ticketId: OPS_ID,
-          referenceNumber: 'TICK-X',
-          reason: 'x',
-          previousStatus: 'failed',
-        })
+      await act(() =>
+        Promise.resolve(
+          socket().serverEmit(event, {
+            ticketId: OPS_ID,
+            referenceNumber: 'TICK-X',
+            reason: 'x',
+            previousStatus: 'failed',
+          })
+        )
       );
 
       await waitFor(() => expect(listRequests.length).toBeGreaterThan(before));
@@ -348,7 +351,7 @@ describe('live updates', () => {
     await screen.findByRole('table');
     await acknowledge();
 
-    await act(async () => socket().serverEmit('ops:revoked'));
+    await act(() => Promise.resolve(socket().serverEmit('ops:revoked')));
 
     expect(await screen.findByLabelText('Ops token')).toBeInTheDocument();
     expect(socket().disconnect).toHaveBeenCalled();
@@ -366,7 +369,7 @@ describe('live updates', () => {
     renderConsole();
     await screen.findByRole('table');
     await acknowledge();
-    await act(async () => socket().serverEmit('disconnect'));
+    await act(() => Promise.resolve(socket().serverEmit('disconnect')));
     expect(await screen.findByText('Feed offline')).toBeInTheDocument();
   });
 });
@@ -398,13 +401,15 @@ describe('alert toasts', () => {
     await screen.findByRole('table');
     await acknowledge();
 
-    await act(async () =>
-      socket().serverEmit('ticket:needs_attention', {
-        ticketId: OPS_ID,
-        referenceNumber: 'TICK-1759993412345-A1B2C3D4',
-        reason: 'incomplete_output',
-        occurredAt: '2026-10-12T14:02:21.000Z',
-      })
+    await act(() =>
+      Promise.resolve(
+        socket().serverEmit('ticket:needs_attention', {
+          ticketId: OPS_ID,
+          referenceNumber: 'TICK-1759993412345-A1B2C3D4',
+          reason: 'incomplete_output',
+          occurredAt: '2026-10-12T14:02:21.000Z',
+        })
+      )
     );
 
     // Sonner's store is global, so earlier tests' toasts can still be on screen: find this one.
@@ -420,12 +425,14 @@ describe('alert toasts', () => {
     renderConsole();
     await screen.findByRole('table');
     await acknowledge();
-    await act(async () =>
-      socket().serverEmit('ticket:failed', {
-        ticketId: OPS_ID,
-        referenceNumber: 'TICK-F',
-        reason: 'draft_retries_exhausted',
-      })
+    await act(() =>
+      Promise.resolve(
+        socket().serverEmit('ticket:failed', {
+          ticketId: OPS_ID,
+          referenceNumber: 'TICK-F',
+          reason: 'draft_retries_exhausted',
+        })
+      )
     );
     expect(await screen.findByText(/TICK-F failed: Draft retries exhausted/)).toBeInTheDocument();
   });

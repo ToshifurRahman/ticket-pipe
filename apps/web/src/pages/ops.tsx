@@ -78,9 +78,13 @@ function OpsConsole() {
   useEffect(
     () =>
       queryClient.getQueryCache().subscribe((event) => {
-        const error =
+        const error: unknown =
           event.type === 'updated' && event.action.type === 'error' ? event.action.error : null;
-        if (error instanceof ApiError && error.status === 401 && event.query.queryKey[0] === 'ops')
+        if (
+          error instanceof ApiError &&
+          error.status === 401 &&
+          (event.query.queryKey as readonly unknown[])[0] === 'ops'
+        )
           markSignedOut();
       }),
     [queryClient, markSignedOut]
