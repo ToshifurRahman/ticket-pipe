@@ -14,7 +14,7 @@ const ListQuerySchema = z.object({
   operation: z.enum(OPERATIONS).optional(),
   provider: z.enum(PROVIDERS).optional(),
   outcome: z.enum(OUTCOMES).optional(),
-  ticketId: z.string().uuid().optional(),
+  ticketId: z.uuid().optional(),
   since: z.coerce.date().optional(),
   until: z.coerce.date().optional(),
   limit: z.coerce.number().int().min(1).max(200).optional(),

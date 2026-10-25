@@ -141,7 +141,7 @@ function resolveTimeoutMs(): number {
 async function callLlmWithFunction<T>(
   provider: LlmProvider,
   messages: Array<{ role: 'system' | 'user'; content: string }>,
-  schema: z.ZodSchema<T>,
+  schema: z.ZodType<T>,
   schemaName: string,
   properties: Record<string, { type: string; description: string; items?: { type: string } }>,
   required: string[]

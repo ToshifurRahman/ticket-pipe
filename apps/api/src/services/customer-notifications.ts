@@ -45,7 +45,7 @@ export class NotificationError extends Error {
   }
 }
 
-const EmailSchema = z.string().trim().toLowerCase().max(254).email();
+const EmailSchema = z.string().trim().toLowerCase().max(254).pipe(z.email());
 
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
 const siteUrl = () => (process.env.PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
