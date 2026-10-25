@@ -9,8 +9,7 @@
     "setup": "bun --env-file=../../.env scripts/setup-infra.ts",
     "migrate": "bun --env-file=../../.env scripts/migrate.ts",
     "purge": "bun --env-file=../../.env scripts/purge.ts",
-    "test": "vitest run",
-    "lint": "eslint src"
+    "test": "vitest run"
   },
   "dependencies": {
     "@aws-sdk/client-sns": "^3.1147.0",

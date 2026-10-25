@@ -8,5 +8,5 @@
     "lib": ["ESNext"],
     "types": ["bun"]
   },
-  "include": ["src/**/*", "tests/**/*", "scripts/**/*"]
+  "include": ["src/**/*", "tests/**/*", "scripts/**/*", "vitest.config.ts"]
 }
