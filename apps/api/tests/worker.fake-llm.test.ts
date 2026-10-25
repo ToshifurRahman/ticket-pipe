@@ -37,7 +37,9 @@ afterEach(async () => {
   if (createdIds.length) {
     await purgeTicketEvents(createdIds);
     await pool.query('DELETE FROM ai_interactions WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
-    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
+    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [
+      createdIds,
+    ]);
     await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
     createdIds.length = 0;
   }
@@ -49,20 +51,31 @@ afterAll(async () => {
 
 describe('LLM_MODE=fake through the worker', () => {
   it('completes a ticket without any provider call and records model "fake"', async () => {
-    const ticket = await insertTicket('TICK-FAKE-001', 'Cannot log in', 'I cannot sign in to my account at all');
+    const ticket = await insertTicket(
+      'TICK-FAKE-001',
+      'Cannot log in',
+      'I cannot sign in to my account at all'
+    );
     createdIds.push(ticket.id);
 
     await processMessage(ticket.id, 'fake-receipt', 1, new AIService());
 
     expect((await getTicketById(ticket.id))?.status).toBe('completed');
     expect(fetchSpy).not.toHaveBeenCalled();
-    const { rows } = await pool.query('SELECT operation, model, outcome FROM ai_interactions WHERE ticket_id = $1', [ticket.id]);
+    const { rows } = await pool.query(
+      'SELECT operation, model, outcome FROM ai_interactions WHERE ticket_id = $1',
+      [ticket.id]
+    );
     expect(rows).toHaveLength(2);
     expect(rows.every((r) => r.model === 'fake' && r.outcome === 'success')).toBe(true);
   });
 
   it('[fake:invalid-triage] takes the needs_attention path', async () => {
-    const ticket = await insertTicket('TICK-FAKE-002', 'Odd one', 'Please break triage [fake:invalid-triage]');
+    const ticket = await insertTicket(
+      'TICK-FAKE-002',
+      'Odd one',
+      'Please break triage [fake:invalid-triage]'
+    );
     createdIds.push(ticket.id);
 
     await processMessage(ticket.id, 'fake-receipt', 1, new AIService());
@@ -75,7 +88,11 @@ describe('LLM_MODE=fake through the worker', () => {
   });
 
   it('[fake:invalid-draft] fails only the draft stage', async () => {
-    const ticket = await insertTicket('TICK-FAKE-003', 'Odd two', 'Please break the draft [fake:invalid-draft]');
+    const ticket = await insertTicket(
+      'TICK-FAKE-003',
+      'Odd two',
+      'Please break the draft [fake:invalid-draft]'
+    );
     createdIds.push(ticket.id);
 
     await processMessage(ticket.id, 'fake-receipt', 1, new AIService());

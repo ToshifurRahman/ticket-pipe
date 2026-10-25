@@ -19,7 +19,8 @@ export const DraftOutputSchema = z.object({
 export type TriageOutput = z.infer<typeof TriageOutputSchema>;
 export type DraftOutput = z.infer<typeof DraftOutputSchema>;
 
-export type LlmOutcome = 'success' | 'http_error' | 'network_error' | 'timeout' | 'invalid_response';
+export type LlmOutcome =
+  'success' | 'http_error' | 'network_error' | 'timeout' | 'invalid_response';
 
 export class LlmCallError extends Error {
   readonly outcome: LlmOutcome;
@@ -78,7 +79,9 @@ const FAKE_INVALID_DRAFT = '[fake:invalid-draft]';
 
 function resolveFakeDelayMs(): number {
   const parsed = Number(process.env.LLM_FAKE_DELAY_MS);
-  return process.env.LLM_FAKE_DELAY_MS !== undefined && Number.isFinite(parsed) && parsed >= 0 ? parsed : 1500;
+  return process.env.LLM_FAKE_DELAY_MS !== undefined && Number.isFinite(parsed) && parsed >= 0
+    ? parsed
+    : 1500;
 }
 
 async function fakeCall<T>(output: T): Promise<LlmCallResult<T>> {
@@ -104,7 +107,8 @@ function apiKeyForGateway(gateway: LlmGateway, envValue: string | undefined): st
 }
 
 export function getPrimaryProvider(): LlmProvider {
-  if (getLlmMode() === 'fake') return { name: 'primary', gateway: 'groq', apiKey: 'fake', model: 'fake' };
+  if (getLlmMode() === 'fake')
+    return { name: 'primary', gateway: 'groq', apiKey: 'fake', model: 'fake' };
   const gateway = resolveGateway(process.env.PRIMARY_GATEWAY);
   const apiKey = gateway === 'google' ? process.env.GOOGLE_API_KEY : process.env.GROQ_API_KEY;
   return {
@@ -188,7 +192,11 @@ async function callLlmWithFunction<T>(
 
   if (!response.ok) {
     const error = await response.text();
-    throw new LlmCallError('http_error', `LLM call failed: ${response.status} ${error}`, response.status);
+    throw new LlmCallError(
+      'http_error',
+      `LLM call failed: ${response.status} ${error}`,
+      response.status
+    );
   }
 
   let data: {
@@ -208,7 +216,11 @@ async function callLlmWithFunction<T>(
     data = (await response.json()) as typeof data;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    throw new LlmCallError('invalid_response', `Failed to parse LLM response as JSON: ${message}`, response.status);
+    throw new LlmCallError(
+      'invalid_response',
+      `Failed to parse LLM response as JSON: ${message}`,
+      response.status
+    );
   }
 
   const functionCall = data.choices[0]?.message.function_call;
@@ -221,12 +233,20 @@ async function callLlmWithFunction<T>(
     parsed = JSON.parse(functionCall.arguments);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    throw new LlmCallError('invalid_response', `Failed to parse function call arguments: ${message}`, response.status);
+    throw new LlmCallError(
+      'invalid_response',
+      `Failed to parse function call arguments: ${message}`,
+      response.status
+    );
   }
 
   const result = schema.safeParse(parsed);
   if (!result.success) {
-    throw new LlmCallError('invalid_response', `LLM output failed schema validation: ${result.error.message}`, response.status);
+    throw new LlmCallError(
+      'invalid_response',
+      `LLM output failed schema validation: ${result.error.message}`,
+      response.status
+    );
   }
 
   return {

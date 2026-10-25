@@ -70,7 +70,9 @@ if (process.env.SNS_ENDPOINT) {
   });
   const topic = await sns.send(new CreateTopicCommand({ Name: 'ticket-needs-attention' }));
   if (!topic.TopicArn) throw new Error('Failed to create SNS topic');
-  console.log(`SNS topic created: ${topic.TopicArn} (set SNS_TOPIC_ARN to this to turn on ops alerts)`);
+  console.log(
+    `SNS topic created: ${topic.TopicArn} (set SNS_TOPIC_ARN to this to turn on ops alerts)`
+  );
 } else {
   console.log('SNS_ENDPOINT not set, skipping the ops alert topic');
 }

@@ -10,7 +10,6 @@ afterAll(async () => {
   await pool.end();
 });
 
-
 // ---------------------------------------------------------------------------
 // GET /api/tickets/:id — entirely untested before this file
 // ---------------------------------------------------------------------------
@@ -77,9 +76,10 @@ describe('GET /api/tickets/:id', () => {
   });
 
   it('keeps outputs empty when triage fails, even if stale processing data exists', async () => {
-    const post = await request(app)
-      .post('/api/tickets')
-      .send({ subject: 'Triage failure output alignment', description: 'Failure should not expose phase outputs' });
+    const post = await request(app).post('/api/tickets').send({
+      subject: 'Triage failure output alignment',
+      description: 'Failure should not expose phase outputs',
+    });
     const { ticketId } = post.body;
 
     await insertProcessingResult(ticketId, {
@@ -107,9 +107,10 @@ describe('GET /api/tickets/:id', () => {
   });
 
   it('keeps draft output empty on draft failure while preserving completed triage output', async () => {
-    const post = await request(app)
-      .post('/api/tickets')
-      .send({ subject: 'Draft failure output alignment', description: 'Failed draft must not include output' });
+    const post = await request(app).post('/api/tickets').send({
+      subject: 'Draft failure output alignment',
+      description: 'Failed draft must not include output',
+    });
     const { ticketId } = post.body;
 
     await insertProcessingResult(ticketId, {
@@ -171,9 +172,10 @@ describe('GET /api/tickets/ref/:referenceNumber', () => {
   });
 
   it('uses event transitions for phase status in reference lookup', async () => {
-    const post = await request(app)
-      .post('/api/tickets')
-      .send({ subject: 'Ref event transitions', description: 'Testing phase resolver in getByRef' });
+    const post = await request(app).post('/api/tickets').send({
+      subject: 'Ref event transitions',
+      description: 'Testing phase resolver in getByRef',
+    });
     const { referenceNumber, ticketId } = post.body;
 
     await updateTicketStatus(ticketId, 'failed');
@@ -289,11 +291,14 @@ describe('POST /api/tickets — length limits', () => {
     ['subject', 'a'.repeat(121), validDescription, 'Subject can be at most 120 characters.'],
     ['description', validSubject, 'x'.repeat(19), 'Description needs at least 20 characters.'],
     ['description', validSubject, 'x'.repeat(5001), 'Description can be at most 5000 characters.'],
-  ])('rejects a %s outside the limits with a 400 naming the field', async (field, subject, description, message) => {
-    const res = await request(app).post('/api/tickets').send({ subject, description });
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ errors: { [field]: message } });
-  });
+  ])(
+    'rejects a %s outside the limits with a 400 naming the field',
+    async (field, subject, description, message) => {
+      const res = await request(app).post('/api/tickets').send({ subject, description });
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ errors: { [field]: message } });
+    }
+  );
 
   it('counts length after trimming surrounding whitespace', async () => {
     const res = await request(app)

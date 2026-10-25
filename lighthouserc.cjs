@@ -3,7 +3,10 @@
 // Default mobile preset (what DevTools shows a reviewer): throttled CPU and network.
 const base = process.env.LH_BASE_URL;
 const ref = process.env.LH_TICKET_REF;
-if (!base || !ref) throw new Error('Run this through `bun run lighthouse`: LH_BASE_URL / LH_TICKET_REF are not set.');
+if (!base || !ref)
+  throw new Error(
+    'Run this through `bun run lighthouse`: LH_BASE_URL / LH_TICKET_REF are not set.'
+  );
 
 const CATEGORIES = ['performance', 'accessibility', 'best-practices', 'seo'];
 const MIN_SCORE = { minScore: 0.9, aggregationMethod: 'median' };
@@ -30,14 +33,19 @@ module.exports = {
         {
           // Crawlable pages: all four categories.
           matchingUrlPattern: '^(?!.*/(confirm|ops)(/|$)).*$',
-          assertions: Object.fromEntries(CATEGORIES.map((c) => [`categories:${c}`, ['error', MIN_SCORE]])),
+          assertions: Object.fromEntries(
+            CATEGORIES.map((c) => [`categories:${c}`, ['error', MIN_SCORE]])
+          ),
         },
         {
           // These two are noindex on purpose (a private link, a staff console), so SEO's
           // is-crawlable audit fails by design and is left out.
           matchingUrlPattern: '/(confirm|ops)(/|$)',
           assertions: Object.fromEntries(
-            CATEGORIES.filter((c) => c !== 'seo').map((c) => [`categories:${c}`, ['error', MIN_SCORE]])
+            CATEGORIES.filter((c) => c !== 'seo').map((c) => [
+              `categories:${c}`,
+              ['error', MIN_SCORE],
+            ])
           ),
         },
       ],

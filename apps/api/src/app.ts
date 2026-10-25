@@ -47,7 +47,8 @@ mountWebApp(app, path.join(__dirname, '../../web/dist'));
 app.onError((err, c) => {
   if (err instanceof TicketNotFoundError) return c.json({ error: 'Ticket not found' }, 404);
   // The validator throws a 400 for an unparseable JSON body.
-  if (err instanceof HTTPException && err.status === 400) return c.json({ error: 'Invalid request body' }, 400);
+  if (err instanceof HTTPException && err.status === 400)
+    return c.json({ error: 'Invalid request body' }, 400);
   logger.error({ err }, 'Unhandled error');
   return c.json({ error: 'Internal server error' }, 500);
 });

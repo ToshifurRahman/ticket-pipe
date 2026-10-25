@@ -33,11 +33,16 @@ export const listTickets = (query: string) => request<OpsTicketList>(`/api/ticke
 export const getOpsTicket = (id: string) => request<OpsTicketDetail>(`/api/ops/tickets/${id}`);
 
 export const getOpsEvents = (id: string, after?: string) =>
-  request<OpsEventPage>(`/api/ops/tickets/${id}/events${after ? `?after=${encodeURIComponent(after)}` : ''}`);
+  request<OpsEventPage>(
+    `/api/ops/tickets/${id}/events${after ? `?after=${encodeURIComponent(after)}` : ''}`
+  );
 
 export const getOpsSummary = () => request<OpsSummary>('/api/ops/ai-interactions/summary');
 
 export const listAiInteractions = (ticketId: string) =>
-  request<{ interactions: AiInteraction[] }>(`/api/ops/ai-interactions?ticketId=${ticketId}&limit=100`);
+  request<{ interactions: AiInteraction[] }>(
+    `/api/ops/ai-interactions?ticketId=${ticketId}&limit=100`
+  );
 
-export const replayTicket = (id: string) => request<ReplayResponse>(`/api/tickets/${id}/replay`, { method: 'POST' });
+export const replayTicket = (id: string) =>
+  request<ReplayResponse>(`/api/tickets/${id}/replay`, { method: 'POST' });

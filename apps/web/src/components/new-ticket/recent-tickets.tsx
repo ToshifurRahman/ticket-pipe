@@ -37,7 +37,9 @@ export function RecentTickets({ tickets, onForget }: RecentTicketsProps) {
       <h2 id="recent-tickets-heading" className="label-caps mb-3.5 text-sm">
         Your recent tickets
       </h2>
-      <p className="-mt-1.5 mb-3 font-mono text-caption text-muted-foreground">Remembered on this browser only</p>
+      <p className="-mt-1.5 mb-3 font-mono text-caption text-muted-foreground">
+        Remembered on this browser only
+      </p>
       <ul className="flex flex-col">
         {tickets.map((t, i) => {
           const status = statuses[i]?.data?.status;
@@ -48,7 +50,9 @@ export function RecentTickets({ tickets, onForget }: RecentTicketsProps) {
                 className="group flex items-center justify-between gap-3 py-3 no-underline"
               >
                 <span className="flex min-w-0 flex-col">
-                  <span className="truncate font-semibold text-foreground group-hover:underline">{t.subject}</span>
+                  <span className="truncate font-semibold text-foreground group-hover:underline">
+                    {t.subject}
+                  </span>
                   <span className="truncate font-mono text-xs text-muted-foreground">
                     {t.ref} · {relativeTime(t.createdAt)}
                   </span>

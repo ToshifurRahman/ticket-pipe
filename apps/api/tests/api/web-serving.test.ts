@@ -28,7 +28,10 @@ beforeAll(() => {
   writeFileSync(path.join(dist, 'assets', 'app.js.br'), brotliCompressSync('console.log(1)'));
   writeFileSync(path.join(dist, 'assets', 'app.js.gz'), gzipSync('console.log(1)'));
   writeFileSync(path.join(dist, 'assets', 'plain.js'), 'console.log(2)');
-  writeFileSync(path.join(dist, 'index.html.gz'), gzipSync('<!doctype html><title>app shell</title>'));
+  writeFileSync(
+    path.join(dist, 'index.html.gz'),
+    gzipSync('<!doctype html><title>app shell</title>')
+  );
 });
 
 afterAll(() => {
@@ -42,7 +45,9 @@ async function fetchRaw(app: Hono, url: string, headers: Record<string, string>)
 
 describe('web app serving', () => {
   it('serves the app shell for deep links', async () => {
-    const res = await request(buildApp(dist)).get('/t/TICK-1759993412345-A1B2C3D4').set('Accept', 'text/html');
+    const res = await request(buildApp(dist))
+      .get('/t/TICK-1759993412345-A1B2C3D4')
+      .set('Accept', 'text/html');
     expect(res.status).toBe(200);
     expect(res.text).toContain('app shell');
   });
@@ -54,7 +59,9 @@ describe('web app serving', () => {
   });
 
   it('serves the brotli variant when accepted, preferring it over gzip', async () => {
-    const { res, bytes } = await fetchRaw(buildApp(dist), '/assets/app.js', { 'accept-encoding': 'gzip, deflate, br' });
+    const { res, bytes } = await fetchRaw(buildApp(dist), '/assets/app.js', {
+      'accept-encoding': 'gzip, deflate, br',
+    });
     expect(res.headers.get('content-encoding')).toBe('br');
     expect(res.headers.get('vary')).toBe('Accept-Encoding');
     expect(res.headers.get('content-type')).toContain('javascript');
@@ -62,14 +69,18 @@ describe('web app serving', () => {
   });
 
   it('serves the gzip variant when brotli is not accepted', async () => {
-    const { res, bytes } = await fetchRaw(buildApp(dist), '/assets/app.js', { 'accept-encoding': 'gzip' });
+    const { res, bytes } = await fetchRaw(buildApp(dist), '/assets/app.js', {
+      'accept-encoding': 'gzip',
+    });
     expect(res.headers.get('content-encoding')).toBe('gzip');
     expect(gunzipSync(bytes).toString()).toBe('console.log(1)');
   });
 
   it('honours q=0 and serves the original without an Accept-Encoding header', async () => {
     const app = buildApp(dist);
-    const refused = await fetchRaw(app, '/assets/app.js', { 'accept-encoding': 'br;q=0, gzip;q=0' });
+    const refused = await fetchRaw(app, '/assets/app.js', {
+      'accept-encoding': 'br;q=0, gzip;q=0',
+    });
     expect(refused.res.headers.get('content-encoding')).toBeNull();
     expect(refused.bytes.toString()).toBe('console.log(1)');
     const none = await fetchRaw(app, '/assets/app.js', {});
@@ -78,7 +89,9 @@ describe('web app serving', () => {
   });
 
   it('falls back to the original when a file has no precompressed sibling', async () => {
-    const { res, bytes } = await fetchRaw(buildApp(dist), '/assets/plain.js', { 'accept-encoding': 'br, gzip' });
+    const { res, bytes } = await fetchRaw(buildApp(dist), '/assets/plain.js', {
+      'accept-encoding': 'br, gzip',
+    });
     expect(res.headers.get('content-encoding')).toBeNull();
     expect(bytes.toString()).toBe('console.log(2)');
   });
@@ -104,7 +117,9 @@ describe('web app serving', () => {
   it('leaves /health and /socket.io to their own handlers', async () => {
     const app = buildApp(dist);
     expect((await request(app).get('/health')).body).toEqual({ status: 'ok' });
-    expect((await request(app).get('/socket.io/').set('Accept', 'text/html')).text).not.toContain('app shell');
+    expect((await request(app).get('/socket.io/').set('Accept', 'text/html')).text).not.toContain(
+      'app shell'
+    );
   });
 
   it('does not serve the shell for non-HTML requests', async () => {

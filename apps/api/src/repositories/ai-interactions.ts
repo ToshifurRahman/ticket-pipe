@@ -249,7 +249,7 @@ export async function summarizeAiInteractions(
     outcomeCountsByKey.set(key, outcomeCounts);
   }
 
-  return summaryResult.rows.map(row => {
+  return summaryResult.rows.map((row) => {
     const count = Number(row.count);
     const successCount = Number(row.success_count);
     return {

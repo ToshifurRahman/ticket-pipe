@@ -32,7 +32,9 @@ const TicketSchema = z.object({
     .min(SUBJECT_MIN, `Subject needs at least ${SUBJECT_MIN} characters.`)
     .max(SUBJECT_MAX, `Subject can be at most ${SUBJECT_MAX} characters.`),
   description: z
-    .string({ error: (issue) => (issue.input === undefined ? 'Description is required' : undefined) })
+    .string({
+      error: (issue) => (issue.input === undefined ? 'Description is required' : undefined),
+    })
     .trim()
     .min(1, 'Description is required')
     .min(DESCRIPTION_MIN, `Description needs at least ${DESCRIPTION_MIN} characters.`)
@@ -46,8 +48,14 @@ const factory = createFactory();
 // Query params are lenient on purpose: anything unparseable (or 0) falls back to the
 // default, and out-of-range values are clamped rather than rejected.
 const lenientInt = (fallback: number, max = Infinity) =>
-  z.unknown().optional().transform((v) => Math.min(max, Math.max(1, Number(v) || fallback)));
-const optionalString = z.unknown().optional().transform((v) => (typeof v === 'string' ? v : undefined));
+  z
+    .unknown()
+    .optional()
+    .transform((v) => Math.min(max, Math.max(1, Number(v) || fallback)));
+const optionalString = z
+  .unknown()
+  .optional()
+  .transform((v) => (typeof v === 'string' ? v : undefined));
 
 const ListQuerySchema = z.object({
   page: lenientInt(1),
@@ -122,32 +130,40 @@ export function createEventPageHandlers<E>(
     }
 
     const page = await getTicketEventPageView(id, { afterSeq, limit });
-    return c.json({ events: page.events.filter(include).map(mapEvent), nextCursor: page.nextCursor });
+    return c.json({
+      events: page.events.filter(include).map(mapEvent),
+      nextCursor: page.nextCursor,
+    });
   });
 }
 
 export const listEvents = createEventPageHandlers(toPublicEvent, isPublicEvent);
 
-export const list = factory.createHandlers(
-  zValidator('query', ListQuerySchema),
-  async (c) => {
-    const { page, limit, status: statusParam, sort: sortParam, order: orderParam } = c.req.valid('query');
-    const status = statusParam ? statusParam.split(',').filter((s) => s) : undefined;
-    const sort =
-      sortParam === 'status' || sortParam === 'failedAt' || sortParam === 'updatedAt' ? sortParam : 'createdAt';
-    const order = orderParam === 'asc' ? 'asc' : 'desc';
+export const list = factory.createHandlers(zValidator('query', ListQuerySchema), async (c) => {
+  const {
+    page,
+    limit,
+    status: statusParam,
+    sort: sortParam,
+    order: orderParam,
+  } = c.req.valid('query');
+  const status = statusParam ? statusParam.split(',').filter((s) => s) : undefined;
+  const sort =
+    sortParam === 'status' || sortParam === 'failedAt' || sortParam === 'updatedAt'
+      ? sortParam
+      : 'createdAt';
+  const order = orderParam === 'asc' ? 'asc' : 'desc';
 
-    try {
-      return c.json(await listTickets({ page, limit, status, sort, order }));
-    } catch (err) {
-      logger.error({ err, context: 'listTickets' }, 'List tickets failed');
-      throw err;
-    }
+  try {
+    return c.json(await listTickets({ page, limit, status, sort, order }));
+  } catch (err) {
+    logger.error({ err, context: 'listTickets' }, 'List tickets failed');
+    throw err;
   }
-);
+});
 
 export const replay = factory.createHandlers(async (c) => {
-  const result = await replayTicket((c.req.param('id') as string));
+  const result = await replayTicket(c.req.param('id') as string);
 
   if (result.ok) {
     return c.json({ success: true, status: 'queued', previousStatus: result.previousStatus });

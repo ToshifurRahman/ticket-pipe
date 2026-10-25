@@ -21,7 +21,8 @@ const DRIVERS: readonly MailDriver[] = ['brevo', 'smtp', 'memory'];
 export function getMailDriver(): MailDriver | null {
   const value = process.env.MAIL_DRIVER;
   if (!value) return null;
-  if (!DRIVERS.includes(value as MailDriver)) throw new Error(`MAIL_DRIVER must be one of ${DRIVERS.join(', ')}`);
+  if (!DRIVERS.includes(value as MailDriver))
+    throw new Error(`MAIL_DRIVER must be one of ${DRIVERS.join(', ')}`);
   return value as MailDriver;
 }
 
@@ -47,7 +48,11 @@ export function createBrevoMailer(fetchImpl: typeof fetch = fetch): Mailer {
       const from = sender();
       const response = await fetchImpl(BREVO_URL, {
         method: 'POST',
-        headers: { 'api-key': apiKey, 'content-type': 'application/json', accept: 'application/json' },
+        headers: {
+          'api-key': apiKey,
+          'content-type': 'application/json',
+          accept: 'application/json',
+        },
         body: JSON.stringify({
           sender: { email: from.email, name: from.name },
           to: [{ email: to }],
@@ -93,7 +98,12 @@ export function getMailer(): Mailer | null {
   if (cached?.driver !== driver) {
     cached = {
       driver,
-      mailer: driver === 'brevo' ? createBrevoMailer() : driver === 'smtp' ? createSmtpMailer() : memoryMailer,
+      mailer:
+        driver === 'brevo'
+          ? createBrevoMailer()
+          : driver === 'smtp'
+            ? createSmtpMailer()
+            : memoryMailer,
     };
   }
   return cached.mailer;
@@ -106,7 +116,9 @@ export function assertMailConfigured(): void {
     throw new Error('MAIL_DRIVER must be brevo (or unset) in production');
   }
   if (driver === null) return;
-  if (!process.env.PUBLIC_SITE_URL) throw new Error('PUBLIC_SITE_URL is required when MAIL_DRIVER is set');
+  if (!process.env.PUBLIC_SITE_URL)
+    throw new Error('PUBLIC_SITE_URL is required when MAIL_DRIVER is set');
   sender();
-  if (driver === 'brevo' && !process.env.BREVO_API_KEY) throw new Error('BREVO_API_KEY is required for the brevo driver');
+  if (driver === 'brevo' && !process.env.BREVO_API_KEY)
+    throw new Error('BREVO_API_KEY is required for the brevo driver');
 }

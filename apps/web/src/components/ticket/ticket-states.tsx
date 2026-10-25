@@ -19,7 +19,11 @@ const WAITING: Ply[] = [
 export function TicketSkeleton({ reference = '-' }: { reference?: string }) {
   return (
     <FormPanel as="article" aria-busy="true" aria-label="Loading ticket">
-      <FormHeader kicker="Service ticket · Customer copy" title="Loading..." referenceNumber={reference} />
+      <FormHeader
+        kicker="Service ticket · Customer copy"
+        title="Loading..."
+        referenceNumber={reference}
+      />
       <PlyRow plies={WAITING} />
       <div aria-hidden className="flex min-h-62.5 flex-col px-5.5 py-5">
         {[0, 1, 2].map((i) => (
@@ -33,10 +37,15 @@ export function TicketSkeleton({ reference = '-' }: { reference?: string }) {
 export function TicketNotFound({ reference }: { reference?: string }) {
   return (
     <FormPanel as="article" enter className="max-w-160">
-      <FormHeader kicker="Not on file" title="We couldn't find that ticket" referenceNumber={reference || '-'} />
+      <FormHeader
+        kicker="Not on file"
+        title="We couldn't find that ticket"
+        referenceNumber={reference || '-'}
+      />
       <FormBody>
         <p className="text-muted-foreground">
-          Check the reference and try again. It looks like <span className="font-mono text-sm text-foreground">{REF_EXAMPLE}</span>.
+          Check the reference and try again. It looks like{' '}
+          <span className="font-mono text-sm text-foreground">{REF_EXAMPLE}</span>.
         </p>
         <TrackForm />
         <p className="text-sm text-muted-foreground">
@@ -58,9 +67,15 @@ export function TicketLoadError({
 }) {
   return (
     <FormPanel as="article" enter role="alert" className="max-w-160">
-      <FormHeader kicker="Could not load" title="We couldn't load this ticket right now" referenceNumber={reference} />
+      <FormHeader
+        kicker="Could not load"
+        title="We couldn't load this ticket right now"
+        referenceNumber={reference}
+      />
       <FormBody>
-        <p className="text-muted-foreground">Your ticket is safe. Check your connection and try again.</p>
+        <p className="text-muted-foreground">
+          Your ticket is safe. Check your connection and try again.
+        </p>
         <div>
           <Button size="sm" onClick={onRetry} disabled={retrying}>
             {retrying ? 'Trying...' : 'Try again'}

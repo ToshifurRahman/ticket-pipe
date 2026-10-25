@@ -33,6 +33,8 @@ describe('Analytics', () => {
 
     const found = beacons();
     expect(found).toHaveLength(1);
-    expect(JSON.parse((found[0] as HTMLScriptElement).dataset.cfBeacon!)).toEqual({ token: 'tok-123' });
+    expect(JSON.parse((found[0] as HTMLScriptElement).dataset.cfBeacon!)).toEqual({
+      token: 'tok-123',
+    });
   });
 });

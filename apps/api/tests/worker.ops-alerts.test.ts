@@ -28,7 +28,8 @@ vi.mock('../src/lib/socket.js', async (importOriginal) => {
     ...real,
     getEmitter: vi.fn(() => ({
       to: (room: string) => ({
-        emit: (event: string, payload: unknown) => (room === 'ops' ? mockOpsEmit(event, payload) : undefined),
+        emit: (event: string, payload: unknown) =>
+          room === 'ops' ? mockOpsEmit(event, payload) : undefined,
       }),
     })),
   };
@@ -75,7 +76,9 @@ afterEach(async () => {
   vi.mocked(deleteMessage).mockClear();
   if (createdIds.length) {
     await purgeTicketEvents(createdIds);
-    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
+    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [
+      createdIds,
+    ]);
     await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
     createdIds.length = 0;
   }
@@ -93,7 +96,11 @@ describe('processMessage — ops email alert', () => {
     const AI_OUTPUT = 'SENTINEL-AI-OUTPUT-4be8';
     const ERROR_TEXT = 'SENTINEL-ERROR-TEXT-d05e';
 
-    const ticket = await insertTicket('TICK-ALERT-W01', `Help ${SUBJECT}`, `It broke ${DESCRIPTION}`);
+    const ticket = await insertTicket(
+      'TICK-ALERT-W01',
+      `Help ${SUBJECT}`,
+      `It broke ${DESCRIPTION}`
+    );
     createdIds.push(ticket.id);
 
     // First receive: the AI call fails with text that ends up in the ticket's history.
@@ -130,7 +137,10 @@ describe('processMessage — ops email alert', () => {
     await pendingAlerts();
 
     expect(mockSend).not.toHaveBeenCalled();
-    expect(mockOpsEmit).toHaveBeenCalledWith('ticket:needs_attention', expect.objectContaining({ ticketId: ticket.id }));
+    expect(mockOpsEmit).toHaveBeenCalledWith(
+      'ticket:needs_attention',
+      expect.objectContaining({ ticketId: ticket.id })
+    );
   });
 
   it('finishes processing while the SNS call hangs', async () => {

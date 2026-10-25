@@ -12,15 +12,12 @@ export interface TicketEventPage {
   nextSeq: number | null;
 }
 
-export async function insertEvent(
-  ticketId: string,
-  event: string,
-  detail?: string
-): Promise<void> {
-  await pool.query(
-    'INSERT INTO ticket_events (ticket_id, event, detail) VALUES ($1, $2, $3)',
-    [ticketId, event, detail ?? null]
-  );
+export async function insertEvent(ticketId: string, event: string, detail?: string): Promise<void> {
+  await pool.query('INSERT INTO ticket_events (ticket_id, event, detail) VALUES ($1, $2, $3)', [
+    ticketId,
+    event,
+    detail ?? null,
+  ]);
 }
 
 interface TicketEventRow {

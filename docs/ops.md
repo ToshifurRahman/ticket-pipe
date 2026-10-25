@@ -38,18 +38,17 @@ Every event goes through `recordTicketEvent()` (`apps/api/src/services/ticket-ev
 and never affects ticket processing. Customers join only their own ticket room (`join` accepts a
 ticket UUID and nothing else), so they cannot subscribe to the feed.
 
-
 ## Ops sign-in
 
 Everything staff-only sits behind a session: the ticket list (`GET /api/tickets`), replay, all of
 `/api/ops/*` and the `ops:subscribe` socket room. Customers need nothing: submitting a ticket, reading it by id or
 reference, and its live updates stay public.
 
-| Endpoint | Behaviour |
-| --- | --- |
+| Endpoint                                   | Behaviour                                                                                                                                                                          |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `POST /api/ops/session` `{ "token": "…" }` | `200` and a session cookie when the token matches `OPS_TOKEN`. `401` for a wrong one, `429` after 5 wrong tries from one address in 15 minutes, `503` when `OPS_TOKEN` is not set. |
-| `GET /api/ops/session` | `{ "signedIn": true, "expiresAt": "…" }` or `{ "signedIn": false }`. Never `401`. |
-| `DELETE /api/ops/session` | `204`. Ends the session on the server and disconnects its live ops sockets (`ops:revoked`). |
+| `GET /api/ops/session`                     | `{ "signedIn": true, "expiresAt": "…" }` or `{ "signedIn": false }`. Never `401`.                                                                                                  |
+| `DELETE /api/ops/session`                  | `204`. Ends the session on the server and disconnects its live ops sockets (`ops:revoked`).                                                                                        |
 
 The cookie is `HttpOnly; Secure; SameSite=Strict` and holds a random 256-bit id. The server keeps only its SHA-256
 in Redis (`ops:session:<hash>`) with a fixed 12 hour life, so signing out really ends the session, and a copied
@@ -60,7 +59,6 @@ is signed out or expires.
 
 `OPS_TOKEN` is required in production and must be at least 32 characters (`openssl rand -base64 32`). The
 brute-force counter uses the last `X-Forwarded-For` hop, which is the address the hosting proxy saw.
-
 
 ## Ops Email Alerts
 
@@ -91,6 +89,7 @@ holds the reference number, ticket id, reason code and time, and never the subje
 error text. Only `apps/api/src/services/ops-alerts.ts` may publish to SNS (`apps/api/tests/ops-alerts.guard.test.ts`).
 
 **Behaviour**
+
 - One alert per ticket that actually moves into `needs_attention`. A redelivered message that finds the
   ticket already moved sends nothing.
 - Best-effort: the worker doesn't wait for SNS. A failed or slow call (5s timeout, one retry) is logged and
@@ -102,17 +101,16 @@ error text. Only `apps/api/src/services/ops-alerts.ts` may publish to SNS (`apps
 
 **Configuration**
 
-| Variable | Purpose |
-|---|---|
-| `SNS_TOPIC_ARN` | Turns alerts on. Unset (local dev, CI, or after the AWS free plan ends) means no alerts; everything else works unchanged. |
-| `SNS_ENDPOINT` | LocalStack URL for local runs. Leave unset in production to use AWS. |
-| `SNS_ALERT_MAX_PER_HOUR` | Hourly cap, default 20. |
+| Variable                 | Purpose                                                                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `SNS_TOPIC_ARN`          | Turns alerts on. Unset (local dev, CI, or after the AWS free plan ends) means no alerts; everything else works unchanged. |
+| `SNS_ENDPOINT`           | LocalStack URL for local runs. Leave unset in production to use AWS.                                                      |
+| `SNS_ALERT_MAX_PER_HOUR` | Hourly cap, default 20.                                                                                                   |
 
 To try it locally, `bun --filter @ticket-pipe/api setup` creates the `ticket-needs-attention` topic in LocalStack and prints its ARN.
 Set `SNS_TOPIC_ARN` to it. LocalStack doesn't send email, so subscribe a queue to the topic to see the alerts
 (as `apps/api/tests/ops-alerts.localstack.test.ts` does). In production the topic, the email subscription (the recipient
 must click the confirmation link) and `sns:Publish` on that topic for the app's IAM user are set up by hand.
-
 
 ## Ticket Recovery
 
@@ -149,12 +147,11 @@ saving a stage's output but before recording `*.completed`, the next attempt reu
 records `*.completed` with the detail `reused stored output`. If the history says a stage completed but
 its output is missing, the stage runs again.
 
-| Response | When |
-|---|---|
-| `200` | The ticket was requeued. |
-| `404` | No ticket with that id. |
-| `409` | The ticket is not `failed` or `needs_attention` (its current `status` is in the body). Two replays at the same moment: one wins, the other gets `409`. |
-| `503` | The message could not be sent to the queue. The ticket is put back exactly as it was, `ticket.requeue_failed` is recorded, and it can be replayed again. |
+| Response | When                                                                                                                                                     |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `200`    | The ticket was requeued.                                                                                                                                 |
+| `404`    | No ticket with that id.                                                                                                                                  |
+| `409`    | The ticket is not `failed` or `needs_attention` (its current `status` is in the body). Two replays at the same moment: one wins, the other gets `409`.   |
+| `503`    | The message could not be sent to the queue. The ticket is put back exactly as it was, `ticket.requeue_failed` is recorded, and it can be replayed again. |
 
 There is no limit on how many times a ticket can be replayed; every replay is in its history.
-

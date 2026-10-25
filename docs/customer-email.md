@@ -20,15 +20,14 @@ default 250) protects the free quota.
 
 `apps/api/src/lib/mailer.ts` is the only module that sends mail, behind one interface with three drivers:
 
-| `MAIL_DRIVER` | Used for |
-| --- | --- |
-| `smtp` | Local dev and e2e. `docker compose up -d` starts Mailpit (SMTP `:1025`, inbox and API at http://localhost:8025). |
-| `brevo` | Production. Brevo's HTTPS API, because Render's free plan blocks outbound SMTP ports. Needs `BREVO_API_KEY`, `MAIL_FROM` (a sender verified in Brevo) and `PUBLIC_SITE_URL`. |
-| `memory` | Vitest. |
+| `MAIL_DRIVER` | Used for                                                                                                                                                                     |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `smtp`        | Local dev and e2e. `docker compose up -d` starts Mailpit (SMTP `:1025`, inbox and API at http://localhost:8025).                                                             |
+| `brevo`       | Production. Brevo's HTTPS API, because Render's free plan blocks outbound SMTP ports. Needs `BREVO_API_KEY`, `MAIL_FROM` (a sender verified in Brevo) and `PUBLIC_SITE_URL`. |
+| `memory`      | Vitest.                                                                                                                                                                      |
 
 Unset `MAIL_DRIVER` turns the feature off (the card is hidden and the opt-in endpoint answers `503`). In
 production only `brevo` is accepted. The free Brevo plan needs no card and allows 300 emails a day, but with no
 domain of our own the mail is sent from a single verified sender address (a dedicated Gmail), which fails
 DMARC alignment, so some messages may land in spam. The e2e tests (`e2e/notifications.spec.ts`) read the mail
 back through Mailpit's API.
-

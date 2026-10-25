@@ -39,7 +39,9 @@ export async function confirmByTokenHash(tokenHash: string): Promise<string | nu
 }
 
 /** What the confirm page may show before anything changes. Null when the link is not usable. */
-export async function peekByTokenHash(tokenHash: string): Promise<{ ticketId: string; email: string } | null> {
+export async function peekByTokenHash(
+  tokenHash: string
+): Promise<{ ticketId: string; email: string } | null> {
   const { rows } = await pool.query<{ ticket_id: string; email: string }>(
     `SELECT ticket_id, email FROM ticket_notifications
       WHERE token_hash = $1 AND token_expires_at > NOW() AND confirmed_at IS NULL`,
@@ -48,7 +50,10 @@ export async function peekByTokenHash(tokenHash: string): Promise<{ ticketId: st
   return rows[0] ? { ticketId: rows[0].ticket_id, email: rows[0].email } : null;
 }
 
-async function claim(column: 'completed_notified_at' | 'snag_notified_at', ticketId: string): Promise<string | null> {
+async function claim(
+  column: 'completed_notified_at' | 'snag_notified_at',
+  ticketId: string
+): Promise<string | null> {
   const { rows } = await pool.query<{ email: string }>(
     `UPDATE ticket_notifications SET ${column} = NOW()
       WHERE ticket_id = $1 AND confirmed_at IS NOT NULL AND ${column} IS NULL
@@ -62,7 +67,11 @@ export const claimCompleted = (ticketId: string) => claim('completed_notified_at
 export const claimSnag = (ticketId: string) => claim('snag_notified_at', ticketId);
 
 export async function getNotificationStatus(ticketId: string): Promise<NotificationStatus> {
-  const { rows } = await pool.query<{ email: string; confirmed_at: Date | null; completed_notified_at: Date | null }>(
+  const { rows } = await pool.query<{
+    email: string;
+    confirmed_at: Date | null;
+    completed_notified_at: Date | null;
+  }>(
     'SELECT email, confirmed_at, completed_notified_at FROM ticket_notifications WHERE ticket_id = $1',
     [ticketId]
   );
@@ -74,7 +83,10 @@ export async function getNotificationStatus(ticketId: string): Promise<Notificat
 
 /** A fixed reason code only, never the provider's error text (it can echo the address). */
 export async function recordNotificationError(ticketId: string, code: string): Promise<void> {
-  await pool.query('UPDATE ticket_notifications SET last_error = $2 WHERE ticket_id = $1', [ticketId, code]);
+  await pool.query('UPDATE ticket_notifications SET last_error = $2 WHERE ticket_id = $1', [
+    ticketId,
+    code,
+  ]);
 }
 
 /** Undoes an opt-in whose confirmation email could not be sent, so the customer can try again. */

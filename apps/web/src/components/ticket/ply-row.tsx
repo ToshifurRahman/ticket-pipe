@@ -62,9 +62,7 @@ export function PlyRow({ plies, liveClock = false }: { plies: Ply[]; liveClock?:
             </span>
             <span className="label-caps mt-1.5 block text-caption tracking-[0.04em] sm:text-meta sm:tracking-(--tracking-label)">
               {ply.label}
-              <span className="sr-only">
-                {`, stage ${ply.n}, ${SR_STATE[ply.state]}`}
-              </span>
+              <span className="sr-only">{`, stage ${ply.n}, ${SR_STATE[ply.state]}`}</span>
             </span>
             <span className="mt-1 block font-mono text-[0.625rem] sm:text-xs">
               {ply.time ? (

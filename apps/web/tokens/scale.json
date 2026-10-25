@@ -3,85 +3,323 @@
   "primitive": {
     "font": {
       "family": {
-        "sans": { "$type": "fontFamily", "$value": "'Public Sans Variable', ui-sans-serif, system-ui, sans-serif", "$extensions": { "relay.css": ["font-family-sans"] } },
-        "mono": { "$type": "fontFamily", "$value": "'Courier Prime', ui-monospace, monospace", "$extensions": { "relay.css": ["font-family-mono"] } },
-        "label": { "$type": "fontFamily", "$value": "'Archivo Narrow', 'Arial Narrow', ui-sans-serif, sans-serif", "$extensions": { "relay.css": ["font-family-label"] } }
+        "sans": {
+          "$type": "fontFamily",
+          "$value": "'Public Sans Variable', ui-sans-serif, system-ui, sans-serif",
+          "$extensions": { "relay.css": ["font-family-sans"] }
+        },
+        "mono": {
+          "$type": "fontFamily",
+          "$value": "'Courier Prime', ui-monospace, monospace",
+          "$extensions": { "relay.css": ["font-family-mono"] }
+        },
+        "label": {
+          "$type": "fontFamily",
+          "$value": "'Archivo Narrow', 'Arial Narrow', ui-sans-serif, sans-serif",
+          "$extensions": { "relay.css": ["font-family-label"] }
+        }
       },
       "size": {
-        "caption": { "$type": "dimension", "$value": "0.6875rem", "$extensions": { "relay.css": ["font-size-caption"] } },
-        "xs": { "$type": "dimension", "$value": "0.75rem", "$extensions": { "relay.css": ["font-size-xs"] } },
-        "meta": { "$type": "dimension", "$value": "0.8125rem", "$extensions": { "relay.css": ["font-size-meta"] } },
-        "sm": { "$type": "dimension", "$value": "0.875rem", "$extensions": { "relay.css": ["font-size-sm"] } },
-        "base": { "$type": "dimension", "$value": "1rem", "$extensions": { "relay.css": ["font-size-base"] } },
-        "lg": { "$type": "dimension", "$value": "1.125rem", "$extensions": { "relay.css": ["font-size-lg"] } },
-        "xl": { "$type": "dimension", "$value": "1.25rem", "$extensions": { "relay.css": ["font-size-xl"] } },
-        "2xl": { "$type": "dimension", "$value": "1.5rem", "$extensions": { "relay.css": ["font-size-2xl"] } },
-        "3xl": { "$type": "dimension", "$value": "1.875rem", "$extensions": { "relay.css": ["font-size-3xl"] } },
-        "4xl": { "$type": "dimension", "$value": "2.25rem", "$extensions": { "relay.css": ["font-size-4xl"] } },
-        "5xl": { "$type": "dimension", "$value": "3rem", "$extensions": { "relay.css": ["font-size-5xl"] } }
+        "caption": {
+          "$type": "dimension",
+          "$value": "0.6875rem",
+          "$extensions": { "relay.css": ["font-size-caption"] }
+        },
+        "xs": {
+          "$type": "dimension",
+          "$value": "0.75rem",
+          "$extensions": { "relay.css": ["font-size-xs"] }
+        },
+        "meta": {
+          "$type": "dimension",
+          "$value": "0.8125rem",
+          "$extensions": { "relay.css": ["font-size-meta"] }
+        },
+        "sm": {
+          "$type": "dimension",
+          "$value": "0.875rem",
+          "$extensions": { "relay.css": ["font-size-sm"] }
+        },
+        "base": {
+          "$type": "dimension",
+          "$value": "1rem",
+          "$extensions": { "relay.css": ["font-size-base"] }
+        },
+        "lg": {
+          "$type": "dimension",
+          "$value": "1.125rem",
+          "$extensions": { "relay.css": ["font-size-lg"] }
+        },
+        "xl": {
+          "$type": "dimension",
+          "$value": "1.25rem",
+          "$extensions": { "relay.css": ["font-size-xl"] }
+        },
+        "2xl": {
+          "$type": "dimension",
+          "$value": "1.5rem",
+          "$extensions": { "relay.css": ["font-size-2xl"] }
+        },
+        "3xl": {
+          "$type": "dimension",
+          "$value": "1.875rem",
+          "$extensions": { "relay.css": ["font-size-3xl"] }
+        },
+        "4xl": {
+          "$type": "dimension",
+          "$value": "2.25rem",
+          "$extensions": { "relay.css": ["font-size-4xl"] }
+        },
+        "5xl": {
+          "$type": "dimension",
+          "$value": "3rem",
+          "$extensions": { "relay.css": ["font-size-5xl"] }
+        }
       },
       "leading": {
-        "xs": { "$type": "number", "$value": "calc(1 / 0.75)", "$extensions": { "relay.css": ["leading-xs"] } },
-        "sm": { "$type": "number", "$value": "calc(1.25 / 0.875)", "$extensions": { "relay.css": ["leading-sm"] } },
-        "base": { "$type": "number", "$value": "1.55", "$extensions": { "relay.css": ["leading-base"] } },
-        "lg": { "$type": "number", "$value": "calc(1.75 / 1.125)", "$extensions": { "relay.css": ["leading-lg"] } },
-        "xl": { "$type": "number", "$value": "calc(1.75 / 1.25)", "$extensions": { "relay.css": ["leading-xl"] } },
-        "2xl": { "$type": "number", "$value": "calc(2 / 1.5)", "$extensions": { "relay.css": ["leading-2xl"] } },
-        "3xl": { "$type": "number", "$value": "1.2", "$extensions": { "relay.css": ["leading-3xl"] } },
-        "4xl": { "$type": "number", "$value": "calc(2.5 / 2.25)", "$extensions": { "relay.css": ["leading-4xl"] } },
+        "xs": {
+          "$type": "number",
+          "$value": "calc(1 / 0.75)",
+          "$extensions": { "relay.css": ["leading-xs"] }
+        },
+        "sm": {
+          "$type": "number",
+          "$value": "calc(1.25 / 0.875)",
+          "$extensions": { "relay.css": ["leading-sm"] }
+        },
+        "base": {
+          "$type": "number",
+          "$value": "1.55",
+          "$extensions": { "relay.css": ["leading-base"] }
+        },
+        "lg": {
+          "$type": "number",
+          "$value": "calc(1.75 / 1.125)",
+          "$extensions": { "relay.css": ["leading-lg"] }
+        },
+        "xl": {
+          "$type": "number",
+          "$value": "calc(1.75 / 1.25)",
+          "$extensions": { "relay.css": ["leading-xl"] }
+        },
+        "2xl": {
+          "$type": "number",
+          "$value": "calc(2 / 1.5)",
+          "$extensions": { "relay.css": ["leading-2xl"] }
+        },
+        "3xl": {
+          "$type": "number",
+          "$value": "1.2",
+          "$extensions": { "relay.css": ["leading-3xl"] }
+        },
+        "4xl": {
+          "$type": "number",
+          "$value": "calc(2.5 / 2.25)",
+          "$extensions": { "relay.css": ["leading-4xl"] }
+        },
         "5xl": { "$type": "number", "$value": "1", "$extensions": { "relay.css": ["leading-5xl"] } }
       },
       "tracking": {
-        "label": { "$type": "dimension", "$value": "0.08em", "$description": "Printed caps labels: kickers, chips, field captions.", "$extensions": { "relay.css": ["tracking-label"] } },
-        "button": { "$type": "dimension", "$value": "0.1em", "$description": "Printed caps on controls, nav, stamps and table heads.", "$extensions": { "relay.css": ["tracking-button"] } }
+        "label": {
+          "$type": "dimension",
+          "$value": "0.08em",
+          "$description": "Printed caps labels: kickers, chips, field captions.",
+          "$extensions": { "relay.css": ["tracking-label"] }
+        },
+        "button": {
+          "$type": "dimension",
+          "$value": "0.1em",
+          "$description": "Printed caps on controls, nav, stamps and table heads.",
+          "$extensions": { "relay.css": ["tracking-button"] }
+        }
       }
     },
     "space": {
-      "unit": { "$type": "dimension", "$value": "0.25rem", "$description": "The 4px rhythm; every spacing utility is a multiple.", "$extensions": { "relay.css": ["space-unit"] } }
+      "unit": {
+        "$type": "dimension",
+        "$value": "0.25rem",
+        "$description": "The 4px rhythm; every spacing utility is a multiple.",
+        "$extensions": { "relay.css": ["space-unit"] }
+      }
     },
     "size": {
-      "hair": { "$type": "dimension", "$value": "1px", "$description": "One hairline of form ruling.", "$extensions": { "relay.css": ["hair"] } },
-      "rule": { "$type": "dimension", "$value": "2px", "$description": "A heavy rule: focus outlines, the active tab.", "$extensions": { "relay.css": ["rule-width"] } }
+      "hair": {
+        "$type": "dimension",
+        "$value": "1px",
+        "$description": "One hairline of form ruling.",
+        "$extensions": { "relay.css": ["hair"] }
+      },
+      "rule": {
+        "$type": "dimension",
+        "$value": "2px",
+        "$description": "A heavy rule: focus outlines, the active tab.",
+        "$extensions": { "relay.css": ["rule-width"] }
+      }
     },
     "radius": {
-      "none": { "$type": "dimension", "$value": "0", "$description": "Carbon Set is square.", "$extensions": { "relay.css": ["radius"] } }
+      "none": {
+        "$type": "dimension",
+        "$value": "0",
+        "$description": "Carbon Set is square.",
+        "$extensions": { "relay.css": ["radius"] }
+      }
     },
     "motion": {
-      "stamp-duration": { "$type": "duration", "$value": "90ms", "$extensions": { "relay.css": ["duration-stamp"] } },
-      "stamp-easing": { "$type": "cubicBezier", "$value": "steps(2, jump-none)", "$description": "Two hard frames, no easing. Carbon Set's motion grammar: hover and press change in one step.", "$extensions": { "relay.css": ["ease-stamp"] } },
-      "press-duration": { "$type": "duration", "$value": "135ms", "$description": "A rubber stamp: blank, pressed, set, one hard frame each.", "$extensions": { "relay.css": ["duration-press"] } },
-      "print-head": { "$type": "duration", "$value": "270ms", "$description": "The headline printing in on load; also a rate tier sweeping in.", "$extensions": { "relay.css": ["duration-print-head"] } },
-      "print-form": { "$type": "duration", "$value": "480ms", "$description": "The sample form printing in, after the headline.", "$extensions": { "relay.css": ["duration-print-form"] } },
-      "print-cta": { "$type": "duration", "$value": "135ms", "$description": "The hero button printing in, last.", "$extensions": { "relay.css": ["duration-print-cta"] } },
-      "print-cta-delay": { "$type": "duration", "$value": "750ms", "$description": "When the hero button starts printing.", "$extensions": { "relay.css": ["duration-print-cta-delay"] } },
-      "press-delay": { "$type": "duration", "$value": "120ms", "$description": "When a confirmed stamp lands after the click.", "$extensions": { "relay.css": ["duration-press-delay"] } },
-      "ops-stamp-delay": { "$type": "duration", "$value": "300ms", "$description": "When the first Staff only stamp lands on the ops sign-in.", "$extensions": { "relay.css": ["duration-ops-stamp-delay"] } },
-      "ops-stamp-delay-2": { "$type": "duration", "$value": "435ms", "$description": "When the second sign-in stamp lands, one press after the first.", "$extensions": { "relay.css": ["duration-ops-stamp-delay-2"] } },
-      "nudge": { "$type": "duration", "$value": "240ms", "$description": "One press of the idle nudge.", "$extensions": { "relay.css": ["duration-nudge"] } },
-      "print-line": { "$type": "duration", "$value": "180ms", "$description": "One line of a reply printing, like an impact printer.", "$extensions": { "relay.css": ["duration-print-line"] } }
+      "stamp-duration": {
+        "$type": "duration",
+        "$value": "90ms",
+        "$extensions": { "relay.css": ["duration-stamp"] }
+      },
+      "stamp-easing": {
+        "$type": "cubicBezier",
+        "$value": "steps(2, jump-none)",
+        "$description": "Two hard frames, no easing. Carbon Set's motion grammar: hover and press change in one step.",
+        "$extensions": { "relay.css": ["ease-stamp"] }
+      },
+      "press-duration": {
+        "$type": "duration",
+        "$value": "135ms",
+        "$description": "A rubber stamp: blank, pressed, set, one hard frame each.",
+        "$extensions": { "relay.css": ["duration-press"] }
+      },
+      "print-head": {
+        "$type": "duration",
+        "$value": "270ms",
+        "$description": "The headline printing in on load; also a rate tier sweeping in.",
+        "$extensions": { "relay.css": ["duration-print-head"] }
+      },
+      "print-form": {
+        "$type": "duration",
+        "$value": "480ms",
+        "$description": "The sample form printing in, after the headline.",
+        "$extensions": { "relay.css": ["duration-print-form"] }
+      },
+      "print-cta": {
+        "$type": "duration",
+        "$value": "135ms",
+        "$description": "The hero button printing in, last.",
+        "$extensions": { "relay.css": ["duration-print-cta"] }
+      },
+      "print-cta-delay": {
+        "$type": "duration",
+        "$value": "750ms",
+        "$description": "When the hero button starts printing.",
+        "$extensions": { "relay.css": ["duration-print-cta-delay"] }
+      },
+      "press-delay": {
+        "$type": "duration",
+        "$value": "120ms",
+        "$description": "When a confirmed stamp lands after the click.",
+        "$extensions": { "relay.css": ["duration-press-delay"] }
+      },
+      "ops-stamp-delay": {
+        "$type": "duration",
+        "$value": "300ms",
+        "$description": "When the first Staff only stamp lands on the ops sign-in.",
+        "$extensions": { "relay.css": ["duration-ops-stamp-delay"] }
+      },
+      "ops-stamp-delay-2": {
+        "$type": "duration",
+        "$value": "435ms",
+        "$description": "When the second sign-in stamp lands, one press after the first.",
+        "$extensions": { "relay.css": ["duration-ops-stamp-delay-2"] }
+      },
+      "nudge": {
+        "$type": "duration",
+        "$value": "240ms",
+        "$description": "One press of the idle nudge.",
+        "$extensions": { "relay.css": ["duration-nudge"] }
+      },
+      "print-line": {
+        "$type": "duration",
+        "$value": "180ms",
+        "$description": "One line of a reply printing, like an impact printer.",
+        "$extensions": { "relay.css": ["duration-print-line"] }
+      }
     },
     "opacity": {
-      "overlay": { "$type": "number", "$value": "55%", "$extensions": { "relay.css": ["opacity-overlay"] } },
-      "disabled": { "$type": "number", "$value": "45%", "$extensions": { "relay.css": ["opacity-disabled"] } }
+      "overlay": {
+        "$type": "number",
+        "$value": "55%",
+        "$extensions": { "relay.css": ["opacity-overlay"] }
+      },
+      "disabled": {
+        "$type": "number",
+        "$value": "45%",
+        "$extensions": { "relay.css": ["opacity-disabled"] }
+      }
     }
   },
   "component": {
     "control": {
-      "height": { "$type": "dimension", "$value": "3rem", "$description": "A full button (48px).", "$extensions": { "relay.css": ["control-height"] } },
-      "height-sm": { "$type": "dimension", "$value": "2.5rem", "$description": "A small button (40px).", "$extensions": { "relay.css": ["control-height-sm"] } }
+      "height": {
+        "$type": "dimension",
+        "$value": "3rem",
+        "$description": "A full button (48px).",
+        "$extensions": { "relay.css": ["control-height"] }
+      },
+      "height-sm": {
+        "$type": "dimension",
+        "$value": "2.5rem",
+        "$description": "A small button (40px).",
+        "$extensions": { "relay.css": ["control-height-sm"] }
+      }
     },
     "focus": {
-      "width": { "$type": "dimension", "$value": "3px", "$description": "The ink focus ring.", "$extensions": { "relay.css": ["focus-width"] } },
-      "offset": { "$type": "dimension", "$value": "{primitive.size.rule}", "$extensions": { "relay.css": ["focus-offset"] } }
+      "width": {
+        "$type": "dimension",
+        "$value": "3px",
+        "$description": "The ink focus ring.",
+        "$extensions": { "relay.css": ["focus-width"] }
+      },
+      "offset": {
+        "$type": "dimension",
+        "$value": "{primitive.size.rule}",
+        "$extensions": { "relay.css": ["focus-offset"] }
+      }
     },
     "layout": {
-      "content": { "$type": "dimension", "$value": "75rem", "$description": "Content inside a section that already has its gutter: 1200px.", "$extensions": { "relay.css": ["content-width"] } },
-      "page": { "$type": "dimension", "$value": "77rem", "$description": "The page column: 1200px of content plus a 16px gutter each side.", "$extensions": { "relay.css": ["page-width"] } },
-      "table-min": { "$type": "dimension", "$value": "51.25rem", "$description": "The ops ledger scrolls inside its box below this width.", "$extensions": { "relay.css": ["table-min"] } },
-      "cell-max": { "$type": "dimension", "$value": "18.75rem", "$extensions": { "relay.css": ["cell-max"] } },
-      "captcha-height": { "$type": "dimension", "$value": "4.0625rem", "$description": "Turnstile's fixed widget height (65px), reserved so it never shifts layout.", "$extensions": { "relay.css": ["captcha-height"] } },
-      "strip": { "$type": "dimension", "$value": "2.75rem", "$description": "The sticky strip of a landing stage band, phone width.", "$extensions": { "relay.css": ["strip-narrow"] } },
-      "strip-wide": { "$type": "dimension", "$value": "3.5rem", "$description": "The same strip from the md breakpoint up.", "$extensions": { "relay.css": ["strip-wide"] } }
+      "content": {
+        "$type": "dimension",
+        "$value": "75rem",
+        "$description": "Content inside a section that already has its gutter: 1200px.",
+        "$extensions": { "relay.css": ["content-width"] }
+      },
+      "page": {
+        "$type": "dimension",
+        "$value": "77rem",
+        "$description": "The page column: 1200px of content plus a 16px gutter each side.",
+        "$extensions": { "relay.css": ["page-width"] }
+      },
+      "table-min": {
+        "$type": "dimension",
+        "$value": "51.25rem",
+        "$description": "The ops ledger scrolls inside its box below this width.",
+        "$extensions": { "relay.css": ["table-min"] }
+      },
+      "cell-max": {
+        "$type": "dimension",
+        "$value": "18.75rem",
+        "$extensions": { "relay.css": ["cell-max"] }
+      },
+      "captcha-height": {
+        "$type": "dimension",
+        "$value": "4.0625rem",
+        "$description": "Turnstile's fixed widget height (65px), reserved so it never shifts layout.",
+        "$extensions": { "relay.css": ["captcha-height"] }
+      },
+      "strip": {
+        "$type": "dimension",
+        "$value": "2.75rem",
+        "$description": "The sticky strip of a landing stage band, phone width.",
+        "$extensions": { "relay.css": ["strip-narrow"] }
+      },
+      "strip-wide": {
+        "$type": "dimension",
+        "$value": "3.5rem",
+        "$description": "The same strip from the md breakpoint up.",
+        "$extensions": { "relay.css": ["strip-wide"] }
+      }
     }
   }
 }

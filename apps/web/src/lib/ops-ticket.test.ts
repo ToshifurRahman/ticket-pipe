@@ -28,8 +28,11 @@ describe('replayStage', () => {
 });
 
 describe('stateReason', () => {
-  const at = (status: OpsTicketDetail['status'], failureReason: string | null, ph = phases('completed', 'completed')) =>
-    stateReason({ status, failureReason, phases: ph });
+  const at = (
+    status: OpsTicketDetail['status'],
+    failureReason: string | null,
+    ph = phases('completed', 'completed')
+  ) => stateReason({ status, failureReason, phases: ph });
 
   it('names why a ticket failed', () => {
     expect(at('failed', 'draft_retries_exhausted')).toBe('Draft retries exhausted');
@@ -68,7 +71,12 @@ describe('groupTimeline', () => {
   });
 
   it('keeps the same event apart when its detail differs or something sits between', () => {
-    const items = groupTimeline([e('x', 'a', '1'), e('x', 'b', '2'), e('y', null, '3'), e('x', 'b', '4')]);
+    const items = groupTimeline([
+      e('x', 'a', '1'),
+      e('x', 'b', '2'),
+      e('y', null, '3'),
+      e('x', 'b', '4'),
+    ]);
     expect(items.map((i) => i.count)).toEqual([1, 1, 1, 1]);
   });
 

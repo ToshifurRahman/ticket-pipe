@@ -146,21 +146,38 @@
 
 /* The ply stamp: a stage lands on the form in two hard frames, with no easing. */
 @keyframes stamp {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* A rubber stamp: blank, pressed oversize, then set at its tilt. Each frame holds, no easing. */
 @keyframes stamp-press {
-  0% { opacity: 0; }
-  33% { opacity: 1; transform: rotate(var(--stamp-tilt)) scale(1.15); }
-  66%, 100% { opacity: 1; transform: rotate(var(--stamp-tilt)); }
+  0% {
+    opacity: 0;
+  }
+  33% {
+    opacity: 1;
+    transform: rotate(var(--stamp-tilt)) scale(1.15);
+  }
+  66%,
+  100% {
+    opacity: 1;
+    transform: rotate(var(--stamp-tilt));
+  }
 }
 
 /* A reply printing: the paper is there, the ink lands one line at a time (--lines is measured). */
 @keyframes print {
-  from { clip-path: inset(0 0 100% 0); }
-  to { clip-path: inset(0); }
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
 }
 
 /* Every stamp lands at the same angle. */
@@ -214,8 +231,12 @@
 /* The page prints in on load: headline, then the form, then the button. Backwards fill, so
    nothing stays clipped once it has run. */
 @keyframes print-in {
-  from { clip-path: inset(0 0 100% 0); }
-  to { clip-path: inset(0); }
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
 }
 
 @utility animate-print-in-1 {
@@ -223,18 +244,31 @@
 }
 
 @utility animate-print-in-2 {
-  animation: print-in var(--duration-print-form) steps(6, jump-start) var(--duration-print-head) backwards;
+  animation: print-in var(--duration-print-form) steps(6, jump-start) var(--duration-print-head)
+    backwards;
 }
 
 @utility animate-print-in-3 {
-  animation: print-in var(--duration-print-cta) steps(1, jump-start) var(--duration-print-cta-delay) backwards;
+  animation: print-in var(--duration-print-cta) steps(1, jump-start) var(--duration-print-cta-delay)
+    backwards;
 }
 
 /* Idle nudge: a button nobody has touched presses itself down, twice. */
 @keyframes nudge {
-  0% { transform: none; box-shadow: none; }
-  50% { transform: translateY(var(--rule-width)); box-shadow: 0 0 0 calc(var(--rule-width) + var(--hair)) var(--hero), 0 0 0 calc(var(--rule-width) * 2 + var(--hair)) var(--hero-foreground); }
-  100% { transform: none; box-shadow: none; }
+  0% {
+    transform: none;
+    box-shadow: none;
+  }
+  50% {
+    transform: translateY(var(--rule-width));
+    box-shadow:
+      0 0 0 calc(var(--rule-width) + var(--hair)) var(--hero),
+      0 0 0 calc(var(--rule-width) * 2 + var(--hair)) var(--hero-foreground);
+  }
+  100% {
+    transform: none;
+    box-shadow: none;
+  }
 }
 
 @utility animate-nudge {
@@ -243,8 +277,12 @@
 
 /* A rate tier sweeps in from the left in three hard steps. */
 @keyframes sweep {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0); }
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0);
+  }
 }
 
 @utility animate-sweep {
@@ -252,7 +290,8 @@
 }
 
 @utility animate-print {
-  animation: print calc(var(--lines) * var(--duration-print-line)) steps(var(--lines), jump-start) both;
+  animation: print calc(var(--lines) * var(--duration-print-line)) steps(var(--lines), jump-start)
+    both;
 }
 
 @layer base {

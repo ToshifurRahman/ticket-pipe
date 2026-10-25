@@ -21,10 +21,19 @@ const created: string[] = [];
 let completed: { id: string; ref: string };
 let attention: { id: string; ref: string };
 
-async function seedTicket(api: APIRequestContext, cookie: string, subject: string, description: string, status: string) {
+async function seedTicket(
+  api: APIRequestContext,
+  cookie: string,
+  subject: string,
+  description: string,
+  status: string
+) {
   const res = await api.post('/api/tickets', { data: { subject, description } });
   expect(res.status()).toBe(201);
-  const { ticketId, referenceNumber } = (await res.json()) as { ticketId: string; referenceNumber: string };
+  const { ticketId, referenceNumber } = (await res.json()) as {
+    ticketId: string;
+    referenceNumber: string;
+  };
   created.push(ticketId);
   await expect
     .poll(
@@ -41,7 +50,13 @@ async function seedTicket(api: APIRequestContext, cookie: string, subject: strin
 test.beforeAll(async ({ playwright }, testInfo) => {
   const api = await playwright.request.newContext({ baseURL: testInfo.project.use.baseURL });
   const cookie = await opsCookie(api);
-  completed = await seedTicket(api, cookie, 'Accessibility check', 'The totals on my invoice do not add up.', 'completed');
+  completed = await seedTicket(
+    api,
+    cookie,
+    'Accessibility check',
+    'The totals on my invoice do not add up.',
+    'completed'
+  );
   attention = await seedTicket(
     api,
     cookie,
@@ -59,18 +74,35 @@ test.afterAll(async () => {
 // A ticket that ends needs_attention (so it stays open to email opt-in) with a pending opt-in.
 async function optedInTicket(page: Page) {
   const res = await page.request.post('/api/tickets', {
-    data: { subject: 'Accessibility check, email', description: 'The totals on my invoice do not add up. [fake:invalid-triage]' },
+    data: {
+      subject: 'Accessibility check, email',
+      description: 'The totals on my invoice do not add up. [fake:invalid-triage]',
+    },
   });
-  const { ticketId, referenceNumber } = (await res.json()) as { ticketId: string; referenceNumber: string };
+  const { ticketId, referenceNumber } = (await res.json()) as {
+    ticketId: string;
+    referenceNumber: string;
+  };
   created.push(ticketId);
   const address = uniqueAddress();
-  expect((await page.request.post(`/api/tickets/${ticketId}/notification`, { data: { email: address }, headers: asClient() })).status()).toBe(201);
+  expect(
+    (
+      await page.request.post(`/api/tickets/${ticketId}/notification`, {
+        data: { email: address },
+        headers: asClient(),
+      })
+    ).status()
+  ).toBe(201);
   return { ref: referenceNumber, address };
 }
 
 async function expectNoViolations(page: Page, label: string) {
-  const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
-  const summary = violations.map((v) => `${v.id} (${v.nodes.length}): ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`);
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  const summary = violations.map(
+    (v) => `${v.id} (${v.nodes.length}): ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`
+  );
   expect(summary, label).toEqual([]);
 }
 
@@ -83,14 +115,31 @@ async function signInToOps(page: Page) {
 
 async function signInWithCookie(page: Page, request: APIRequestContext) {
   const [name, value] = (await opsCookie(request)).split('=');
-  await page.context().addCookies([{ name: name!, value: value!, url: 'http://localhost:3100', secure: true, httpOnly: true }]);
+  await page
+    .context()
+    .addCookies([
+      { name: name!, value: value!, url: 'http://localhost:3100', secure: true, httpOnly: true },
+    ]);
 }
 
 type Visit = { name: string; open: (page: Page) => Promise<void> };
 
 const visits: Visit[] = [
-  { name: 'landing', open: async (p) => { await p.goto('/'); await expect(p.getByRole('heading', { level: 1 })).toBeVisible(); } },
-  { name: 'new ticket', open: async (p) => { await stubTurnstile(p); await p.goto('/new'); await expect(p.getByLabel('Subject')).toBeVisible(); } },
+  {
+    name: 'landing',
+    open: async (p) => {
+      await p.goto('/');
+      await expect(p.getByRole('heading', { level: 1 })).toBeVisible();
+    },
+  },
+  {
+    name: 'new ticket',
+    open: async (p) => {
+      await stubTurnstile(p);
+      await p.goto('/new');
+      await expect(p.getByLabel('Subject')).toBeVisible();
+    },
+  },
   {
     name: 'new ticket with validation errors',
     open: async (p) => {
@@ -103,8 +152,21 @@ const visits: Visit[] = [
       await expect(p.getByLabel('Description')).toHaveAttribute('aria-invalid', 'true');
     },
   },
-  { name: 'ticket completed', open: async (p) => { await p.goto(`/t/${completed.ref}`); await expect(p.getByText(/^Reply from support/)).toBeVisible(); } },
-  { name: 'ticket needs attention', open: async (p) => { await p.goto(`/t/${attention.ref}`); await expect(p.getByText(/flagged for the team/)).toBeVisible(); await expect(p.getByLabel('Email address')).toBeVisible(); } },
+  {
+    name: 'ticket completed',
+    open: async (p) => {
+      await p.goto(`/t/${completed.ref}`);
+      await expect(p.getByText(/^Reply from support/)).toBeVisible();
+    },
+  },
+  {
+    name: 'ticket needs attention',
+    open: async (p) => {
+      await p.goto(`/t/${attention.ref}`);
+      await expect(p.getByText(/flagged for the team/)).toBeVisible();
+      await expect(p.getByLabel('Email address')).toBeVisible();
+    },
+  },
   {
     name: 'ticket with the email card pending',
     open: async (p) => {
@@ -129,11 +191,41 @@ const visits: Visit[] = [
       await expect(p.getByRole('heading', { name: /expired or was already used/ })).toBeVisible();
     },
   },
-  { name: 'ticket not found', open: async (p) => { await p.goto(`/t/${UNKNOWN_REF}`); await expect(p.getByRole('heading', { name: /couldn't find that ticket/ })).toBeVisible(); } },
-  { name: 'privacy', open: async (p) => { await p.goto('/legal/privacy'); await expect(p.getByRole('heading', { level: 1 })).toBeVisible(); } },
-  { name: 'terms', open: async (p) => { await p.goto('/legal/terms'); await expect(p.getByRole('heading', { level: 1 })).toBeVisible(); } },
-  { name: '404', open: async (p) => { await p.goto('/no-such-page'); await expect(p.getByRole('heading', { level: 1 })).toBeVisible(); } },
-  { name: 'ops signed out', open: async (p) => { await p.goto('/ops'); await expect(p.getByLabel('Ops token')).toBeVisible(); } },
+  {
+    name: 'ticket not found',
+    open: async (p) => {
+      await p.goto(`/t/${UNKNOWN_REF}`);
+      await expect(p.getByRole('heading', { name: /couldn't find that ticket/ })).toBeVisible();
+    },
+  },
+  {
+    name: 'privacy',
+    open: async (p) => {
+      await p.goto('/legal/privacy');
+      await expect(p.getByRole('heading', { level: 1 })).toBeVisible();
+    },
+  },
+  {
+    name: 'terms',
+    open: async (p) => {
+      await p.goto('/legal/terms');
+      await expect(p.getByRole('heading', { level: 1 })).toBeVisible();
+    },
+  },
+  {
+    name: '404',
+    open: async (p) => {
+      await p.goto('/no-such-page');
+      await expect(p.getByRole('heading', { level: 1 })).toBeVisible();
+    },
+  },
+  {
+    name: 'ops signed out',
+    open: async (p) => {
+      await p.goto('/ops');
+      await expect(p.getByLabel('Ops token')).toBeVisible();
+    },
+  },
   {
     name: 'ops list',
     open: async (p) => {
@@ -164,7 +256,9 @@ test('the ticket submitted from /new shows an accessible confirmation', async ({
   await page.getByLabel('Subject').fill('Accessibility check, confirmation');
   await page.getByLabel('Description').fill('Checking the confirmation screen for accessibility.');
   const [response] = await Promise.all([
-    page.waitForResponse((r) => r.url().endsWith('/api/tickets') && r.request().method() === 'POST'),
+    page.waitForResponse(
+      (r) => r.url().endsWith('/api/tickets') && r.request().method() === 'POST'
+    ),
     page.getByRole('button', { name: /Submit ticket/ }).click(),
   ]);
   created.push(((await response.json()) as { ticketId: string }).ticketId);
@@ -210,7 +304,11 @@ test.describe('keyboard', () => {
           const el = document.activeElement as HTMLElement;
           const style = getComputedStyle(el);
           const outline = style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0;
-          return { tag: el.tagName, label: el.getAttribute('aria-label') ?? el.textContent?.trim().slice(0, 30), visible: outline || style.boxShadow !== 'none' };
+          return {
+            tag: el.tagName,
+            label: el.getAttribute('aria-label') ?? el.textContent?.trim().slice(0, 30),
+            visible: outline || style.boxShadow !== 'none',
+          };
         });
         expect(indicator.visible, `${path}: ${indicator.tag} "${indicator.label}"`).toBe(true);
       }

@@ -1,8 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { resolveTicketPhases, resolveTicketFailureCounts, type TicketEventLike } from '../../src/lib/ticket-phases.js';
+import {
+  resolveTicketPhases,
+  resolveTicketFailureCounts,
+  type TicketEventLike,
+} from '../../src/lib/ticket-phases.js';
 
 function events(...names: string[]): TicketEventLike[] {
-  return names.map(event => ({ event }));
+  return names.map((event) => ({ event }));
 }
 
 describe('resolveTicketPhases', () => {
@@ -31,15 +35,19 @@ describe('resolveTicketPhases', () => {
   });
 
   it('resolves triage failure while leaving draft pending', () => {
-    expect(resolveTicketPhases(events('triage.started', 'triage.failed', 'ticket.failed'))).toEqual({
-      triage: { status: 'failed' },
-      draft: { status: 'pending' },
-    });
+    expect(resolveTicketPhases(events('triage.started', 'triage.failed', 'ticket.failed'))).toEqual(
+      {
+        triage: { status: 'failed' },
+        draft: { status: 'pending' },
+      }
+    );
   });
 
   it('resolves draft failure after triage completion', () => {
     expect(
-      resolveTicketPhases(events('triage.started', 'triage.completed', 'draft.started', 'draft.failed'))
+      resolveTicketPhases(
+        events('triage.started', 'triage.completed', 'draft.started', 'draft.failed')
+      )
     ).toEqual({
       triage: { status: 'completed' },
       draft: { status: 'failed' },
@@ -72,9 +80,10 @@ describe('resolveTicketFailureCounts', () => {
   });
 
   it('counts each triage.failed event independently', () => {
-    expect(
-      resolveTicketFailureCounts(events('triage.failed', 'triage.failed'))
-    ).toEqual({ triage: 2, draft: 0 });
+    expect(resolveTicketFailureCounts(events('triage.failed', 'triage.failed'))).toEqual({
+      triage: 2,
+      draft: 0,
+    });
   });
 
   it('counts each draft.failed event independently', () => {
@@ -102,7 +111,13 @@ describe('resolveTicketFailureCounts', () => {
   it('ignores non-failure events', () => {
     expect(
       resolveTicketFailureCounts(
-        events('triage.started', 'triage.completed', 'draft.started', 'draft.completed', 'ticket.completed')
+        events(
+          'triage.started',
+          'triage.completed',
+          'draft.started',
+          'draft.completed',
+          'ticket.completed'
+        )
       )
     ).toEqual({ triage: 0, draft: 0 });
   });
@@ -112,7 +127,14 @@ describe('resolveTicketFailureCounts — replay', () => {
   it('counts only failures since the last ticket.requeued', () => {
     expect(
       resolveTicketFailureCounts(
-        events('triage.failed', 'triage.failed', 'triage.failed', 'ticket.failed', 'ticket.requeued', 'triage.failed')
+        events(
+          'triage.failed',
+          'triage.failed',
+          'triage.failed',
+          'ticket.failed',
+          'ticket.requeued',
+          'triage.failed'
+        )
       )
     ).toEqual({ triage: 1, draft: 0 });
   });
@@ -126,12 +148,22 @@ describe('resolveTicketFailureCounts — replay', () => {
 
 describe('resolveTicketPhases — replay (story 5.4)', () => {
   const draftFailed = events(
-    'triage.started', 'triage.completed',
-    'draft.started', 'draft.failed', 'draft.started', 'draft.failed', 'draft.started', 'draft.failed',
+    'triage.started',
+    'triage.completed',
+    'draft.started',
+    'draft.failed',
+    'draft.started',
+    'draft.failed',
+    'draft.started',
+    'draft.failed',
     'ticket.failed'
   );
   const needsAttention = events(
-    'triage.started', 'triage.completed', 'draft.started', 'draft.completed', 'ticket.needs_attention'
+    'triage.started',
+    'triage.completed',
+    'draft.started',
+    'draft.completed',
+    'ticket.needs_attention'
   );
 
   it('after ticket.failed, resets only the failed phase and keeps completed ones', () => {
@@ -150,7 +182,10 @@ describe('resolveTicketPhases — replay (story 5.4)', () => {
 
   it('tracks the new attempt after the reset', () => {
     expect(
-      resolveTicketPhases([...needsAttention, ...events('ticket.requeued', 'triage.started', 'triage.completed')])
+      resolveTicketPhases([
+        ...needsAttention,
+        ...events('ticket.requeued', 'triage.started', 'triage.completed'),
+      ])
     ).toEqual({
       triage: { status: 'completed' },
       draft: { status: 'pending' },
@@ -158,7 +193,9 @@ describe('resolveTicketPhases — replay (story 5.4)', () => {
   });
 
   it('restores the earlier phases when the replay is rolled back', () => {
-    expect(resolveTicketPhases([...draftFailed, ...events('ticket.requeued', 'ticket.requeue_failed')])).toEqual({
+    expect(
+      resolveTicketPhases([...draftFailed, ...events('ticket.requeued', 'ticket.requeue_failed')])
+    ).toEqual({
       triage: { status: 'completed' },
       draft: { status: 'failed' },
     });
@@ -168,7 +205,15 @@ describe('resolveTicketPhases — replay (story 5.4)', () => {
     expect(
       resolveTicketPhases([
         ...needsAttention,
-        ...events('ticket.requeued', 'triage.started', 'triage.completed', 'draft.started', 'draft.failed', 'ticket.failed', 'ticket.requeued'),
+        ...events(
+          'ticket.requeued',
+          'triage.started',
+          'triage.completed',
+          'draft.started',
+          'draft.failed',
+          'ticket.failed',
+          'ticket.requeued'
+        ),
       ])
     ).toEqual({
       triage: { status: 'completed' },
@@ -179,7 +224,11 @@ describe('resolveTicketPhases — replay (story 5.4)', () => {
 
 describe('resolveTicketPhases — resume from the first bad stage', () => {
   const draftInvalid = events(
-    'triage.started', 'triage.completed', 'draft.started', 'draft.invalid', 'ticket.needs_attention'
+    'triage.started',
+    'triage.completed',
+    'draft.started',
+    'draft.invalid',
+    'ticket.needs_attention'
   );
   const triageInvalid = events('triage.started', 'triage.invalid', 'ticket.needs_attention');
 
@@ -206,7 +255,9 @@ describe('resolveTicketPhases — resume from the first bad stage', () => {
 
   it('after a failed triage, resets every stage from triage onward', () => {
     expect(
-      resolveTicketPhases(events('triage.started', 'triage.failed', 'ticket.failed', 'ticket.requeued'))
+      resolveTicketPhases(
+        events('triage.started', 'triage.failed', 'ticket.failed', 'ticket.requeued')
+      )
     ).toEqual({
       triage: { status: 'pending' },
       draft: { status: 'pending' },
@@ -215,7 +266,10 @@ describe('resolveTicketPhases — resume from the first bad stage', () => {
 
   it('keeps the marker across a rolled-back replay', () => {
     expect(
-      resolveTicketPhases([...draftInvalid, ...events('ticket.requeued', 'ticket.requeue_failed', 'ticket.requeued')])
+      resolveTicketPhases([
+        ...draftInvalid,
+        ...events('ticket.requeued', 'ticket.requeue_failed', 'ticket.requeued'),
+      ])
     ).toEqual({
       triage: { status: 'completed' },
       draft: { status: 'pending' },
@@ -226,7 +280,13 @@ describe('resolveTicketPhases — resume from the first bad stage', () => {
     expect(
       resolveTicketPhases([
         ...draftInvalid,
-        ...events('ticket.requeued', 'draft.started', 'draft.completed', 'ticket.needs_attention', 'ticket.requeued'),
+        ...events(
+          'ticket.requeued',
+          'draft.started',
+          'draft.completed',
+          'ticket.needs_attention',
+          'ticket.requeued'
+        ),
       ])
     ).toEqual({
       triage: { status: 'pending' },
@@ -235,7 +295,10 @@ describe('resolveTicketPhases — resume from the first bad stage', () => {
   });
 
   it('does not count *.invalid as a failure', () => {
-    expect(resolveTicketFailureCounts([...triageInvalid, ...draftInvalid])).toEqual({ triage: 0, draft: 0 });
+    expect(resolveTicketFailureCounts([...triageInvalid, ...draftInvalid])).toEqual({
+      triage: 0,
+      draft: 0,
+    });
   });
 });
 
@@ -243,7 +306,14 @@ describe('resolveTicketFailureCounts — rolled-back replay (story 5.4)', () => 
   it('brings the earlier counts back on ticket.requeue_failed', () => {
     expect(
       resolveTicketFailureCounts(
-        events('draft.failed', 'draft.failed', 'draft.failed', 'ticket.failed', 'ticket.requeued', 'ticket.requeue_failed')
+        events(
+          'draft.failed',
+          'draft.failed',
+          'draft.failed',
+          'ticket.failed',
+          'ticket.requeued',
+          'ticket.requeue_failed'
+        )
       )
     ).toEqual({ triage: 0, draft: 3 });
   });
@@ -251,7 +321,14 @@ describe('resolveTicketFailureCounts — rolled-back replay (story 5.4)', () => 
   it('starts fresh again on the next successful replay', () => {
     expect(
       resolveTicketFailureCounts(
-        events('draft.failed', 'draft.failed', 'ticket.failed', 'ticket.requeued', 'ticket.requeue_failed', 'ticket.requeued')
+        events(
+          'draft.failed',
+          'draft.failed',
+          'ticket.failed',
+          'ticket.requeued',
+          'ticket.requeue_failed',
+          'ticket.requeued'
+        )
       )
     ).toEqual({ triage: 0, draft: 0 });
   });

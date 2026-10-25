@@ -70,7 +70,9 @@ afterEach(async () => {
   for (const client of openClients.splice(0)) client.disconnect();
   if (createdIds.length) {
     await purgeTicketEvents(createdIds);
-    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
+    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [
+      createdIds,
+    ]);
     await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
     createdIds.length = 0;
   }
@@ -160,7 +162,11 @@ describe('notification delivery vs. ticket processing', () => {
 
     // Only the event name reaches the customer's room: the page refetches the public view,
     // so no stage output (internal note, sentiment, …) travels over the socket.
-    expect(payload).toEqual({ event: 'ticket.completed', ticketId, occurredAt: expect.any(String) });
+    expect(payload).toEqual({
+      event: 'ticket.completed',
+      ticketId,
+      occurredAt: expect.any(String),
+    });
     expect((await getTicketById(ticketId)).status).toBe('completed');
   });
 

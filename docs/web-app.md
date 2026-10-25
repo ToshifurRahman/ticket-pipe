@@ -38,12 +38,12 @@ return `sentiment`, `escalate`, `recommendedTeam`, `issueSummary`, `internalNote
 field stays private until it is added there on purpose; `apps/api/tests/api/ticket-redaction.test.ts` checks the exact
 set of keys.
 
-| Route | View |
-|---|---|
-| `GET /api/tickets/:id`, `GET /api/tickets/ref/:ref` | Public |
-| `GET /api/tickets/:id/events` | Public (`event`, `occurredAt`) |
-| `GET /api/ops/tickets/:id` | Full: every stage output and event `detail` |
-| `GET /api/ops/tickets/:id/events` | Full, same paging |
+| Route                                               | View                                        |
+| --------------------------------------------------- | ------------------------------------------- |
+| `GET /api/tickets/:id`, `GET /api/tickets/ref/:ref` | Public                                      |
+| `GET /api/tickets/:id/events`                       | Public (`event`, `occurredAt`)              |
+| `GET /api/ops/tickets/:id`                          | Full: every stage output and event `detail` |
+| `GET /api/ops/tickets/:id/events`                   | Full, same paging                           |
 
 The ops routes need an ops session (see [Ops sign-in](ops.md#ops-sign-in)).
 
@@ -67,16 +67,15 @@ a `401` from any console request sends the operator back to it, and **Sign out**
 `apps/web/src/pages/ops.test.tsx` and `apps/web/src/components/ops/ticket-drawer.test.tsx` cover the console; `e2e/ops-console.spec.ts`
 signs in, filters to a `needs_attention` ticket made with `[fake:invalid-draft]`, replays it and watches the row complete.
 
-
 ## Testing without an AI provider
 
 `LLM_MODE=fake` returns canned triage and draft output at the provider boundary, so tickets complete without Portkey or any API key. Everything above that layer still runs for real (retries, validation, `ai_interactions` rows with model `fake`, events, notifications).
 
-| Setting | Effect |
-|---|---|
-| `LLM_FAKE_DELAY_MS` | Delay per fake call (default `1500`, so the typing indicators are visible). Tests use `0`. |
-| `[fake:invalid-triage]` in a description | Triage returns blank fields, so the ticket goes to `needs_attention` |
-| `[fake:invalid-draft]` in a description | Draft returns a blank reply, so the ticket goes to `needs_attention` |
+| Setting                                  | Effect                                                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `LLM_FAKE_DELAY_MS`                      | Delay per fake call (default `1500`, so the typing indicators are visible). Tests use `0`. |
+| `[fake:invalid-triage]` in a description | Triage returns blank fields, so the ticket goes to `needs_attention`                       |
+| `[fake:invalid-draft]` in a description  | Draft returns a blank reply, so the ticket goes to `needs_attention`                       |
 
 The API and the worker both refuse to start with `LLM_MODE=fake` when `NODE_ENV=production`, and with any `LLM_MODE` other than `real` or `fake`.
 
@@ -88,4 +87,3 @@ bun run test:e2e    # Playwright against the built app; needs `docker compose up
 `test:e2e` builds the web app and starts `e2e/stack.ts`: the API and the worker in one process with
 `LLM_MODE=fake`, so submitted tickets really get processed. Stop any dev worker before running it, because it
 reads the same queue and, in real mode, would spend LLM calls on e2e tickets.
-

@@ -22,11 +22,16 @@ async function submitAndWatch(page: Page, subject: string, description: string) 
   const submit = page.getByRole('button', { name: /Submit ticket/ });
   await expect(submit).toBeEnabled();
   const [response] = await Promise.all([
-    page.waitForResponse((r) => r.url().endsWith('/api/tickets') && r.request().method() === 'POST'),
+    page.waitForResponse(
+      (r) => r.url().endsWith('/api/tickets') && r.request().method() === 'POST'
+    ),
     submit.click(),
   ]);
   expect(response.status()).toBe(201);
-  const { ticketId, referenceNumber } = (await response.json()) as { ticketId: string; referenceNumber: string };
+  const { ticketId, referenceNumber } = (await response.json()) as {
+    ticketId: string;
+    referenceNumber: string;
+  };
   created.push(ticketId);
 
   await page.getByRole('link', { name: /Watch it live/ }).click();
@@ -40,21 +45,33 @@ async function expectReply(page: Page) {
   await expect(badges.getByText('General')).toBeVisible();
   await expect(badges.getByText('Medium priority')).toBeVisible();
   await expect(page.getByText(/This conversation is closed/)).toBeVisible();
-  await expect(page.getByRole('link', { name: /Open a new ticket/ })).toHaveAttribute('href', '/new');
+  await expect(page.getByRole('link', { name: /Open a new ticket/ })).toHaveAttribute(
+    'href',
+    '/new'
+  );
 }
 
 test('a submitted ticket gets its reply live on the thread page', async ({ page }) => {
-  await submitAndWatch(page, 'Report export never starts', 'The CSV export button spins and then nothing downloads.');
+  await submitAndWatch(
+    page,
+    'Report export never starts',
+    'The CSV export button spins and then nothing downloads.'
+  );
 
   await expect(page.getByRole('heading', { name: 'Report export never starts' })).toBeVisible();
-  await expect(page.getByText('The CSV export button spins and then nothing downloads.')).toBeVisible();
+  await expect(
+    page.getByText('The CSV export button spins and then nothing downloads.')
+  ).toBeVisible();
   await expect(page.getByRole('status')).toHaveText(/Reading your request...|Writing a reply.../);
 
   await expectReply(page);
   await expect(page.getByRole('status')).toHaveCount(0);
 });
 
-test('a ticket that needs a closer look picks up live after the team replays it', async ({ page, request }) => {
+test('a ticket that needs a closer look picks up live after the team replays it', async ({
+  page,
+  request,
+}) => {
   const { ticketId } = await submitAndWatch(
     page,
     'Invoice totals look wrong',

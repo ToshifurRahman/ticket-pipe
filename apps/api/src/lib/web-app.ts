@@ -46,7 +46,11 @@ async function readBest(file: string, acceptEncoding: string | undefined) {
   return { body: await readFile(file), encoding: null };
 }
 
-function fileHeaders(contentType: string, cache: string, encoding: Encoding | null): Record<string, string> {
+function fileHeaders(
+  contentType: string,
+  cache: string,
+  encoding: Encoding | null
+): Record<string, string> {
   return {
     'content-type': contentType,
     'cache-control': cache,
@@ -66,7 +70,9 @@ function staticFiles(distDir: string) {
       const file = path.resolve(root, '.' + decodeURIComponent(c.req.path));
       if (!file.startsWith(root + path.sep) || !(await stat(file)).isFile()) return next();
       // Vite fingerprints everything under /assets/, so it can be cached forever.
-      const cache = c.req.path.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache';
+      const cache = c.req.path.startsWith('/assets/')
+        ? 'public, max-age=31536000, immutable'
+        : 'no-cache';
       const { body, encoding } = await readBest(file, c.req.header('accept-encoding'));
       return new Response(c.req.method === 'HEAD' ? null : body, {
         headers: fileHeaders(getMimeType(file) ?? 'application/octet-stream', cache, encoding),
@@ -83,7 +89,12 @@ function notFoundHandler(indexFile: string | null) {
   return async (c: Context) => {
     if (API_PATH.test(c.req.path)) return c.json({ error: 'Not found' }, 404);
     const isRead = c.req.method === 'GET' || c.req.method === 'HEAD';
-    if (indexFile && isRead && !NON_APP_PATH.test(c.req.path) && acceptsHtml(c.req.header('accept'))) {
+    if (
+      indexFile &&
+      isRead &&
+      !NON_APP_PATH.test(c.req.path) &&
+      acceptsHtml(c.req.header('accept'))
+    ) {
       const { body, encoding } = await readBest(indexFile, c.req.header('accept-encoding'));
       return new Response(c.req.method === 'HEAD' ? null : body, {
         headers: fileHeaders('text/html; charset=UTF-8', 'no-cache', encoding),
@@ -99,7 +110,10 @@ function notFoundHandler(indexFile: string | null) {
 export function mountWebApp<E extends Env>(app: Hono<E>, distDir: string): boolean {
   const indexFile = path.join(distDir, 'index.html');
   if (!existsSync(indexFile)) {
-    logger.warn({ distDir }, 'web/dist not built; run `bun --filter @ticket-pipe/web build`, or use the Vite dev server (bun --filter @ticket-pipe/web dev)');
+    logger.warn(
+      { distDir },
+      'web/dist not built; run `bun --filter @ticket-pipe/web build`, or use the Vite dev server (bun --filter @ticket-pipe/web dev)'
+    );
     app.notFound(notFoundHandler(null));
     return false;
   }

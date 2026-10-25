@@ -11,7 +11,9 @@ import { server } from '@/test/server';
 import { TICKET_ID, TICKET_REF, ticketAt } from '@/test/ticket-fixtures';
 import { TicketPage } from './ticket';
 
-const fakeSocket = vi.hoisted(() => ({ current: null as ReturnType<typeof createFakeSocket> | null }));
+const fakeSocket = vi.hoisted(() => ({
+  current: null as ReturnType<typeof createFakeSocket> | null,
+}));
 vi.mock('@/lib/socket', () => ({ getSocket: () => fakeSocket.current }));
 const socket = () => fakeSocket.current!;
 
@@ -24,7 +26,9 @@ beforeEach(() => {
   fakeSocket.current = createFakeSocket();
   lookups = 0;
   server.use(
-    http.get('/api/tickets/:id/notification', () => HttpResponse.json({ available: false, state: 'none' })),
+    http.get('/api/tickets/:id/notification', () =>
+      HttpResponse.json({ available: false, state: 'none' })
+    ),
     http.get('/api/tickets/ref/:ref', () => {
       lookups++;
       return HttpResponse.json(current);
@@ -57,8 +61,12 @@ describe('ticket page: live thread', () => {
     current = ticketAt('queued');
     renderAt();
 
-    const article = (await screen.findByRole('heading', { name: 'Charged twice in March' })).closest('article')!;
-    expect(screen.getByText('My card was charged twice for the March invoice.')).toBeInTheDocument();
+    const article = (
+      await screen.findByRole('heading', { name: 'Charged twice in March' })
+    ).closest('article')!;
+    expect(
+      screen.getByText('My card was charged twice for the March invoice.')
+    ).toBeInTheDocument();
     expect(await indicator()).toHaveTextContent('Reading your request...');
     expect(screen.queryByText('Billing')).not.toBeInTheDocument();
 
@@ -80,12 +88,16 @@ describe('ticket page: live thread', () => {
     expect(await screen.findByText('We refunded the duplicate charge.')).toBeInTheDocument();
     expect(screen.getByText(/^Reply from support/)).toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    expect(within(screen.getByRole('list', { name: 'Progress' })).getByText('Replied')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('list', { name: 'Progress' })).getByText('Replied')
+    ).toBeInTheDocument();
     expect(screen.getByText(/This conversation is closed/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Open a new ticket/ })).toHaveAttribute('href', '/new');
 
     // The same page throughout, and a completed ticket stops listening.
-    expect(screen.getByRole('heading', { name: 'Charged twice in March' }).closest('article')).toBe(article);
+    expect(screen.getByRole('heading', { name: 'Charged twice in March' }).closest('article')).toBe(
+      article
+    );
     expect(socket().disconnect).toHaveBeenCalled();
   });
 
@@ -146,9 +158,15 @@ describe('ticket page: other states', () => {
   });
 
   it('shows a friendly not-found state with the track field for an unknown ref', async () => {
-    server.use(http.get('/api/tickets/ref/:ref', () => HttpResponse.json({ error: 'Ticket not found' }, { status: 404 })));
+    server.use(
+      http.get('/api/tickets/ref/:ref', () =>
+        HttpResponse.json({ error: 'Ticket not found' }, { status: 404 })
+      )
+    );
     renderAt();
-    expect(await screen.findByRole('heading', { name: "We couldn't find that ticket" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: "We couldn't find that ticket" })
+    ).toBeInTheDocument();
     expect(screen.getByText(/Not on file/)).toBeInTheDocument();
     expect(screen.getByLabelText('Ticket reference')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open a new ticket' })).toHaveAttribute('href', '/new');
@@ -156,7 +174,9 @@ describe('ticket page: other states', () => {
 
   it('shows not-found for a malformed ref without asking the API', () => {
     renderAt('not-a-ref');
-    expect(screen.getByRole('heading', { name: "We couldn't find that ticket" })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: "We couldn't find that ticket" })
+    ).toBeInTheDocument();
     expect(lookups).toBe(0);
   });
 
@@ -170,16 +190,22 @@ describe('ticket page: other states', () => {
     let fail = true;
     server.use(
       http.get('/api/tickets/ref/:ref', () =>
-        fail ? HttpResponse.json({ error: 'boom' }, { status: 500 }) : HttpResponse.json(ticketAt('queued'))
+        fail
+          ? HttpResponse.json({ error: 'boom' }, { status: 500 })
+          : HttpResponse.json(ticketAt('queued'))
       )
     );
     renderAt();
 
     const retry = await screen.findByRole('button', { name: /Try again/ }, { timeout: 5000 });
-    expect(screen.getByRole('heading', { name: "We couldn't load this ticket right now" })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: "We couldn't load this ticket right now" })
+    ).toBeInTheDocument();
 
     fail = false;
     await act(async () => retry.click());
-    expect(await screen.findByRole('heading', { name: 'Charged twice in March' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Charged twice in March' })
+    ).toBeInTheDocument();
   });
 });

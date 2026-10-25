@@ -8,7 +8,9 @@ test.afterAll(async () => {
   for (const id of created) await removeTicket(id);
 });
 
-test('a customer submits a ticket with the keyboard and finds it again after a reload', async ({ page }) => {
+test('a customer submits a ticket with the keyboard and finds it again after a reload', async ({
+  page,
+}) => {
   await stubTurnstile(page);
   await page.goto('/new');
   await expect(page.getByRole('heading', { name: 'How can we help?' })).toBeVisible();
@@ -33,24 +35,34 @@ test('a customer submits a ticket with the keyboard and finds it again after a r
   await page.keyboard.type('port export never starts');
   await expect(page.getByText('Subject needs at least 3 characters.')).toBeHidden();
   await page.keyboard.press('Tab');
-  await page.keyboard.type('The CSV export button spins for a few seconds and then nothing downloads.');
+  await page.keyboard.type(
+    'The CSV export button spins for a few seconds and then nothing downloads.'
+  );
   await expect(page.getByText('73 / 5000')).toBeVisible();
 
   await page.keyboard.press('Tab');
   await expect(submit).toBeFocused();
   await expect(submit).toBeEnabled();
   const [response] = await Promise.all([
-    page.waitForResponse((r) => r.url().endsWith('/api/tickets') && r.request().method() === 'POST'),
+    page.waitForResponse(
+      (r) => r.url().endsWith('/api/tickets') && r.request().method() === 'POST'
+    ),
     page.keyboard.press('Enter'),
   ]);
   expect(response.status()).toBe(201);
-  const { ticketId, referenceNumber } = (await response.json()) as { ticketId: string; referenceNumber: string };
+  const { ticketId, referenceNumber } = (await response.json()) as {
+    ticketId: string;
+    referenceNumber: string;
+  };
   created.push(ticketId);
   expect(response.request().postDataJSON()).toMatchObject({ turnstileToken: 'e2e-token' });
 
   await expect(page.getByRole('heading', { name: "We're on it" })).toBeFocused();
   await expect(page.getByTestId('ticket-reference')).toHaveText(referenceNumber);
-  await expect(page.getByRole('link', { name: /Watch it live/ })).toHaveAttribute('href', `/t/${referenceNumber}`);
+  await expect(page.getByRole('link', { name: /Watch it live/ })).toHaveAttribute(
+    'href',
+    `/t/${referenceNumber}`
+  );
 
   await page.reload();
   const recent = page.getByRole('region', { name: 'Your recent tickets' });
@@ -63,7 +75,9 @@ test('a customer submits a ticket with the keyboard and finds it again after a r
 });
 
 test('the API rejects lengths outside the limits with field errors', async ({ request }) => {
-  const res = await request.post('/api/tickets', { data: { subject: 'ab', description: 'x'.repeat(5001) } });
+  const res = await request.post('/api/tickets', {
+    data: { subject: 'ab', description: 'x'.repeat(5001) },
+  });
   expect(res.status()).toBe(400);
   expect(await res.json()).toEqual({
     errors: {

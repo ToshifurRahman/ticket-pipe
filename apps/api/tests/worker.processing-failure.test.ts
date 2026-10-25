@@ -65,7 +65,9 @@ afterEach(async () => {
   mockDraft.mockReset();
   if (createdIds.length) {
     await purgeTicketEvents(createdIds);
-    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
+    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [
+      createdIds,
+    ]);
     await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
     createdIds.length = 0;
   }
@@ -81,12 +83,14 @@ describe('processMessage — finalization failure', () => {
     const ticket = await insertTicket('TICK-PROC-001', 'Sub', 'Desc');
     createdIds.push(ticket.id);
 
-    await expect(processMessage(ticket.id, 'fake-receipt', 1, mockAi())).rejects.toThrow('DB constraint violated');
+    await expect(processMessage(ticket.id, 'fake-receipt', 1, mockAi())).rejects.toThrow(
+      'DB constraint violated'
+    );
 
     expect((await getTicketById(ticket.id)).status).toBe('processing');
     expect(deleteMessage).not.toHaveBeenCalled();
     const events = await getAllEventsByTicketId(ticket.id);
-    expect(events.map(e => e.event)).not.toContain('ticket.failed');
+    expect(events.map((e) => e.event)).not.toContain('ticket.failed');
   });
 
   it('does not run the draft AI call again on the retry', async () => {
@@ -114,7 +118,9 @@ describe('processMessage — finalization failure', () => {
     expect(updated.status).toBe('failed');
     expect(updated.failureReason).toBe('finalize_failed');
     expect(deleteMessage).toHaveBeenCalledWith('fake-receipt');
-    const failedEvent = (await getAllEventsByTicketId(ticket.id)).find(e => e.event === 'ticket.failed');
+    const failedEvent = (await getAllEventsByTicketId(ticket.id)).find(
+      (e) => e.event === 'ticket.failed'
+    );
     expect(failedEvent?.detail).toBe('DB constraint violated');
   });
 
@@ -126,7 +132,7 @@ describe('processMessage — finalization failure', () => {
     await processMessage(ticket.id, 'fake-receipt', 6, mockAi());
 
     const events = await getAllEventsByTicketId(ticket.id);
-    expect(events.map(e => e.event)).not.toContain('ticket.completed');
+    expect(events.map((e) => e.event)).not.toContain('ticket.completed');
   });
 
   it('processing row has triage and draft data even when finalization fails', async () => {

@@ -3,7 +3,12 @@ import { describe, it, expect, vi, afterEach, afterAll } from 'vitest';
 
 const mockQueue = vi.hoisted(
   () =>
-    [] as Array<{ ticketId: string; referenceNumber: string; receiptHandle: string; attemptNumber: number }>
+    [] as Array<{
+      ticketId: string;
+      referenceNumber: string;
+      receiptHandle: string;
+      attemptNumber: number;
+    }>
 );
 
 const TRIAGE_RESULT = {
@@ -41,7 +46,12 @@ vi.mock('../src/lib/socket.js', async (importOriginal) => {
 
 vi.mock('../src/lib/queue.js', () => ({
   enqueueTicket: vi.fn(async (ticketId: string, referenceNumber: string) => {
-    mockQueue.push({ ticketId, referenceNumber, receiptHandle: `receipt-${ticketId}`, attemptNumber: 1 });
+    mockQueue.push({
+      ticketId,
+      referenceNumber,
+      receiptHandle: `receipt-${ticketId}`,
+      attemptNumber: 1,
+    });
   }),
   receiveMessages: vi.fn(async (options?: { maxMessages?: number }) => {
     const maxMessages = Math.max(1, Math.min(10, Math.floor(options?.maxMessages ?? 10)));
@@ -66,7 +76,9 @@ afterEach(async () => {
 
   if (createdIds.length) {
     await purgeTicketEvents(createdIds);
-    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
+    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [
+      createdIds,
+    ]);
     await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
     createdIds.length = 0;
   }
@@ -78,7 +90,6 @@ afterAll(async () => {
 
 describe('run — surge concurrency', () => {
   it('processes 20 simultaneous submissions without serial start blocking', async () => {
-
     const batchSize = 20;
     const now = Date.now();
 
@@ -87,29 +98,31 @@ describe('run — surge concurrency', () => {
         insertTicket(`TICK-CONC-${now}-${i}`, `Subject ${i}`, `Description ${i}`)
       )
     );
-    createdIds.push(...tickets.map(t => t.id));
+    createdIds.push(...tickets.map((t) => t.id));
 
-    await Promise.all(tickets.map(ticket => enqueueTicket(ticket.id, ticket.referenceNumber)));
+    await Promise.all(tickets.map((ticket) => enqueueTicket(ticket.id, ticket.referenceNumber)));
 
     await run({ concurrency: 5, stopWhenIdle: true, receiveWaitTimeSeconds: 0 });
 
-    const ticketStates = await Promise.all(tickets.map(ticket => getTicketById(ticket.id)));
-    expect(ticketStates.every(ticket => ticket.status === 'completed')).toBe(true);
+    const ticketStates = await Promise.all(tickets.map((ticket) => getTicketById(ticket.id)));
+    expect(ticketStates.every((ticket) => ticket.status === 'completed')).toBe(true);
 
-    const ticketEvents = await Promise.all(tickets.map(ticket => getAllEventsByTicketId(ticket.id)));
+    const ticketEvents = await Promise.all(
+      tickets.map((ticket) => getAllEventsByTicketId(ticket.id))
+    );
     const startedAt = ticketEvents
-      .map(events => events.find(event => event.event === 'triage.started')?.occurredAt)
+      .map((events) => events.find((event) => event.event === 'triage.started')?.occurredAt)
       .filter((value): value is Date => value instanceof Date);
     const completedAt = ticketEvents
-      .map(events => events.find(event => event.event === 'ticket.completed')?.occurredAt)
+      .map((events) => events.find((event) => event.event === 'ticket.completed')?.occurredAt)
       .filter((value): value is Date => value instanceof Date);
 
     expect(startedAt).toHaveLength(batchSize);
     expect(completedAt).toHaveLength(batchSize);
 
-    const firstCompletionMs = Math.min(...completedAt.map(date => date.getTime()));
+    const firstCompletionMs = Math.min(...completedAt.map((date) => date.getTime()));
     const startedBeforeFirstCompletion = startedAt.filter(
-      date => date.getTime() <= firstCompletionMs
+      (date) => date.getTime() <= firstCompletionMs
     ).length;
 
     expect(startedBeforeFirstCompletion).toBeGreaterThanOrEqual(5);

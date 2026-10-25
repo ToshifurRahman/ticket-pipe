@@ -80,7 +80,10 @@ export function createNeedsAttentionAlerter({
       if (sentInWindow >= maxPerHour) {
         if (!warnedInWindow) {
           warnedInWindow = true;
-          logger.warn({ ticketId, maxPerHour }, 'Ops alert cap reached; dropping alerts for the rest of the hour');
+          logger.warn(
+            { ticketId, maxPerHour },
+            'Ops alert cap reached; dropping alerts for the rest of the hour'
+          );
         } else {
           logger.debug({ ticketId }, 'Ops alert dropped (hourly cap)');
         }

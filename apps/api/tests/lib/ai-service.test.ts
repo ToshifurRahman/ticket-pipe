@@ -4,15 +4,25 @@ const mockTriage = vi.hoisted(() => vi.fn());
 const mockDraft = vi.hoisted(() => vi.fn());
 const mockIsBackupConfigured = vi.hoisted(() => vi.fn());
 
-vi.mock('../../src/lib/llm-client.js', async importOriginal => {
+vi.mock('../../src/lib/llm-client.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../../src/lib/llm-client.js')>();
   return {
     ...real,
     triage: mockTriage,
     draft: mockDraft,
     isBackupConfigured: mockIsBackupConfigured,
-    getPrimaryProvider: () => ({ name: 'primary', gateway: 'groq', apiKey: 'primary-key', model: 'primary-model' }),
-    getBackupProvider: () => ({ name: 'backup', gateway: 'groq', apiKey: 'backup-key', model: 'backup-model' }),
+    getPrimaryProvider: () => ({
+      name: 'primary',
+      gateway: 'groq',
+      apiKey: 'primary-key',
+      model: 'primary-model',
+    }),
+    getBackupProvider: () => ({
+      name: 'backup',
+      gateway: 'groq',
+      apiKey: 'backup-key',
+      model: 'backup-model',
+    }),
   };
 });
 
@@ -54,7 +64,12 @@ describe('AIService.triage', () => {
 
     expect(recorder).toHaveBeenCalledTimes(1);
     expect(recorder).toHaveBeenCalledWith(
-      expect.objectContaining({ ticketId: 'ticket-1', operation: 'triage', provider: 'primary', outcome: 'success' })
+      expect.objectContaining({
+        ticketId: 'ticket-1',
+        operation: 'triage',
+        provider: 'primary',
+        outcome: 'success',
+      })
     );
   });
 
@@ -70,7 +85,11 @@ describe('AIService.triage', () => {
     expect(result.category).toBe(TRIAGE_OUTPUT.category);
     expect(recorder).toHaveBeenCalledTimes(2);
     const [firstCall, secondCall] = recorder.mock.calls.map(([r]) => r as AiInteractionRecord);
-    expect(firstCall).toMatchObject({ provider: 'primary', outcome: 'http_error', httpStatus: 429 });
+    expect(firstCall).toMatchObject({
+      provider: 'primary',
+      outcome: 'http_error',
+      httpStatus: 429,
+    });
     expect(secondCall).toMatchObject({ provider: 'backup', outcome: 'success' });
   });
 
@@ -81,7 +100,9 @@ describe('AIService.triage', () => {
     const recorder = vi.fn().mockResolvedValue(undefined);
     const service = new AIService(recorder);
 
-    await expect(service.triage('ticket-3', 'Subject', 'Description')).rejects.toThrow('primary down');
+    await expect(service.triage('ticket-3', 'Subject', 'Description')).rejects.toThrow(
+      'primary down'
+    );
 
     expect(recorder).toHaveBeenCalledTimes(2);
     const outcomes = recorder.mock.calls.map(([r]) => (r as AiInteractionRecord).outcome);
@@ -130,7 +151,12 @@ describe('AIService.draft', () => {
 
     expect(recorder).toHaveBeenCalledTimes(1);
     expect(recorder).toHaveBeenCalledWith(
-      expect.objectContaining({ ticketId: 'ticket-6', operation: 'draft', provider: 'primary', outcome: 'success' })
+      expect.objectContaining({
+        ticketId: 'ticket-6',
+        operation: 'draft',
+        provider: 'primary',
+        outcome: 'success',
+      })
     );
   });
 });

@@ -26,8 +26,12 @@ describe('brevo driver', () => {
   it('throws a status-only error that does not echo the response body', async () => {
     process.env.BREVO_API_KEY = 'key-123';
     process.env.MAIL_FROM = 'relay@example.test';
-    const fetchMock = vi.fn(async () => new Response('bad recipient who@example.test', { status: 400 }));
-    const error = await createBrevoMailer(fetchMock as unknown as typeof fetch).send(message).catch((e) => e);
+    const fetchMock = vi.fn(
+      async () => new Response('bad recipient who@example.test', { status: 400 })
+    );
+    const error = await createBrevoMailer(fetchMock as unknown as typeof fetch)
+      .send(message)
+      .catch((e) => e);
     expect(error.message).toBe('Brevo responded 400');
   });
 });

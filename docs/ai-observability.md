@@ -9,12 +9,14 @@ blocked or failed by a recording error — a failed write is logged and the tick
 (malformed or schema-invalid model output).
 
 **Ops endpoints**:
+
 - `GET /api/ops/ai-interactions` — paginated list, filterable by `provider`, `operation`, `outcome`,
   `ticketId`, `since`/`until`
 - `GET /api/ops/ai-interactions/summary` — per `operation`+`provider` counts, success rate, average/p50/p95
   duration, and total token usage, over a `since`/`until` window (defaults to the last 24h)
 
 **Example queries** (via `psql`):
+
 ```sql
 -- Recent failures, most recent first
 SELECT ticket_id, operation, provider, outcome, http_status, error_message, created_at
@@ -29,4 +31,3 @@ FROM ai_interactions
 WHERE provider = 'primary' AND created_at > NOW() - INTERVAL '1 hour'
 GROUP BY outcome;
 ```
-

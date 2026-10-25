@@ -29,10 +29,7 @@ export type NeedsAttentionReason = 'incomplete_output' | 'processing_result_miss
 // Why processing gave up on a ticket for good (status `failed`). Also the closed set the
 // `tickets.failure_reason` column accepts (migration 007).
 export type FailureReason =
-  | 'triage_retries_exhausted'
-  | 'draft_retries_exhausted'
-  | 'finalize_failed'
-  | 'processing_error';
+  'triage_retries_exhausted' | 'draft_retries_exhausted' | 'finalize_failed' | 'processing_error';
 
 export interface OpsTicketFailed {
   ticketId: string;
@@ -96,7 +93,10 @@ export function publishTicketFailed(ticket: TicketRef, reason: FailureReason): v
   });
 }
 
-export function publishTicketRequeued(ticket: TicketRef, previousStatus: OpsTicketRequeued['previousStatus']): void {
+export function publishTicketRequeued(
+  ticket: TicketRef,
+  previousStatus: OpsTicketRequeued['previousStatus']
+): void {
   publish('ticket:requeued', {
     ticketId: ticket.id,
     referenceNumber: ticket.referenceNumber,

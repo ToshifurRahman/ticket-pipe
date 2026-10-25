@@ -48,7 +48,7 @@ describe('receiveMessages + deleteMessage', () => {
     await enqueueTicket(ticketId, refNumber);
 
     const messages = await receiveMessages();
-    const msg = messages.find(m => m.ticketId === ticketId);
+    const msg = messages.find((m) => m.ticketId === ticketId);
 
     expect(msg).toBeDefined();
     expect(msg!.ticketId).toBe(ticketId);
@@ -59,7 +59,7 @@ describe('receiveMessages + deleteMessage', () => {
 
     // Message should not come back after deletion
     const after = await receiveMessages();
-    const reappeared = after.find(m => m.ticketId === ticketId);
+    const reappeared = after.find((m) => m.ticketId === ticketId);
     expect(reappeared).toBeUndefined();
   });
 });
@@ -69,11 +69,15 @@ describe('queue disappears after its URL was cached', () => {
     await enqueueTicket('00000000-0000-0000-0000-000000000003', 'TICK-QUEUE-003');
 
     await client.send(new DeleteQueueCommand({ QueueUrl: queueUrl }));
-    await expect(enqueueTicket('00000000-0000-0000-0000-000000000004', 'TICK-QUEUE-004')).rejects.toMatchObject({
+    await expect(
+      enqueueTicket('00000000-0000-0000-0000-000000000004', 'TICK-QUEUE-004')
+    ).rejects.toMatchObject({
       name: 'QueueDoesNotExist',
     });
 
     await client.send(new CreateQueueCommand({ QueueName: queueName }));
-    await expect(enqueueTicket('00000000-0000-0000-0000-000000000005', 'TICK-QUEUE-005')).resolves.toBeUndefined();
+    await expect(
+      enqueueTicket('00000000-0000-0000-0000-000000000005', 'TICK-QUEUE-005')
+    ).resolves.toBeUndefined();
   });
 });

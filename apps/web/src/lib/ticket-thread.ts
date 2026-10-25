@@ -14,13 +14,19 @@ export type SupportSide =
 
 export function supportSide(ticket: TicketDetail): SupportSide {
   const { status, phases } = ticket;
-  const badges = phases.triage.status === 'completed' && phases.triage.output ? phases.triage.output : null;
+  const badges =
+    phases.triage.status === 'completed' && phases.triage.output ? phases.triage.output : null;
 
   if (status === 'failed' || status === 'needs_attention') return { kind: 'on-hold', badges };
 
   if (status === 'completed' && phases.draft.output) {
     const done = [...ticket.events].reverse().find((e) => e.event === 'ticket.completed');
-    return { kind: 'replied', reply: phases.draft.output.customerReply, badges, repliedAt: done?.occurredAt ?? null };
+    return {
+      kind: 'replied',
+      reply: phases.draft.output.customerReply,
+      badges,
+      repliedAt: done?.occurredAt ?? null,
+    };
   }
 
   // queued or processing. A triage retry still reads "Reviewing": the customer never sees one.
@@ -30,7 +36,13 @@ export function supportSide(ticket: TicketDetail): SupportSide {
 export type PlyState = 'done' | 'live' | 'waiting' | 'on-hold';
 export type PlyKey = 'received' | 'triage' | 'draft' | 'reply';
 /** One cell of the form's ply stack. `time` is an ISO timestamp, set once the stage landed. */
-export type Ply = { n: 1 | 2 | 3 | 4; key: PlyKey; label: string; state: PlyState; time: string | null };
+export type Ply = {
+  n: 1 | 2 | 3 | 4;
+  key: PlyKey;
+  label: string;
+  state: PlyState;
+  time: string | null;
+};
 
 // waiting / live / done wording per stage.
 const PLY_LABELS: Record<PlyKey, [waiting: string, live: string, done: string]> = {
@@ -43,7 +55,10 @@ const PLY_LABELS: Record<PlyKey, [waiting: string, live: string, done: string]> 
 const HOLD_EVENTS = ['ticket.failed', 'ticket.needs_attention'];
 
 /** The latest event of a type: a requeue replays stages, so the newest one is what counts. */
-export function latestEventTime(ticket: Pick<TicketDetail, 'events'>, ...names: string[]): string | null {
+export function latestEventTime(
+  ticket: Pick<TicketDetail, 'events'>,
+  ...names: string[]
+): string | null {
   let latest: string | null = null;
   for (const e of ticket.events) {
     if (names.includes(e.event) && (!latest || e.occurredAt > latest)) latest = e.occurredAt;
@@ -68,7 +83,12 @@ export function ticketPlies(ticket: TicketDetail): Ply[] {
   const held = status === 'failed' || status === 'needs_attention';
   const done = held
     ? [true, true, true, false]
-    : [true, phases.triage.status === 'completed', phases.draft.status === 'completed', status === 'completed'];
+    : [
+        true,
+        phases.triage.status === 'completed',
+        phases.draft.status === 'completed',
+        status === 'completed',
+      ];
   const firstOpen = done.indexOf(false);
   const times = [
     ticket.createdAt,
@@ -79,13 +99,26 @@ export function ticketPlies(ticket: TicketDetail): Ply[] {
   const keys: PlyKey[] = ['received', 'triage', 'draft', 'reply'];
 
   return keys.map((key, i) => {
-    const state: PlyState = done[i] ? 'done' : held ? 'on-hold' : i === firstOpen && i < 3 && working ? 'live' : 'waiting';
+    const state: PlyState = done[i]
+      ? 'done'
+      : held
+        ? 'on-hold'
+        : i === firstOpen && i < 3 && working
+          ? 'live'
+          : 'waiting';
     const [waiting, live, finished] = PLY_LABELS[key];
     return {
       n: (i + 1) as Ply['n'],
       key,
       state,
-      label: state === 'on-hold' ? 'On hold' : state === 'done' ? finished : state === 'live' ? live : waiting,
+      label:
+        state === 'on-hold'
+          ? 'On hold'
+          : state === 'done'
+            ? finished
+            : state === 'live'
+              ? live
+              : waiting,
       time: state === 'done' ? times[i] : state === 'on-hold' ? onHoldTime(ticket) : null,
     };
   });

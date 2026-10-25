@@ -12,7 +12,9 @@ afterEach(async () => {
   if (createdIds.length) {
     await purgeTicketEvents(createdIds);
     await pool.query('DELETE FROM ai_interactions WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
-    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
+    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [
+      createdIds,
+    ]);
     await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
     createdIds.length = 0;
   }
@@ -25,7 +27,10 @@ afterAll(async () => {
 async function ticketAged(ref: string, days: number): Promise<string> {
   const ticket = await insertTicket(ref, 'Sub', 'Desc');
   createdIds.push(ticket.id);
-  await pool.query("UPDATE tickets SET created_at = NOW() - make_interval(days => $2) WHERE id = $1", [ticket.id, days]);
+  await pool.query(
+    'UPDATE tickets SET created_at = NOW() - make_interval(days => $2) WHERE id = $1',
+    [ticket.id, days]
+  );
   await insertEvent(ticket.id, 'ticket.created');
   await insertAiInteraction({
     ticketId: ticket.id,
@@ -39,7 +44,10 @@ async function ticketAged(ref: string, days: number): Promise<string> {
 }
 
 async function count(table: string, ticketId: string, column = 'ticket_id'): Promise<number> {
-  const { rows } = await pool.query(`SELECT COUNT(*)::int AS n FROM ${table} WHERE ${column} = $1`, [ticketId]);
+  const { rows } = await pool.query(
+    `SELECT COUNT(*)::int AS n FROM ${table} WHERE ${column} = $1`,
+    [ticketId]
+  );
   return rows[0].n;
 }
 
@@ -61,6 +69,8 @@ describe('purgeExpiredTickets', () => {
   it('leaves the append-only protection on afterwards', async () => {
     const id = await ticketAged('TICK-RET-GUARD', 1);
     await purgeExpiredTickets();
-    await expect(pool.query('DELETE FROM ticket_events WHERE ticket_id = $1', [id])).rejects.toThrow(/append-only/);
+    await expect(
+      pool.query('DELETE FROM ticket_events WHERE ticket_id = $1', [id])
+    ).rejects.toThrow(/append-only/);
   });
 });

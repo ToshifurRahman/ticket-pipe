@@ -52,12 +52,22 @@ function acceptTickets(status: string = 'queued') {
     http.post('/api/tickets', async ({ request }) => {
       posted.push((await request.json()) as Posted);
       return HttpResponse.json(
-        { ticketId: 'b7c1', referenceNumber: REF, status: 'queued', createdAt: new Date().toISOString() },
+        {
+          ticketId: 'b7c1',
+          referenceNumber: REF,
+          status: 'queued',
+          createdAt: new Date().toISOString(),
+        },
         { status: 201 }
       );
     }),
     http.get('/api/tickets/ref/:ref', ({ params }) =>
-      HttpResponse.json({ referenceNumber: params.ref, subject: SUBJECT, status, createdAt: new Date().toISOString() })
+      HttpResponse.json({
+        referenceNumber: params.ref,
+        subject: SUBJECT,
+        status,
+        createdAt: new Date().toISOString(),
+      })
     )
   );
   return posted;
@@ -95,7 +105,9 @@ describe('NewTicketPage: validation', () => {
     );
 
     await user.type(subject, 'port broken');
-    await waitFor(() => expect(screen.queryByText('Subject needs at least 3 characters.')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByText('Subject needs at least 3 characters.')).not.toBeInTheDocument()
+    );
   });
 
   it('rejects too-long values inline and never calls the API', async () => {
@@ -141,31 +153,42 @@ describe('NewTicketPage: validation', () => {
     const user = userEvent.setup();
     server.use(
       http.post('/api/tickets', () =>
-        HttpResponse.json({ errors: { description: 'Description needs at least 20 characters.' } }, { status: 400 })
+        HttpResponse.json(
+          { errors: { description: 'Description needs at least 20 characters.' } },
+          { status: 400 }
+        )
       )
     );
     renderPage();
     await fillValid(user);
     await user.click(screen.getByRole('button', { name: /Submit ticket/ }));
 
-    expect(await screen.findByText('Description needs at least 20 characters.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Description needs at least 20 characters.')
+    ).toBeInTheDocument();
     expect(screen.getByLabelText('Description')).toHaveFocus();
     expect(turnstile.resets).toBe(1);
   });
 
   it('keeps the values and shows a retry message when the API fails', async () => {
     const user = userEvent.setup();
-    server.use(http.post('/api/tickets', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+    server.use(
+      http.post('/api/tickets', () => HttpResponse.json({ error: 'boom' }, { status: 500 }))
+    );
     renderPage();
     await fillValid(user);
     await user.click(screen.getByRole('button', { name: /Submit ticket/ }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent("We couldn't send your ticket. Please try again.");
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "We couldn't send your ticket. Please try again."
+    );
     expect(screen.getByLabelText('Subject')).toHaveValue(SUBJECT);
     expect(screen.getByLabelText('Description')).toHaveValue(DESCRIPTION);
     expect(turnstile.resets).toBe(1);
     // The fresh token re-enables Submit for the retry.
-    await waitFor(() => expect(screen.getByRole('button', { name: /Submit ticket/ })).toBeEnabled());
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /Submit ticket/ })).toBeEnabled()
+    );
   });
 });
 
@@ -182,8 +205,13 @@ describe('NewTicketPage: success', () => {
     const heading = await screen.findByRole('heading', { name: "We're on it" });
     expect(heading).toHaveFocus();
     expect(screen.getByTestId('ticket-reference')).toHaveTextContent(REF);
-    expect(screen.getByRole('link', { name: /Watch it live/ })).toHaveAttribute('href', `/t/${REF}`);
-    expect(posted).toEqual([{ subject: SUBJECT, description: DESCRIPTION, turnstileToken: 'token-0' }]);
+    expect(screen.getByRole('link', { name: /Watch it live/ })).toHaveAttribute(
+      'href',
+      `/t/${REF}`
+    );
+    expect(posted).toEqual([
+      { subject: SUBJECT, description: DESCRIPTION, turnstileToken: 'token-0' },
+    ]);
   });
 
   it('copies the reference to the clipboard', async () => {
@@ -265,7 +293,13 @@ describe('NewTicketPage: recent tickets', () => {
   function seed(...refs: string[]) {
     localStorage.setItem(
       'recent-tickets',
-      JSON.stringify(refs.map((ref, i) => ({ ref, subject: `Subject ${i}`, createdAt: new Date().toISOString() })))
+      JSON.stringify(
+        refs.map((ref, i) => ({
+          ref,
+          subject: `Subject ${i}`,
+          createdAt: new Date().toISOString(),
+        }))
+      )
     );
   }
 
@@ -293,7 +327,12 @@ describe('NewTicketPage: recent tickets', () => {
       http.get('/api/tickets/ref/:ref', ({ params }) =>
         params.ref === GONE
           ? HttpResponse.json({ error: 'Ticket not found' }, { status: 404 })
-          : HttpResponse.json({ referenceNumber: REF, subject: 'Subject 1', status: 'completed', createdAt: '' })
+          : HttpResponse.json({
+              referenceNumber: REF,
+              subject: 'Subject 1',
+              status: 'completed',
+              createdAt: '',
+            })
       )
     );
     seed(GONE, REF);

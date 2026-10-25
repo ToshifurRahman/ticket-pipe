@@ -205,9 +205,7 @@ function Timeline({ ticketId }: { ticketId: string }) {
                 {item.event}
                 {item.count > 1 && <span className="text-muted-foreground"> ×{item.count}</span>}
               </span>
-              <span className="text-muted-foreground">
-                {printedTime(item.occurredAt)}
-              </span>
+              <span className="text-muted-foreground">{printedTime(item.occurredAt)}</span>
               {item.detail && (
                 <details className="w-full text-xs text-muted-foreground">
                   <summary className="cursor-pointer">details</summary>

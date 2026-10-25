@@ -16,7 +16,12 @@ afterAll(async () => {
 
 describe('staff-only routes', () => {
   const guarded = app.routes
-    .filter((r) => r.path.startsWith('/api/ops/') && !r.path.startsWith('/api/ops/session') && r.method !== 'ALL')
+    .filter(
+      (r) =>
+        r.path.startsWith('/api/ops/') &&
+        !r.path.startsWith('/api/ops/session') &&
+        r.method !== 'ALL'
+    )
     .map((r) => [r.method, r.path.replace(':id', ID)] as const);
 
   it('finds the ops routes to check', () => {

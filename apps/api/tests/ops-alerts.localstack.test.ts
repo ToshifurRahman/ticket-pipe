@@ -30,11 +30,17 @@ let queueUrl: string;
 let ops: typeof import('../src/services/ops-alerts.js');
 
 beforeAll(async () => {
-  const { TopicArn } = await sns.send(new CreateTopicCommand({ Name: 'ticket-needs-attention-test' }));
-  const { QueueUrl } = await sqs.send(new CreateQueueCommand({ QueueName: 'ticket-needs-attention-test-inbox' }));
+  const { TopicArn } = await sns.send(
+    new CreateTopicCommand({ Name: 'ticket-needs-attention-test' })
+  );
+  const { QueueUrl } = await sqs.send(
+    new CreateQueueCommand({ QueueName: 'ticket-needs-attention-test-inbox' })
+  );
   queueUrl = QueueUrl!;
   await sqs.send(new PurgeQueueCommand({ QueueUrl: queueUrl }));
-  const attrs = await sqs.send(new GetQueueAttributesCommand({ QueueUrl: queueUrl, AttributeNames: ['QueueArn'] }));
+  const attrs = await sqs.send(
+    new GetQueueAttributesCommand({ QueueUrl: queueUrl, AttributeNames: ['QueueArn'] })
+  );
   await sns.send(
     new SubscribeCommand({ TopicArn, Protocol: 'sqs', Endpoint: attrs.Attributes!.QueueArn })
   );
@@ -68,7 +74,9 @@ describe('alertNeedsAttention against LocalStack', () => {
     expect(Messages).toHaveLength(1);
     const envelope = JSON.parse(Messages![0].Body!);
     const expected = ops.buildAlertMessage(alert);
-    expect(envelope.Subject).toBe('[Ticket Pipe] TICK-SNS-057 needs attention (processing_result_missing)');
+    expect(envelope.Subject).toBe(
+      '[Ticket Pipe] TICK-SNS-057 needs attention (processing_result_missing)'
+    );
     expect(envelope.Message).toBe(expected.message);
   });
 });

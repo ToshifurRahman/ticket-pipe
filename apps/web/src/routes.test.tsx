@@ -10,7 +10,9 @@ import { server } from '@/test/server';
 import { TICKET_REF, ticketAt } from '@/test/ticket-fixtures';
 import { AppRoutes } from './routes';
 
-const fakeSocket = vi.hoisted(() => ({ current: null as ReturnType<typeof createFakeSocket> | null }));
+const fakeSocket = vi.hoisted(() => ({
+  current: null as ReturnType<typeof createFakeSocket> | null,
+}));
 vi.mock('@/lib/socket', () => ({ getSocket: () => fakeSocket.current }));
 
 beforeEach(() => {

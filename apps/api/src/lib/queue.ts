@@ -64,7 +64,7 @@ export class QueueService {
   }
 
   async enqueue(ticketId: string, referenceNumber: string): Promise<void> {
-    await this.withQueueUrl(queueUrl =>
+    await this.withQueueUrl((queueUrl) =>
       this.client.send(
         new SendMessageCommand({
           QueueUrl: queueUrl,
@@ -77,7 +77,7 @@ export class QueueService {
   async receive(options: ReceiveMessagesOptions = {}): Promise<QueueMessage[]> {
     const maxMessages = normalizeMaxMessages(options.maxMessages);
     const waitTimeSeconds = normalizeWaitTimeSeconds(options.waitTimeSeconds);
-    const result = await this.withQueueUrl(queueUrl =>
+    const result = await this.withQueueUrl((queueUrl) =>
       this.client.send(
         new ReceiveMessageCommand({
           QueueUrl: queueUrl,
@@ -87,7 +87,7 @@ export class QueueService {
         })
       )
     );
-    return (result.Messages ?? []).map(m => ({
+    return (result.Messages ?? []).map((m) => ({
       ...JSON.parse(m.Body!),
       receiptHandle: m.ReceiptHandle!,
       attemptNumber: Number(m.Attributes?.ApproximateReceiveCount ?? '1'),
@@ -95,8 +95,10 @@ export class QueueService {
   }
 
   async delete(receiptHandle: string): Promise<void> {
-    await this.withQueueUrl(queueUrl =>
-      this.client.send(new DeleteMessageCommand({ QueueUrl: queueUrl, ReceiptHandle: receiptHandle }))
+    await this.withQueueUrl((queueUrl) =>
+      this.client.send(
+        new DeleteMessageCommand({ QueueUrl: queueUrl, ReceiptHandle: receiptHandle })
+      )
     );
   }
 }

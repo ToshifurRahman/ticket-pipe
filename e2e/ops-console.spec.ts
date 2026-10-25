@@ -12,7 +12,10 @@ test.afterAll(async () => {
   for (const id of created) await removeTicket(id);
 });
 
-test('an operator signs in, finds a ticket that needs attention and replays it live', async ({ page, request }) => {
+test('an operator signs in, finds a ticket that needs attention and replays it live', async ({
+  page,
+  request,
+}) => {
   const res = await request.post('/api/tickets', {
     data: {
       subject: 'Ops console replay check',
@@ -20,7 +23,10 @@ test('an operator signs in, finds a ticket that needs attention and replays it l
     },
   });
   expect(res.status()).toBe(201);
-  const { ticketId, referenceNumber } = (await res.json()) as { ticketId: string; referenceNumber: string };
+  const { ticketId, referenceNumber } = (await res.json()) as {
+    ticketId: string;
+    referenceNumber: string;
+  };
   created.push(ticketId);
 
   const cookie = await opsCookie(request);

@@ -12,14 +12,19 @@ export const RECENT_TICKETS_LIMIT = 5;
 function isRecentTicket(value: unknown): value is RecentTicket {
   const v = value as Partial<RecentTicket> | null;
   return (
-    !!v && typeof v.ref === 'string' && typeof v.subject === 'string' && typeof v.createdAt === 'string'
+    !!v &&
+    typeof v.ref === 'string' &&
+    typeof v.subject === 'string' &&
+    typeof v.createdAt === 'string'
   );
 }
 
 export function loadRecentTickets(): RecentTicket[] {
   try {
     const parsed: unknown = JSON.parse(localStorage.getItem(KEY) ?? '[]');
-    return Array.isArray(parsed) ? parsed.filter(isRecentTicket).slice(0, RECENT_TICKETS_LIMIT) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter(isRecentTicket).slice(0, RECENT_TICKETS_LIMIT)
+      : [];
   } catch {
     return [];
   }

@@ -9,7 +9,10 @@ export type CreateTicketInput = {
 };
 
 export function createTicket(input: CreateTicketInput): Promise<CreateTicketResponse> {
-  return request<CreateTicketResponse>('/api/tickets', { method: 'POST', body: JSON.stringify(input) });
+  return request<CreateTicketResponse>('/api/tickets', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
 }
 
 /** Cached under `ticketQueryKey(ref)`, shared by the ticket page and the recent-tickets list. */

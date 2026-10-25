@@ -116,7 +116,9 @@ export interface TicketFailureCounts {
 
 // Only failures since the last replay count: a replayed ticket gets a fresh set of attempts.
 // A rolled-back replay (`ticket.requeue_failed`) brings the earlier counts back.
-export function resolveTicketFailureCounts(events: ReadonlyArray<TicketEventLike>): TicketFailureCounts {
+export function resolveTicketFailureCounts(
+  events: ReadonlyArray<TicketEventLike>
+): TicketFailureCounts {
   let counts: TicketFailureCounts = { triage: 0, draft: 0 };
   let beforeRequeue: TicketFailureCounts | null = null;
   for (const { event } of events) {

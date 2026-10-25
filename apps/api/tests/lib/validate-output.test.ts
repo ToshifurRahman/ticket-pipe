@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { validateProcessingOutput, validateTriageOutput, validateDraftOutput } from '../../src/lib/validate-output.js';
+import {
+  validateProcessingOutput,
+  validateTriageOutput,
+  validateDraftOutput,
+} from '../../src/lib/validate-output.js';
 import type { ProcessingResult } from '../../src/repositories/processing.js';
 
 function validResult(): ProcessingResult {
@@ -133,7 +137,10 @@ describe('validateTriageOutput', () => {
 
   it('flags blank triage fields and a non-boolean escalate', () => {
     const triage = { ...validResult(), category: ' ', escalate: undefined as unknown as boolean };
-    expect(validateTriageOutput(triage)).toEqual({ valid: false, missingFields: ['category', 'escalate'] });
+    expect(validateTriageOutput(triage)).toEqual({
+      valid: false,
+      missingFields: ['category', 'escalate'],
+    });
   });
 
   it('does not look at draft fields', () => {

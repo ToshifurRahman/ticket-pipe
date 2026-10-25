@@ -32,7 +32,7 @@ function emitted(): Array<[string, string, Record<string, unknown>]> {
 }
 
 async function eventNames(ticketId: string): Promise<string[]> {
-  return (await getAllEventsByTicketId(ticketId)).map(e => e.event);
+  return (await getAllEventsByTicketId(ticketId)).map((e) => e.event);
 }
 
 const createdIds: string[] = [];
@@ -43,7 +43,9 @@ afterEach(async () => {
   vi.mocked(enqueueTicket).mockReset().mockResolvedValue(undefined);
   if (createdIds.length) {
     await purgeTicketEvents(createdIds);
-    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
+    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [
+      createdIds,
+    ]);
     await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
     createdIds.length = 0;
   }
@@ -94,14 +96,20 @@ describe('ticket list for the ops console (story 6.6)', () => {
 
   it('breaks ties by id, so a page boundary cannot repeat or skip a row', async () => {
     const ids: string[] = [];
-    for (let i = 0; i < 3; i++) ids.push((await insertTicket(`TICK-API-LIST-P${i}`, 'Sub', 'Desc')).id);
+    for (let i = 0; i < 3; i++)
+      ids.push((await insertTicket(`TICK-API-LIST-P${i}`, 'Sub', 'Desc')).id);
     createdIds.push(...ids);
     // Same created_at, no events: identical sort keys, whichever column is sorted on.
-    await pool.query("UPDATE tickets SET created_at = '1999-01-01T00:00:00Z' WHERE id = ANY($1::uuid[])", [ids]);
+    await pool.query(
+      "UPDATE tickets SET created_at = '1999-01-01T00:00:00Z' WHERE id = ANY($1::uuid[])",
+      [ids]
+    );
 
     for (const sort of ['createdAt', 'updatedAt']) {
       const res = await request(app).get(`/api/tickets?limit=100&sort=${sort}&order=asc`);
-      const mine = res.body.tickets.map((t: { id: string }) => t.id).filter((id: string) => ids.includes(id));
+      const mine = res.body.tickets
+        .map((t: { id: string }) => t.id)
+        .filter((id: string) => ids.includes(id));
       expect(mine).toEqual([...ids].sort());
     }
   });
@@ -120,7 +128,9 @@ describe('failed tickets in the API (story 5.2)', () => {
     createdIds.push(failed.id, waiting.id);
     await markTicketFailed(failed.id, 'triage_retries_exhausted');
 
-    const res = await request(app).get('/api/tickets?status=failed&sort=failedAt&order=asc&limit=100');
+    const res = await request(app).get(
+      '/api/tickets?status=failed&sort=failedAt&order=asc&limit=100'
+    );
 
     expect(res.status).toBe(200);
     const ids = res.body.tickets.map((t: { id: string }) => t.id);
@@ -156,9 +166,8 @@ describe('failed tickets in the API (story 5.2)', () => {
     );
     expect(row.status).toBe('queued');
     expect(row.failureReason).toBeNull();
-    expect((await getAllEventsByTicketId(t.id)).map(e => e.event)).toContain('ticket.requeued');
+    expect((await getAllEventsByTicketId(t.id)).map((e) => e.event)).toContain('ticket.requeued');
   });
-
 });
 
 describe('POST /api/tickets/:id/replay — ops recovery (story 5.4)', () => {
@@ -202,23 +211,35 @@ describe('POST /api/tickets/:id/replay — ops recovery (story 5.4)', () => {
 
     const alert = emitted().find(([room, name]) => room === 'ops' && name === 'ticket:requeued');
     expect(alert).toBeDefined();
-    expect(Object.keys(alert![2]).sort()).toEqual(['occurredAt', 'previousStatus', 'referenceNumber', 'ticketId']);
-    expect(alert![2]).toMatchObject({ ticketId: t.id, referenceNumber: t.referenceNumber, previousStatus: 'failed' });
+    expect(Object.keys(alert![2]).sort()).toEqual([
+      'occurredAt',
+      'previousStatus',
+      'referenceNumber',
+      'ticketId',
+    ]);
+    expect(alert![2]).toMatchObject({
+      ticketId: t.id,
+      referenceNumber: t.referenceNumber,
+      previousStatus: 'failed',
+    });
     expect(JSON.stringify(emitted())).not.toContain('Private');
   });
 
-  it.each(['queued', 'processing', 'completed'])('refuses a %s ticket with 409 and its status', async status => {
-    const t = await insertTicket(`TICK-API-REPLAY-${status}`, 'Sub', 'Desc');
-    createdIds.push(t.id);
-    await updateTicketStatus(t.id, status);
+  it.each(['queued', 'processing', 'completed'])(
+    'refuses a %s ticket with 409 and its status',
+    async (status) => {
+      const t = await insertTicket(`TICK-API-REPLAY-${status}`, 'Sub', 'Desc');
+      createdIds.push(t.id);
+      await updateTicketStatus(t.id, status);
 
-    const res = await request(app).post(`/api/tickets/${t.id}/replay`);
+      const res = await request(app).post(`/api/tickets/${t.id}/replay`);
 
-    expect(res.status).toBe(409);
-    expect(res.body.status).toBe(status);
-    expect(enqueueTicket).not.toHaveBeenCalled();
-    expect(await eventNames(t.id)).toEqual([]);
-  });
+      expect(res.status).toBe(409);
+      expect(res.body.status).toBe(status);
+      expect(enqueueTicket).not.toHaveBeenCalled();
+      expect(await eventNames(t.id)).toEqual([]);
+    }
+  );
 
   it('returns 404 for an unknown ticket', async () => {
     const res = await request(app).post('/api/tickets/00000000-0000-4000-8000-000000000000/replay');
@@ -236,7 +257,7 @@ describe('POST /api/tickets/:id/replay — ops recovery (story 5.4)', () => {
       request(app).post(`/api/tickets/${t.id}/replay`),
     ]);
 
-    expect(responses.map(r => r.status).sort()).toEqual([200, 409]);
+    expect(responses.map((r) => r.status).sort()).toEqual([200, 409]);
     expect(enqueueTicket).toHaveBeenCalledTimes(1);
     expect(await eventNames(t.id)).toEqual(['ticket.requeued']);
   });

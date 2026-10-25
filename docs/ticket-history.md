@@ -26,4 +26,3 @@ curl "http://localhost:3000/api/tickets/<id>/events?limit=50&after=djE6MTIz"
   single transaction with `set_config('app.allow_event_purge', 'on', true)`; see
   `apps/api/tests/helpers/purge-ticket-events.ts`. `apps/api/tests/ticket-events.guard.test.ts` fails if code tries to change
   the table.
-

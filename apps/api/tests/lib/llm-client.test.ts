@@ -1,7 +1,18 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { triage, LlmCallError, getLlmMode, assertLlmModeAllowed, type LlmProvider } from '../../src/lib/llm-client.js';
+import {
+  triage,
+  LlmCallError,
+  getLlmMode,
+  assertLlmModeAllowed,
+  type LlmProvider,
+} from '../../src/lib/llm-client.js';
 
-const PROVIDER: LlmProvider = { name: 'primary', gateway: 'groq', apiKey: 'test-key', model: 'test-model' };
+const PROVIDER: LlmProvider = {
+  name: 'primary',
+  gateway: 'groq',
+  apiKey: 'test-key',
+  model: 'test-model',
+};
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -32,7 +43,10 @@ afterEach(() => {
 
 describe('triage (llm-client)', () => {
   it('returns parsed output and usage on success', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(validTriageResponse({ prompt_tokens: 12, completion_tokens: 34 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(validTriageResponse({ prompt_tokens: 12, completion_tokens: 34 }))
+    );
 
     const result = await triage(PROVIDER, 'Subject', 'Description');
 
@@ -50,9 +64,12 @@ describe('triage (llm-client)', () => {
   });
 
   it('throws http_error with status on a non-2xx response', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('rate limited', { status: 429 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response('rate limited', { status: 429 }))
+    );
 
-    const err = await triage(PROVIDER, 'Subject', 'Description').catch(e => e);
+    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e) => e);
 
     expect(err).toBeInstanceOf(LlmCallError);
     expect((err as LlmCallError).outcome).toBe('http_error');
@@ -62,7 +79,7 @@ describe('triage (llm-client)', () => {
   it('throws network_error when fetch rejects', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('connection refused')));
 
-    const err = await triage(PROVIDER, 'Subject', 'Description').catch(e => e);
+    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e) => e);
 
     expect(err).toBeInstanceOf(LlmCallError);
     expect((err as LlmCallError).outcome).toBe('network_error');
@@ -73,16 +90,19 @@ describe('triage (llm-client)', () => {
     timeoutError.name = 'TimeoutError';
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(timeoutError));
 
-    const err = await triage(PROVIDER, 'Subject', 'Description').catch(e => e);
+    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e) => e);
 
     expect(err).toBeInstanceOf(LlmCallError);
     expect((err as LlmCallError).outcome).toBe('timeout');
   });
 
   it('throws invalid_response when there is no function call', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(200, { choices: [{ message: {} }] })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(jsonResponse(200, { choices: [{ message: {} }] }))
+    );
 
-    const err = await triage(PROVIDER, 'Subject', 'Description').catch(e => e);
+    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e) => e);
 
     expect(err).toBeInstanceOf(LlmCallError);
     expect((err as LlmCallError).outcome).toBe('invalid_response');
@@ -92,11 +112,13 @@ describe('triage (llm-client)', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
-        jsonResponse(200, { choices: [{ message: { function_call: { arguments: '{not json' } } }] })
+        jsonResponse(200, {
+          choices: [{ message: { function_call: { arguments: '{not json' } } }],
+        })
       )
     );
 
-    const err = await triage(PROVIDER, 'Subject', 'Description').catch(e => e);
+    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e) => e);
 
     expect(err).toBeInstanceOf(LlmCallError);
     expect((err as LlmCallError).outcome).toBe('invalid_response');
@@ -107,11 +129,13 @@ describe('triage (llm-client)', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
-        jsonResponse(200, { choices: [{ message: { function_call: { arguments: JSON.stringify(badArgs) } } }] })
+        jsonResponse(200, {
+          choices: [{ message: { function_call: { arguments: JSON.stringify(badArgs) } } }],
+        })
       )
     );
 
-    const err = await triage(PROVIDER, 'Subject', 'Description').catch(e => e);
+    const err = await triage(PROVIDER, 'Subject', 'Description').catch((e) => e);
 
     expect(err).toBeInstanceOf(LlmCallError);
     expect((err as LlmCallError).outcome).toBe('invalid_response');

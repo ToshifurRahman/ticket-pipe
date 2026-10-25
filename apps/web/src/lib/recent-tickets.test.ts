@@ -1,6 +1,12 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { addRecentTicket, loadRecentTickets, RECENT_TICKETS_LIMIT, useRecentTickets, type RecentTicket } from './recent-tickets';
+import {
+  addRecentTicket,
+  loadRecentTickets,
+  RECENT_TICKETS_LIMIT,
+  useRecentTickets,
+  type RecentTicket,
+} from './recent-tickets';
 
 const ticket = (n: number): RecentTicket => ({
   ref: `TICK-175999341234${n}-A1B2C3D4`,

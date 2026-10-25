@@ -1,7 +1,11 @@
 import { describe, it, expect, afterEach, afterAll } from 'vitest';
 import { pool } from '../../src/lib/db.js';
 import { insertTicket } from '../../src/repositories/tickets.js';
-import { insertEvent, getAllEventsByTicketId, getEventPage } from '../../src/repositories/events.js';
+import {
+  insertEvent,
+  getAllEventsByTicketId,
+  getEventPage,
+} from '../../src/repositories/events.js';
 import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
 
 const createdIds: string[] = [];
@@ -36,7 +40,7 @@ describe('getAllEventsByTicketId', () => {
     await insertEvent(ticket.id, 'ticket.completed');
 
     const events = await getAllEventsByTicketId(ticket.id);
-    expect(events.map(e => e.event)).toEqual([
+    expect(events.map((e) => e.event)).toEqual([
       'ticket.submitted',
       'triage.completed',
       'ticket.completed',
@@ -84,7 +88,7 @@ describe('insertEvent', () => {
     const names = await insertNumberedEvents(ticket.id, 120);
 
     const events = await getAllEventsByTicketId(ticket.id);
-    expect(events.map(e => e.event)).toEqual(names);
+    expect(events.map((e) => e.event)).toEqual(names);
   });
 
   it('keeps events that happened months ago', async () => {
@@ -98,7 +102,7 @@ describe('insertEvent', () => {
     );
 
     const events = await getAllEventsByTicketId(ticket.id);
-    expect(events.map(e => e.event)).toEqual(['ticket.submitted', 'ticket.completed']);
+    expect(events.map((e) => e.event)).toEqual(['ticket.submitted', 'ticket.completed']);
     expect(Date.now() - events[0].occurredAt.getTime()).toBeGreaterThan(89 * 24 * 3600 * 1000);
   });
 });
@@ -106,10 +110,10 @@ describe('insertEvent', () => {
 async function insertNumberedEvents(ticketId: string, count: number): Promise<string[]> {
   const names = Array.from({ length: count }, (_, i) => `event-${String(i + 1).padStart(3, '0')}`);
   // One statement, so every row gets the same NOW(): order must come from seq, not the clock.
-  await pool.query(
-    'INSERT INTO ticket_events (ticket_id, event) SELECT $1, unnest($2::text[])',
-    [ticketId, names]
-  );
+  await pool.query('INSERT INTO ticket_events (ticket_id, event) SELECT $1, unnest($2::text[])', [
+    ticketId,
+    names,
+  ]);
   return names;
 }
 
@@ -124,7 +128,7 @@ describe('getEventPage', () => {
     let pages = 0;
     for (;;) {
       const page = await getEventPage(ticket.id, { afterSeq, limit: 50 });
-      seen.push(...page.events.map(e => e.event));
+      seen.push(...page.events.map((e) => e.event));
       pages++;
       if (page.nextSeq === null) break;
       afterSeq = page.nextSeq;
@@ -153,7 +157,7 @@ describe('getEventPage', () => {
     await insertEvent(a.id, 'ticket.completed');
 
     const page = await getEventPage(a.id, { limit: 50 });
-    expect(page.events.map(e => e.event)).toEqual(['ticket.submitted', 'ticket.completed']);
+    expect(page.events.map((e) => e.event)).toEqual(['ticket.submitted', 'ticket.completed']);
   });
 });
 
@@ -163,14 +167,16 @@ describe('ticket_events is append-only', () => {
     createdIds.push(ticket.id);
     await insertEvent(ticket.id, 'ticket.submitted');
 
-    await expect(pool.query('DELETE FROM ticket_events WHERE ticket_id = $1', [ticket.id]))
-      .rejects.toThrow(/append-only/);
-    await expect(pool.query("UPDATE ticket_events SET event = 'tampered' WHERE ticket_id = $1", [ticket.id]))
-      .rejects.toThrow(/append-only/);
+    await expect(
+      pool.query('DELETE FROM ticket_events WHERE ticket_id = $1', [ticket.id])
+    ).rejects.toThrow(/append-only/);
+    await expect(
+      pool.query("UPDATE ticket_events SET event = 'tampered' WHERE ticket_id = $1", [ticket.id])
+    ).rejects.toThrow(/append-only/);
     await expect(pool.query('TRUNCATE ticket_events')).rejects.toThrow(/append-only/);
 
     const events = await getAllEventsByTicketId(ticket.id);
-    expect(events.map(e => e.event)).toEqual(['ticket.submitted']);
+    expect(events.map((e) => e.event)).toEqual(['ticket.submitted']);
   });
 
   it('lets test cleanup purge rows, without leaving the bypass on the pooled connection', async () => {
@@ -182,7 +188,9 @@ describe('ticket_events is append-only', () => {
     expect(await getAllEventsByTicketId(ticket.id)).toEqual([]);
 
     // A single-connection pool would reuse the purge connection; check the flag is gone anyway.
-    const { rows } = await pool.query("SELECT current_setting('app.allow_event_purge', true) AS flag");
+    const { rows } = await pool.query(
+      "SELECT current_setting('app.allow_event_purge', true) AS flag"
+    );
     expect(rows[0].flag === null || rows[0].flag === '').toBe(true);
   });
 });

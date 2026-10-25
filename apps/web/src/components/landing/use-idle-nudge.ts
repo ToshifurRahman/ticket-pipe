@@ -23,5 +23,8 @@ export function useIdleNudge(afterMs = 6000) {
     return calm;
   }, [reduced, afterMs]);
 
-  return { className: nudging ? 'animate-nudge' : undefined, onAnimationEnd: () => setNudging(false) };
+  return {
+    className: nudging ? 'animate-nudge' : undefined,
+    onAnimationEnd: () => setNudging(false),
+  };
 }

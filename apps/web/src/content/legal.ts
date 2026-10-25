@@ -1,7 +1,8 @@
 import { brand } from '@/config/brand';
 
 // A paragraph is plain text, or text with one link inside it.
-export type LegalParagraph = string | { before: string; link: { label: string; href: string }; after: string };
+export type LegalParagraph =
+  string | { before: string; link: { label: string; href: string }; after: string };
 export type LegalSection = { heading: string; body: LegalParagraph[] };
 export type LegalDoc = {
   title: string;
@@ -94,7 +95,9 @@ export const TERMS: LegalDoc = {
     },
     {
       heading: 'AI can be wrong',
-      body: ['Replies are written by an AI. They may be inaccurate, so don’t act on them as advice.'],
+      body: [
+        'Replies are written by an AI. They may be inaccurate, so don’t act on them as advice.',
+      ],
     },
     {
       heading: 'What to send',

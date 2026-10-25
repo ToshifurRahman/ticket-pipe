@@ -25,7 +25,11 @@ describe('bun workspace layout', () => {
 
   it('shares tsconfig.base.json', () => {
     expect(existsSync(path.join(root, 'tsconfig.base.json'))).toBe(true);
-    for (const f of ['apps/api/tsconfig.json', 'apps/web/tsconfig.app.json', 'apps/web/tsconfig.node.json']) {
+    for (const f of [
+      'apps/api/tsconfig.json',
+      'apps/web/tsconfig.app.json',
+      'apps/web/tsconfig.node.json',
+    ]) {
       expect(json(f).extends, f).toBe('../../tsconfig.base.json');
     }
   });

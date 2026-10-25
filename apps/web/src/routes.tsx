@@ -12,9 +12,13 @@ import { NotFoundPage } from '@/pages/not-found';
 // The ticket page brings the socket.io client; load both only when a ticket is opened.
 // The ops console brings the drawer, toasts and the whole staff UI; visitors never load it.
 // The layout is lazy too: it holds the toaster and the sign-out control.
-const OpsLayout = lazy(() => import('@/layouts/ops-layout').then((m) => ({ default: m.OpsLayout })));
+const OpsLayout = lazy(() =>
+  import('@/layouts/ops-layout').then((m) => ({ default: m.OpsLayout }))
+);
 const OpsPage = lazy(() => import('@/pages/ops').then((m) => ({ default: m.OpsPage })));
-const NewTicketPage = lazy(() => import('@/pages/new-ticket').then((m) => ({ default: m.NewTicketPage })));
+const NewTicketPage = lazy(() =>
+  import('@/pages/new-ticket').then((m) => ({ default: m.NewTicketPage }))
+);
 const ConfirmPage = lazy(() => import('@/pages/confirm').then((m) => ({ default: m.ConfirmPage })));
 const TicketPage = lazy(() => import('@/pages/ticket').then((m) => ({ default: m.TicketPage })));
 
@@ -41,7 +45,9 @@ export function AppRoutes() {
             </Suspense>
           }
         />
-        <Route path="confirm/:token" element={
+        <Route
+          path="confirm/:token"
+          element={
             <Suspense fallback={<TicketSkeleton />}>
               <ConfirmPage />
             </Suspense>
@@ -53,7 +59,11 @@ export function AppRoutes() {
           <Route key={key} path={`legal/${key}`} element={<LegalPage docKey={key} />} />
         ))}
         {LEGAL_DOC_KEYS.map((key) => (
-          <Route key={`${key}-old`} path={key} element={<Navigate to={`/legal/${key}`} replace />} />
+          <Route
+            key={`${key}-old`}
+            path={key}
+            element={<Navigate to={`/legal/${key}`} replace />}
+          />
         ))}
       </Route>
       <Route element={<PublicLayout bare />}>

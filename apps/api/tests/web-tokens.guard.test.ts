@@ -23,9 +23,12 @@ it('loads the bold figures face wherever bold figures are used', () => {
       return statSync(full).isDirectory() ? walk(full) : name.endsWith('.tsx') ? [full] : [];
     });
   })(SRC);
-  const BOLD_MONO = /['"`][^'"`]*\bfont-mono\b[^'"`]*\bfont-(medium|semibold|bold)\b|['"`][^'"`]*\bfont-(medium|semibold|bold)\b[^'"`]*\bfont-mono\b/;
+  const BOLD_MONO =
+    /['"`][^'"`]*\bfont-mono\b[^'"`]*\bfont-(medium|semibold|bold)\b|['"`][^'"`]*\bfont-(medium|semibold|bold)\b[^'"`]*\bfont-mono\b/;
   const offenders = files.filter((f) => BOLD_MONO.test(readFileSync(f, 'utf8')));
-  const loaded = readFileSync(path.join(SRC, 'main.tsx'), 'utf8').includes('@fontsource/courier-prime/700.css');
+  const loaded = readFileSync(path.join(SRC, 'main.tsx'), 'utf8').includes(
+    '@fontsource/courier-prime/700.css'
+  );
   expect(offenders.length === 0 || loaded).toBe(true);
 });
 
@@ -69,8 +72,14 @@ const TEXT_PAIRS: [fg: string, bg: string][] = [
   ['semantic.ply.live-ink', 'semantic.surface.page'],
   ['semantic.ply.live-ink', 'semantic.surface.card'],
   ...['page', 'card', 'raised', 'form'].flatMap((surface): [string, string][] => [
-    ...['billing', 'account', 'bug', 'tech', 'feature'].map((t): [string, string] => [`semantic.topic.${t}`, `semantic.surface.${surface}`]),
-    ...['low', 'medium', 'high', 'urgent'].map((t): [string, string] => [`semantic.priority.${t}`, `semantic.surface.${surface}`]),
+    ...['billing', 'account', 'bug', 'tech', 'feature'].map((t): [string, string] => [
+      `semantic.topic.${t}`,
+      `semantic.surface.${surface}`,
+    ]),
+    ...['low', 'medium', 'high', 'urgent'].map((t): [string, string] => [
+      `semantic.priority.${t}`,
+      `semantic.surface.${surface}`,
+    ]),
   ]),
 ];
 
@@ -83,7 +92,9 @@ describe('Palette contrast', () => {
   it('the focus ring is at least 3:1 on every surface', () => {
     const ring = resolveToken('colors.json', 'semantic.border.focus');
     for (const surface of ['page', 'card', 'raised', 'form']) {
-      expect(contrast(ring, resolveToken('colors.json', `semantic.surface.${surface}`))).toBeGreaterThanOrEqual(3);
+      expect(
+        contrast(ring, resolveToken('colors.json', `semantic.surface.${surface}`))
+      ).toBeGreaterThanOrEqual(3);
     }
   });
 });

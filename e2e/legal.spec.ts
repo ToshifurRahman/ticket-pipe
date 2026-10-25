@@ -31,7 +31,10 @@ test('the old /privacy and /terms links land on the new routes', async ({ page }
   await expect(page).toHaveURL(/\/legal\/terms$/);
 });
 
-test('no analytics beacon and no cookies on the legal pages of a non-production build', async ({ page, context }) => {
+test('no analytics beacon and no cookies on the legal pages of a non-production build', async ({
+  page,
+  context,
+}) => {
   const beacon: string[] = [];
   page.on('request', (req) => {
     if (req.url().includes('cloudflareinsights')) beacon.push(req.url());

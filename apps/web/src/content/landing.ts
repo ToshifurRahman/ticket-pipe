@@ -17,9 +17,21 @@ export const FEATURES_HEADING = {
 };
 
 export const FEATURES: Feature[] = [
-  { n: '01', label: 'Received', body: 'Your request is filed as a ticket with its own reference, the moment you send it.' },
-  { n: '02', label: 'Triaged', body: "It's sorted by category and urgency, and you see both on the page." },
-  { n: '03', label: 'Drafted', body: 'A reply is written for your question, with notes the team keeps to themselves.' },
+  {
+    n: '01',
+    label: 'Received',
+    body: 'Your request is filed as a ticket with its own reference, the moment you send it.',
+  },
+  {
+    n: '02',
+    label: 'Triaged',
+    body: "It's sorted by category and urgency, and you see both on the page.",
+  },
+  {
+    n: '03',
+    label: 'Drafted',
+    body: 'A reply is written for your question, with notes the team keeps to themselves.',
+  },
   {
     n: '04',
     label: 'Replied',
@@ -42,7 +54,11 @@ export const TIERS: Tier[] = [
     blurb: 'For a growing support desk',
     price: '$49',
     cadence: '/ month',
-    features: ['Everything in Starter', 'Ops console with replay', 'Alerts for tickets needing attention'],
+    features: [
+      'Everything in Starter',
+      'Ops console with replay',
+      'Alerts for tickets needing attention',
+    ],
     cta: 'Start with Team',
     featured: true,
   },

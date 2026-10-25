@@ -21,9 +21,27 @@ describe('computeKpis', () => {
   it('weights rates and latency by call count', () => {
     const kpis = computeKpis(
       summary([
-        row({ provider: 'primary', operation: 'triage', count: 90, successCount: 90, avgDurationMs: 1000 }),
-        row({ provider: 'primary', operation: 'draft', count: 6, successCount: 4, avgDurationMs: 4000 }),
-        row({ provider: 'backup', operation: 'draft', count: 4, successCount: 2, avgDurationMs: 6000 }),
+        row({
+          provider: 'primary',
+          operation: 'triage',
+          count: 90,
+          successCount: 90,
+          avgDurationMs: 1000,
+        }),
+        row({
+          provider: 'primary',
+          operation: 'draft',
+          count: 6,
+          successCount: 4,
+          avgDurationMs: 4000,
+        }),
+        row({
+          provider: 'backup',
+          operation: 'draft',
+          count: 4,
+          successCount: 2,
+          avgDurationMs: 6000,
+        }),
       ])
     );
     expect(kpis.tickets).toBe(5);

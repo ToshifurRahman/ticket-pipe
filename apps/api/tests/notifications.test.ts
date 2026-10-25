@@ -25,14 +25,22 @@ process.env.PUBLIC_SITE_URL = 'https://relay.test';
 process.env.MAIL_DAILY_CAP = '1000000';
 
 const created: string[] = [];
-const ip = () => `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`;
+const ip = () =>
+  `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`;
 const optIn = (id: string, email: string, forwardedFor = ip()) =>
-  request(app).post(`/api/tickets/${id}/notification`).set('x-forwarded-for', forwardedFor).send({ email });
+  request(app)
+    .post(`/api/tickets/${id}/notification`)
+    .set('x-forwarded-for', forwardedFor)
+    .send({ email });
 const tokenFrom = (message: { text: string }) => /\/confirm\/([\w-]+)/.exec(message.text)![1];
 const mailTo = (email: string) => sentMail.filter((m) => m.to === email);
 
 async function ticket(status = 'queued') {
-  const t = await insertTicket(`TICK-NOTIFY-${randomUUID().slice(0, 8)}`, 'Export broken', 'The CSV export never downloads.');
+  const t = await insertTicket(
+    `TICK-NOTIFY-${randomUUID().slice(0, 8)}`,
+    'Export broken',
+    'The CSV export never downloads.'
+  );
   created.push(t.id);
   if (status !== 'queued') await updateTicketStatus(t.id, status);
   return t;
@@ -41,7 +49,9 @@ async function confirmed(status = 'queued') {
   const t = await ticket(status);
   const email = `c-${randomUUID()}@example.test`;
   expect((await optIn(t.id, email)).status).toBe(201);
-  const res = await request(app).post('/api/notifications/confirm').send({ token: tokenFrom(mailTo(email)[0]) });
+  const res = await request(app)
+    .post('/api/notifications/confirm')
+    .send({ token: tokenFrom(mailTo(email)[0]) });
   expect(res.status).toBe(200);
   await pendingNotifications();
   return { t, email };
@@ -88,7 +98,10 @@ describe('opt-in', () => {
   it('limits opt-ins per IP', async () => {
     const same = ip();
     const statuses: number[] = [];
-    for (let i = 0; i < 6; i++) statuses.push((await optIn((await ticket()).id, `r-${randomUUID()}@example.test`, same)).status);
+    for (let i = 0; i < 6; i++)
+      statuses.push(
+        (await optIn((await ticket()).id, `r-${randomUUID()}@example.test`, same)).status
+      );
     expect(statuses).toEqual([201, 201, 201, 201, 201, 429]);
   });
 
@@ -111,20 +124,33 @@ describe('confirmation link', () => {
     const token = tokenFrom(mailTo(email)[0]);
     const preview = await request(app).get(`/api/notifications/confirm/${token}`);
     expect(preview.body).toMatchObject({ valid: true, referenceNumber: t.referenceNumber });
-    expect((await request(app).get(`/api/tickets/${t.id}/notification`)).body.state).toBe('pending');
+    expect((await request(app).get(`/api/tickets/${t.id}/notification`)).body.state).toBe(
+      'pending'
+    );
 
-    expect((await request(app).post('/api/notifications/confirm').send({ token })).status).toBe(200);
-    expect((await request(app).post('/api/notifications/confirm').send({ token })).status).toBe(410);
+    expect((await request(app).post('/api/notifications/confirm').send({ token })).status).toBe(
+      200
+    );
+    expect((await request(app).post('/api/notifications/confirm').send({ token })).status).toBe(
+      410
+    );
     expect((await request(app).get(`/api/notifications/confirm/${token}`)).body.valid).toBe(false);
-    expect((await request(app).get(`/api/tickets/${t.id}/notification`)).body.state).toBe('confirmed');
+    expect((await request(app).get(`/api/tickets/${t.id}/notification`)).body.state).toBe(
+      'confirmed'
+    );
   });
 
   it('rejects an expired link', async () => {
     const t = await ticket();
     const email = `x-${randomUUID()}@example.test`;
     await optIn(t.id, email);
-    await pool.query("UPDATE ticket_notifications SET token_expires_at = NOW() - interval '1 minute' WHERE ticket_id = $1", [t.id]);
-    const res = await request(app).post('/api/notifications/confirm').send({ token: tokenFrom(mailTo(email)[0]) });
+    await pool.query(
+      "UPDATE ticket_notifications SET token_expires_at = NOW() - interval '1 minute' WHERE ticket_id = $1",
+      [t.id]
+    );
+    const res = await request(app)
+      .post('/api/notifications/confirm')
+      .send({ token: tokenFrom(mailTo(email)[0]) });
     expect(res.status).toBe(410);
   });
 
@@ -165,7 +191,10 @@ describe('outcome emails', () => {
     await updateTicketStatus(t.id, 'completed');
     await notifyIfDue(t.id);
     await pendingNotifications();
-    expect(mailTo(email).map((m) => m.subject)).toEqual([expect.stringMatching(/A snag on/), expect.stringMatching(/reply is ready/)]);
+    expect(mailTo(email).map((m) => m.subject)).toEqual([
+      expect.stringMatching(/A snag on/),
+      expect.stringMatching(/reply is ready/),
+    ]);
   });
 
   it.each([
@@ -175,7 +204,9 @@ describe('outcome emails', () => {
     const t = await ticket(status);
     const email = `k-${randomUUID()}@example.test`;
     await optIn(t.id, email);
-    await request(app).post('/api/notifications/confirm').send({ token: tokenFrom(mailTo(email)[0]) });
+    await request(app)
+      .post('/api/notifications/confirm')
+      .send({ token: tokenFrom(mailTo(email)[0]) });
     await pendingNotifications();
     expect(mailTo(email).at(-1)!.subject).toMatch(subject);
   });
@@ -185,7 +216,9 @@ describe('outcome emails', () => {
     const email = `l-${randomUUID()}@example.test`;
     await optIn(t.id, email);
     await updateTicketStatus(t.id, 'completed');
-    await request(app).post('/api/notifications/confirm').send({ token: tokenFrom(mailTo(email)[0]) });
+    await request(app)
+      .post('/api/notifications/confirm')
+      .send({ token: tokenFrom(mailTo(email)[0]) });
     await pendingNotifications();
     expect(mailTo(email).at(-1)!.subject).toMatch(/reply is ready/);
   });
@@ -193,7 +226,9 @@ describe('outcome emails', () => {
   it('records notification.failed (no address) after the retries run out', async () => {
     const { t } = await confirmed();
     const { setMailerForTests } = await import('../src/lib/mailer.js');
-    setMailerForTests({ send: async () => Promise.reject(new Error('boom to someone@example.test')) });
+    setMailerForTests({
+      send: async () => Promise.reject(new Error('boom to someone@example.test')),
+    });
     try {
       await updateTicketStatus(t.id, 'completed');
       await notifyIfDue(t.id);
@@ -201,8 +236,13 @@ describe('outcome emails', () => {
     } finally {
       setMailerForTests(null);
     }
-    const { rows } = await pool.query('SELECT event, detail FROM ticket_events WHERE ticket_id = $1 AND event LIKE $2', [t.id, 'notification.%']);
-    expect(rows.find((r) => r.event === 'notification.failed')).toMatchObject({ detail: 'reply_ready:send_failed' });
+    const { rows } = await pool.query(
+      'SELECT event, detail FROM ticket_events WHERE ticket_id = $1 AND event LIKE $2',
+      [t.id, 'notification.%']
+    );
+    expect(rows.find((r) => r.event === 'notification.failed')).toMatchObject({
+      detail: 'reply_ready:send_failed',
+    });
     expect(JSON.stringify(rows)).not.toContain('@');
   });
 });
@@ -212,23 +252,33 @@ describe('what each view shows', () => {
     const { t, email } = await confirmed();
     const publicView = await request(app).get(`/api/tickets/${t.id}`);
     expect(JSON.stringify(publicView.body)).not.toContain(email);
-    expect(publicView.body.events.some((e: { event: string }) => e.event.startsWith('notification.'))).toBe(false);
+    expect(
+      publicView.body.events.some((e: { event: string }) => e.event.startsWith('notification.'))
+    ).toBe(false);
     const events = await request(app).get(`/api/tickets/${t.id}/events`);
-    expect(events.body.events.some((e: { event: string }) => e.event.startsWith('notification.'))).toBe(false);
+    expect(
+      events.body.events.some((e: { event: string }) => e.event.startsWith('notification.'))
+    ).toBe(false);
 
     const ops = await opsRequest(app).get(`/api/ops/tickets/${t.id}`);
     expect(ops.body.notification).toEqual({ state: 'confirmed', maskedEmail: 'c•••@example.test' });
     expect(JSON.stringify(ops.body)).not.toContain(email);
-    expect(ops.body.events.map((e: { event: string }) => e.event)).toContain('notification.confirmed');
+    expect(ops.body.events.map((e: { event: string }) => e.event)).toContain(
+      'notification.confirmed'
+    );
   });
 });
 
 describe('retention', () => {
   it('deletes the opt-in with its ticket', async () => {
     const { t } = await confirmed();
-    await pool.query("UPDATE tickets SET created_at = NOW() - interval '31 days' WHERE id = $1", [t.id]);
+    await pool.query("UPDATE tickets SET created_at = NOW() - interval '31 days' WHERE id = $1", [
+      t.id,
+    ]);
     await deleteExpiredTicketBatch(new Date(Date.now() - 30 * 24 * 3600 * 1000), 500);
-    const { rows } = await pool.query('SELECT 1 FROM ticket_notifications WHERE ticket_id = $1', [t.id]);
+    const { rows } = await pool.query('SELECT 1 FROM ticket_notifications WHERE ticket_id = $1', [
+      t.id,
+    ]);
     expect(rows).toHaveLength(0);
   });
 });

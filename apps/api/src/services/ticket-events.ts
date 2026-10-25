@@ -11,7 +11,11 @@ export type { TicketRef };
  * `detail` is stored with the row only. The ops feed never receives it, because error
  * messages can quote AI output or customer content (see src/services/ops-feed.ts).
  */
-export async function recordTicketEvent(ticket: TicketRef, event: string, detail?: string): Promise<void> {
+export async function recordTicketEvent(
+  ticket: TicketRef,
+  event: string,
+  detail?: string
+): Promise<void> {
   await insertEvent(ticket.id, event, detail);
   publishTicketEvent(ticket, event);
 }

@@ -29,7 +29,7 @@ function result(missingFields: string[]): ValidationResult {
 }
 
 export function validateTriageOutput(triage: TriageOutput): ValidationResult {
-  const missingFields: string[] = TRIAGE_FIELDS.filter(field => isBlank(triage[field]));
+  const missingFields: string[] = TRIAGE_FIELDS.filter((field) => isBlank(triage[field]));
   if (typeof triage.escalate !== 'boolean') {
     missingFields.push('escalate');
   }

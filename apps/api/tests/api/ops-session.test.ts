@@ -17,7 +17,8 @@ function signIn(token: unknown, ip = freshIp()) {
   return request(app).post('/api/ops/session').set('x-forwarded-for', ip).send({ token });
 }
 
-const cookieOf = (res: { headers: Record<string, string> }) => res.headers['set-cookie'].split(';')[0];
+const cookieOf = (res: { headers: Record<string, string> }) =>
+  res.headers['set-cookie'].split(';')[0];
 
 afterAll(async () => {
   await shutdownSocket();
@@ -91,7 +92,9 @@ describe('DELETE /api/ops/session', () => {
 
     // The browser's copy is cleared, but a copied cookie is dead too.
     expect((await request(app).get(PROTECTED).set('cookie', cookie)).status).toBe(401);
-    expect((await request(app).get('/api/ops/session').set('cookie', cookie)).body).toEqual({ signedIn: false });
+    expect((await request(app).get('/api/ops/session').set('cookie', cookie)).body).toEqual({
+      signedIn: false,
+    });
   });
 
   it('is a no-op without a session', async () => {

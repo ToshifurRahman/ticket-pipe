@@ -30,8 +30,10 @@ const DEFAULT_SUMMARY_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const factory = createFactory();
 
-const invalidQuery = (result: { success: boolean }, c: { json: (body: unknown, status: 400) => Response }) =>
-  result.success ? undefined : c.json({ error: 'Invalid query parameters' }, 400);
+const invalidQuery = (
+  result: { success: boolean },
+  c: { json: (body: unknown, status: 400) => Response }
+) => (result.success ? undefined : c.json({ error: 'Invalid query parameters' }, 400));
 
 export const listAiInteractionsHandler = factory.createHandlers(
   zValidator('query', ListQuerySchema, invalidQuery),

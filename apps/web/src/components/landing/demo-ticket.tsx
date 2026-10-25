@@ -14,8 +14,8 @@ export function DemoTicket({ className }: { className?: string }) {
   return (
     <FormPanel aria-label="Example ticket" className={className}>
       <p className="sr-only">
-        Example: a customer asks for a refund of a duplicate charge. The ticket is received, triaged as a high
-        priority billing issue, and answered with: {DEMO_REPLY}
+        Example: a customer asks for a refund of a duplicate charge. The ticket is received, triaged
+        as a high priority billing issue, and answered with: {DEMO_REPLY}
       </p>
       <div aria-hidden>
         <FormHeader
@@ -25,7 +25,12 @@ export function DemoTicket({ className }: { className?: string }) {
           referenceNumber={DEMO_REFERENCE}
         />
         <PlyRow plies={frame.plies} liveClock />
-        <TicketThread demo description={DEMO_MESSAGE} createdAt={DEMO_TIMES[0]} support={frame.support} />
+        <TicketThread
+          demo
+          description={DEMO_MESSAGE}
+          createdAt={DEMO_TIMES[0]}
+          support={frame.support}
+        />
       </div>
       {canReplay && (
         <FormFoot className="justify-end">

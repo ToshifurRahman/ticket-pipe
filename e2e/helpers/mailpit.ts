@@ -11,11 +11,15 @@ export type CaughtMail = { subject: string; text: string };
 export const uniqueAddress = () => `e2e+${crypto.randomUUID()}@example.test`;
 
 async function fetchMail(address: string): Promise<CaughtMail[]> {
-  const search = await fetch(`${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:${address}`)}`);
+  const search = await fetch(
+    `${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:${address}`)}`
+  );
   const { messages } = (await search.json()) as { messages: { ID: string; Subject: string }[] };
   const full = await Promise.all(
     messages.map(async ({ ID, Subject }) => {
-      const detail = (await (await fetch(`${MAILPIT}/api/v1/message/${ID}`)).json()) as { Text: string };
+      const detail = (await (await fetch(`${MAILPIT}/api/v1/message/${ID}`)).json()) as {
+        Text: string;
+      };
       return { subject: Subject, text: detail.Text };
     })
   );
@@ -25,7 +29,9 @@ async function fetchMail(address: string): Promise<CaughtMail[]> {
 
 /** Waits until `count` messages have reached `address` and returns them, oldest first. */
 export async function waitForMail(address: string, count = 1): Promise<CaughtMail[]> {
-  await expect.poll(async () => (await fetchMail(address)).length, { timeout: 15_000 }).toBeGreaterThanOrEqual(count);
+  await expect
+    .poll(async () => (await fetchMail(address)).length, { timeout: 15_000 })
+    .toBeGreaterThanOrEqual(count);
   return fetchMail(address);
 }
 

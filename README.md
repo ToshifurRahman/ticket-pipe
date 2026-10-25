@@ -84,14 +84,14 @@ Use `bun --filter '*' test`, not `bun test`: Vitest has to run on Node because `
 
 ## More detail
 
-| Doc | Covers |
-|---|---|
-| [Web app](docs/web-app.md) | Pages, public vs ops views, ops console, fake LLM mode |
-| [Ops](docs/ops.md) | Live feed, sign-in, email alerts, ticket recovery and replay |
-| [Customer email](docs/customer-email.md) | Opt-in notifications and mail drivers |
-| [Ticket history](docs/ticket-history.md) | Append-only event log and paging |
-| [AI observability](docs/ai-observability.md) | `ai_interactions`, ops endpoints, example queries |
-| [DESIGN.md](DESIGN.md), [PRODUCT.md](PRODUCT.md) | Design system and product intent |
+| Doc                                              | Covers                                                       |
+| ------------------------------------------------ | ------------------------------------------------------------ |
+| [Web app](docs/web-app.md)                       | Pages, public vs ops views, ops console, fake LLM mode       |
+| [Ops](docs/ops.md)                               | Live feed, sign-in, email alerts, ticket recovery and replay |
+| [Customer email](docs/customer-email.md)         | Opt-in notifications and mail drivers                        |
+| [Ticket history](docs/ticket-history.md)         | Append-only event log and paging                             |
+| [AI observability](docs/ai-observability.md)     | `ai_interactions`, ops endpoints, example queries            |
+| [DESIGN.md](DESIGN.md), [PRODUCT.md](PRODUCT.md) | Design system and product intent                             |
 
 ## Project structure
 

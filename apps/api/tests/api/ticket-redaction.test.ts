@@ -9,7 +9,12 @@ import opsRequest from '../helpers/ops-session.js';
 import { app } from '../../src/app.js';
 import { pool } from '../../src/lib/db.js';
 import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';
-import { insertTicket, markTicketFailed, updateTicketStatus, type Ticket } from '../../src/repositories/tickets.js';
+import {
+  insertTicket,
+  markTicketFailed,
+  updateTicketStatus,
+  type Ticket,
+} from '../../src/repositories/tickets.js';
 import { insertEvent } from '../../src/repositories/events.js';
 import { insertProcessingResult } from '../../src/repositories/processing.js';
 
@@ -25,23 +30,55 @@ const PROCESSING = {
   nextSteps: ['Confirm refund', 'Audit webhooks'],
 };
 
-const REDACTED = ['internalNote', 'nextActions', 'nextSteps', 'sentiment', 'escalate', 'recommendedTeam', 'issueSummary', 'detail'];
-const PRIVATE_VALUES = [PROCESSING.internalNote, PROCESSING.issueSummary, PROCESSING.recommendedTeam, 'secret provider error'];
+const REDACTED = [
+  'internalNote',
+  'nextActions',
+  'nextSteps',
+  'sentiment',
+  'escalate',
+  'recommendedTeam',
+  'issueSummary',
+  'detail',
+];
+const PRIVATE_VALUES = [
+  PROCESSING.internalNote,
+  PROCESSING.issueSummary,
+  PROCESSING.recommendedTeam,
+  'secret provider error',
+];
 
 const created: string[] = [];
 let completed: Ticket;
 let failed: Ticket;
 
 beforeAll(async () => {
-  completed = await insertTicket('TICK-REDACT-001', 'Double charge', 'I was charged twice for March.');
-  failed = await insertTicket('TICK-REDACT-002', 'Export broken', 'The CSV export never downloads.');
+  completed = await insertTicket(
+    'TICK-REDACT-001',
+    'Double charge',
+    'I was charged twice for March.'
+  );
+  failed = await insertTicket(
+    'TICK-REDACT-002',
+    'Export broken',
+    'The CSV export never downloads.'
+  );
   created.push(completed.id, failed.id);
 
   for (const ticket of [completed, failed]) await insertProcessingResult(ticket.id, PROCESSING);
 
   await updateTicketStatus(completed.id, 'completed');
-  for (const event of ['triage.started', 'triage.completed', 'draft.started', 'draft.completed', 'ticket.completed']) {
-    await insertEvent(completed.id, event, event === 'draft.completed' ? 'reused stored output' : undefined);
+  for (const event of [
+    'triage.started',
+    'triage.completed',
+    'draft.started',
+    'draft.completed',
+    'ticket.completed',
+  ]) {
+    await insertEvent(
+      completed.id,
+      event,
+      event === 'draft.completed' ? 'reused stored output' : undefined
+    );
   }
 
   await updateTicketStatus(failed.id, 'failed');
@@ -129,7 +166,12 @@ describe('public ticket view', () => {
 
     expect(res.status).toBe(200);
     expect([...keyPaths(res.body)].sort()).toEqual(
-      [...TICKET_KEYS, 'phases.triage.output', 'phases.triage.output.category', 'phases.triage.output.priority'].sort()
+      [
+        ...TICKET_KEYS,
+        'phases.triage.output',
+        'phases.triage.output.category',
+        'phases.triage.output.priority',
+      ].sort()
     );
     expectNothingPrivate(res.body);
   });
@@ -138,7 +180,12 @@ describe('public ticket view', () => {
     const res = await request(app).get(`/api/tickets/${failed.id}/events`);
 
     expect(res.status).toBe(200);
-    expect([...keyPaths(res.body)].sort()).toEqual(['events', 'events[].event', 'events[].occurredAt', 'nextCursor']);
+    expect([...keyPaths(res.body)].sort()).toEqual([
+      'events',
+      'events[].event',
+      'events[].occurredAt',
+      'nextCursor',
+    ]);
     expect(res.body.events.map((e: { event: string }) => e.event)).toContain('ticket.failed');
     expectNothingPrivate(res.body);
   });
@@ -195,13 +242,17 @@ describe('ops ticket view', () => {
   });
 
   it('pages events with detail', async () => {
-    const res = await opsRequest(app).get(`/api/ops/tickets/${failed.id}/events`).query({ limit: 2 });
+    const res = await opsRequest(app)
+      .get(`/api/ops/tickets/${failed.id}/events`)
+      .query({ limit: 2 });
 
     expect(res.status).toBe(200);
     expect(res.body.events).toHaveLength(2);
     expect(typeof res.body.nextCursor).toBe('string');
 
-    const rest = await opsRequest(app).get(`/api/ops/tickets/${failed.id}/events`).query({ after: res.body.nextCursor });
+    const rest = await opsRequest(app)
+      .get(`/api/ops/tickets/${failed.id}/events`)
+      .query({ after: res.body.nextCursor });
     expect(rest.body.events).toContainEqual({
       event: 'ticket.failed',
       detail: 'secret provider error',
@@ -210,10 +261,14 @@ describe('ops ticket view', () => {
   });
 
   it('returns 404 for an unknown ticket and 400 for a bad cursor', async () => {
-    const missing = await opsRequest(app).get('/api/ops/tickets/00000000-0000-0000-0000-000000000000');
+    const missing = await opsRequest(app).get(
+      '/api/ops/tickets/00000000-0000-0000-0000-000000000000'
+    );
     expect(missing.status).toBe(404);
 
-    const badCursor = await opsRequest(app).get(`/api/ops/tickets/${failed.id}/events`).query({ after: 'nope' });
+    const badCursor = await opsRequest(app)
+      .get(`/api/ops/tickets/${failed.id}/events`)
+      .query({ after: 'nope' });
     expect(badCursor.status).toBe(400);
   });
 });

@@ -20,27 +20,34 @@ export const opsSessionRouter = new Hono();
 
 const SignInSchema = z.object({ token: z.string().max(512) });
 
-opsSessionRouter.post('/', zValidator('json', SignInSchema, (result, c) => (result.success ? undefined : c.json({ error: 'Invalid request body' }, 400))), async (c) => {
-  if (!isOpsSignInConfigured()) return c.json({ error: 'Ops sign-in is not configured' }, 503);
+opsSessionRouter.post(
+  '/',
+  zValidator('json', SignInSchema, (result, c) =>
+    result.success ? undefined : c.json({ error: 'Invalid request body' }, 400)
+  ),
+  async (c) => {
+    if (!isOpsSignInConfigured()) return c.json({ error: 'Ops sign-in is not configured' }, 503);
 
-  const ip = clientIp(c);
-  if (await isSignInLocked(ip)) return c.json({ error: 'Too many attempts, try again later' }, 429);
+    const ip = clientIp(c);
+    if (await isSignInLocked(ip))
+      return c.json({ error: 'Too many attempts, try again later' }, 429);
 
-  if (!checkOpsToken(c.req.valid('json').token)) {
-    await recordFailedSignIn(ip);
-    return c.json({ error: 'Invalid token' }, 401);
+    if (!checkOpsToken(c.req.valid('json').token)) {
+      await recordFailedSignIn(ip);
+      return c.json({ error: 'Invalid token' }, 401);
+    }
+
+    const { id, expiresAt } = await createSession();
+    setCookie(c, OPS_SESSION_COOKIE, id, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'Strict',
+      path: '/',
+      maxAge: SESSION_TTL_S,
+    });
+    return c.json({ signedIn: true, expiresAt });
   }
-
-  const { id, expiresAt } = await createSession();
-  setCookie(c, OPS_SESSION_COOKIE, id, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'Strict',
-    path: '/',
-    maxAge: SESSION_TTL_S,
-  });
-  return c.json({ signedIn: true, expiresAt });
-});
+);
 
 // Never a 401: the console asks this to decide whether to show the sign-in card.
 opsSessionRouter.get('/', async (c) => {

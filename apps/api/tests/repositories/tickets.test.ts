@@ -57,9 +57,9 @@ describe('getTicketById', () => {
   });
 
   it('throws when the ticket does not exist', async () => {
-    await expect(
-      getTicketById('00000000-0000-0000-0000-000000000000')
-    ).rejects.toThrow('Ticket not found');
+    await expect(getTicketById('00000000-0000-0000-0000-000000000000')).rejects.toThrow(
+      'Ticket not found'
+    );
   });
 });
 
@@ -151,7 +151,11 @@ describe('requeueTicket', () => {
 
     const prev = await requeueTicket(t.id);
 
-    expect(prev).toEqual({ status: 'failed', failureReason: 'draft_retries_exhausted', failedAt: failed.failedAt });
+    expect(prev).toEqual({
+      status: 'failed',
+      failureReason: 'draft_retries_exhausted',
+      failedAt: failed.failedAt,
+    });
   });
 
   it('requeues a needs_attention ticket', async () => {
@@ -165,14 +169,17 @@ describe('requeueTicket', () => {
     expect((await getTicketById(t.id)).status).toBe('queued');
   });
 
-  it.each(['queued', 'processing', 'completed'])('leaves a %s ticket alone and returns null', async status => {
-    const t = await insertTicket(`TICK-TEST-REQ-${status}`, 'Sub', 'Desc');
-    createdIds.push(t.id);
-    await updateTicketStatus(t.id, status);
+  it.each(['queued', 'processing', 'completed'])(
+    'leaves a %s ticket alone and returns null',
+    async (status) => {
+      const t = await insertTicket(`TICK-TEST-REQ-${status}`, 'Sub', 'Desc');
+      createdIds.push(t.id);
+      await updateTicketStatus(t.id, status);
 
-    expect(await requeueTicket(t.id)).toBeNull();
-    expect((await getTicketById(t.id)).status).toBe(status);
-  });
+      expect(await requeueTicket(t.id)).toBeNull();
+      expect((await getTicketById(t.id)).status).toBe(status);
+    }
+  );
 
   it('lets exactly one of two concurrent requeues win', async () => {
     const t = await insertTicket('TICK-TEST-REQ-RACE', 'Sub', 'Desc');
@@ -181,7 +188,7 @@ describe('requeueTicket', () => {
 
     const results = await Promise.all([requeueTicket(t.id), requeueTicket(t.id)]);
 
-    expect(results.filter(r => r !== null)).toHaveLength(1);
+    expect(results.filter((r) => r !== null)).toHaveLength(1);
   });
 });
 
@@ -221,10 +228,17 @@ describe('listTickets sort by failedAt', () => {
     createdIds.push(a.id, b.id, c.id);
     await markTicketFailed(b.id, 'processing_error');
     await markTicketFailed(a.id, 'processing_error');
-    await pool.query("UPDATE tickets SET failed_at = NOW() - interval '1 hour' WHERE id = $1", [b.id]);
+    await pool.query("UPDATE tickets SET failed_at = NOW() - interval '1 hour' WHERE id = $1", [
+      b.id,
+    ]);
 
-    const { tickets } = await listTickets({ page: 1, limit: 100000, sort: 'failedAt', order: 'asc' });
-    const ours = tickets.filter(t => [a.id, b.id, c.id].includes(t.id)).map(t => t.id);
+    const { tickets } = await listTickets({
+      page: 1,
+      limit: 100000,
+      sort: 'failedAt',
+      order: 'asc',
+    });
+    const ours = tickets.filter((t) => [a.id, b.id, c.id].includes(t.id)).map((t) => t.id);
 
     expect(ours).toEqual([b.id, a.id, c.id]);
   });

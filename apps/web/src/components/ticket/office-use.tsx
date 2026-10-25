@@ -25,7 +25,10 @@ export function OfficeUse({
   plies: Ply[];
   badges: TriageBadges | null;
 }) {
-  const counts = useStampOnChange({ category: badges?.category ?? '', priority: badges?.priority ?? '' });
+  const counts = useStampOnChange({
+    category: badges?.category ?? '',
+    priority: badges?.priority ?? '',
+  });
 
   return (
     <aside aria-label="Office use" className="flex flex-col gap-5.5">
@@ -50,7 +53,11 @@ export function OfficeUse({
 
       <dl className="flex flex-col">
         {plies.map((ply) => (
-          <TimeRow key={ply.key} label={ply.state === 'on-hold' ? 'On hold' : TIME_LABELS[ply.key]} time={ply.time} />
+          <TimeRow
+            key={ply.key}
+            label={ply.state === 'on-hold' ? 'On hold' : TIME_LABELS[ply.key]}
+            time={ply.time}
+          />
         ))}
       </dl>
 

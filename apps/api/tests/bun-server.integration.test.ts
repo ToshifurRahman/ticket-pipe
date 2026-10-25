@@ -34,7 +34,8 @@ function freePort(): Promise<number> {
 async function waitForHealth(url: string): Promise<void> {
   const deadline = Date.now() + 20_000;
   while (Date.now() < deadline) {
-    if (proc.exitCode !== null) throw new Error(`Bun server exited early (${proc.exitCode}):\n${output}`);
+    if (proc.exitCode !== null)
+      throw new Error(`Bun server exited early (${proc.exitCode}):\n${output}`);
     try {
       if ((await fetch(`${url}/health`)).ok) return;
     } catch {
@@ -93,7 +94,9 @@ describe('Bun server', () => {
   it('delivers a worker-style Redis emit to a client in the ticket room', async () => {
     const ticketId = crypto.randomUUID();
     const client = await connect();
-    const received = new Promise<Record<string, unknown>>((resolve) => client.on('ticket:update', resolve));
+    const received = new Promise<Record<string, unknown>>((resolve) =>
+      client.on('ticket:update', resolve)
+    );
 
     client.emit('join', ticketId);
     // Events on one socket are handled in order, so once this ack returns the join is done.
@@ -103,12 +106,14 @@ describe('Bun server', () => {
 
     const payload = await Promise.race([
       received,
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('no ticket:update delivered')), 5000)),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('no ticket:update delivered')), 5000)
+      ),
     ]);
     expect(payload).toEqual({ event: 'ticket.completed', ticketId });
   });
 
-  it('does not deliver another ticket\'s events', async () => {
+  it("does not deliver another ticket's events", async () => {
     const mine = crypto.randomUUID();
     const client = await connect();
     const got: unknown[] = [];

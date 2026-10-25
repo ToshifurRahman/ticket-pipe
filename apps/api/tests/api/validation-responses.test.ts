@@ -33,12 +33,19 @@ afterAll(async () => {
 });
 
 async function ticket() {
-  const t = await insertTicket(`TICK-VAL-${randomUUID().slice(0, 8)}`, 'Validation', 'Pinning response shapes.');
+  const t = await insertTicket(
+    `TICK-VAL-${randomUUID().slice(0, 8)}`,
+    'Validation',
+    'Pinning response shapes.'
+  );
   created.push(t.id);
   return t;
 }
 const optIn = (id: string, body: unknown) =>
-  request(app).post(`/api/tickets/${id}/notification`).set('x-forwarded-for', freshIp()).send(body as object);
+  request(app)
+    .post(`/api/tickets/${id}/notification`)
+    .set('x-forwarded-for', freshIp())
+    .send(body as object);
 
 const GOOD_SUBJECT = 'A valid subject line';
 const GOOD_DESCRIPTION = 'A valid description that is long enough to pass the minimum.';
@@ -59,7 +66,10 @@ describe('POST /api/tickets: wrong-type and malformed bodies', () => {
     ['a JSON string', '"nope"'],
     ['null', 'null'],
   ])('%s body: 400 with an empty errors object', async (_name, raw) => {
-    const res = await request(app).post('/api/tickets').set('content-type', 'application/json').send(raw);
+    const res = await request(app)
+      .post('/api/tickets')
+      .set('content-type', 'application/json')
+      .send(raw);
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ errors: {} });
   });
@@ -67,7 +77,9 @@ describe('POST /api/tickets: wrong-type and malformed bodies', () => {
   it('reports both fields when both are missing', async () => {
     const res = await request(app).post('/api/tickets').send({});
     expect(res.status).toBe(400);
-    expect(res.body).toEqual({ errors: { subject: 'Subject is required', description: 'Description is required' } });
+    expect(res.body).toEqual({
+      errors: { subject: 'Subject is required', description: 'Description is required' },
+    });
   });
 });
 
@@ -78,7 +90,10 @@ describe('POST /api/tickets/:id/notification (opt-in)', () => {
     ['email is null', { email: null }],
     ['email is over 254 characters', { email: `${'a'.repeat(250)}@example.test` }],
     ['turnstileToken is a number', { email: 'a@example.test', turnstileToken: 1 }],
-    ['turnstileToken is over 4096 characters', { email: 'a@example.test', turnstileToken: 'x'.repeat(4097) }],
+    [
+      'turnstileToken is over 4096 characters',
+      { email: 'a@example.test', turnstileToken: 'x'.repeat(4097) },
+    ],
   ])('%s: 400 { error: "Invalid request body" }', async (_name, body) => {
     const t = await ticket();
     const res = await optIn(t.id, body);
@@ -144,7 +159,10 @@ describe('POST /api/ops/session', () => {
     ['token a number', { token: 5 }],
     ['token over 512 characters', { token: 't'.repeat(513) }],
   ])('%s: 400 { error: "Invalid request body" }', async (_name, body) => {
-    const res = await request(app).post('/api/ops/session').set('x-forwarded-for', freshIp()).send(body);
+    const res = await request(app)
+      .post('/api/ops/session')
+      .set('x-forwarded-for', freshIp())
+      .send(body);
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'Invalid request body' });
     expect(res.headers['set-cookie']).toBeUndefined();
@@ -152,7 +170,8 @@ describe('POST /api/ops/session', () => {
 });
 
 describe('GET /api/ops/ai-interactions query', () => {
-  const list = (query: Record<string, string>) => opsRequest(app).get('/api/ops/ai-interactions').query(query);
+  const list = (query: Record<string, string>) =>
+    opsRequest(app).get('/api/ops/ai-interactions').query(query);
 
   it.each([
     ['operation', { operation: 'nope' }],
@@ -193,7 +212,8 @@ describe('GET /api/ops/ai-interactions query', () => {
 });
 
 describe('GET /api/ops/ai-interactions/summary query', () => {
-  const summary = (query: Record<string, string>) => opsRequest(app).get('/api/ops/ai-interactions/summary').query(query);
+  const summary = (query: Record<string, string>) =>
+    opsRequest(app).get('/api/ops/ai-interactions/summary').query(query);
 
   it.each([
     ['since', { since: 'not-a-date' }],

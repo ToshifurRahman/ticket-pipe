@@ -29,7 +29,10 @@ async function ticketStatus(ticketId: string): Promise<string> {
   const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
   try {
-    const { rows } = await client.query<{ status: string }>('SELECT status FROM tickets WHERE id = $1', [ticketId]);
+    const { rows } = await client.query<{ status: string }>(
+      'SELECT status FROM tickets WHERE id = $1',
+      [ticketId]
+    );
     return rows[0]?.status ?? 'completed';
   } finally {
     await client.end();
@@ -46,7 +49,9 @@ async function drainMessage(ticketId: string): Promise<void> {
     },
   });
   try {
-    const { QueueUrl } = await sqs.send(new GetQueueUrlCommand({ QueueName: process.env.SQS_QUEUE_NAME }));
+    const { QueueUrl } = await sqs.send(
+      new GetQueueUrlCommand({ QueueName: process.env.SQS_QUEUE_NAME })
+    );
     for (let round = 0; round < 5; round++) {
       const { Messages = [] } = await sqs.send(
         new ReceiveMessageCommand({ QueueUrl, MaxNumberOfMessages: 10, WaitTimeSeconds: 1 })
@@ -55,8 +60,16 @@ async function drainMessage(ticketId: string): Promise<void> {
       for (const m of Messages) {
         const mine = (JSON.parse(m.Body ?? '{}') as { ticketId?: string }).ticketId === ticketId;
         found ||= mine;
-        if (mine) await sqs.send(new DeleteMessageCommand({ QueueUrl, ReceiptHandle: m.ReceiptHandle }));
-        else await sqs.send(new ChangeMessageVisibilityCommand({ QueueUrl, ReceiptHandle: m.ReceiptHandle, VisibilityTimeout: 0 }));
+        if (mine)
+          await sqs.send(new DeleteMessageCommand({ QueueUrl, ReceiptHandle: m.ReceiptHandle }));
+        else
+          await sqs.send(
+            new ChangeMessageVisibilityCommand({
+              QueueUrl,
+              ReceiptHandle: m.ReceiptHandle,
+              VisibilityTimeout: 0,
+            })
+          );
       }
       if (found) return;
     }

@@ -44,7 +44,9 @@ describe('landing page', () => {
 
   it('renders every section', () => {
     renderHome();
-    expect(screen.getByRole('heading', { level: 1, name: /see your ticket move/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: /see your ticket move/i })
+    ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /four stages/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Rates' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Questions' })).toBeInTheDocument();

@@ -23,7 +23,12 @@ import { pool } from '../src/lib/db.js';
 import { purgeTicketEvents } from './helpers/purge-ticket-events.js';
 import { newOpsCookie } from './helpers/ops-session.js';
 import { destroySession, hashSessionId } from '../src/lib/ops-session.js';
-import { init as initSocket, shutdown as shutdownSocket, getIo, revokeOpsSockets } from '../src/lib/socket.js';
+import {
+  init as initSocket,
+  shutdown as shutdownSocket,
+  getIo,
+  revokeOpsSockets,
+} from '../src/lib/socket.js';
 import { insertTicket } from '../src/repositories/tickets.js';
 import { getAllEventsByTicketId, insertEvent } from '../src/repositories/events.js';
 import { processMessage } from '../src/worker.js';
@@ -76,7 +81,9 @@ afterEach(async () => {
   for (const client of openClients.splice(0)) client.disconnect();
   if (createdIds.length) {
     await purgeTicketEvents(createdIds);
-    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [createdIds]);
+    await pool.query('DELETE FROM ticket_processing WHERE ticket_id = ANY($1::uuid[])', [
+      createdIds,
+    ]);
     await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [createdIds]);
     createdIds.length = 0;
   }
@@ -203,7 +210,10 @@ describe('ops organization feed', () => {
     expect(await opsRoomSize()).toBe(1);
 
     await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
-    await waitFor(() => eventsFor(received, ticket.id).length === 5, 'ops client never received the feed');
+    await waitFor(
+      () => eventsFor(received, ticket.id).length === 5,
+      'ops client never received the feed'
+    );
 
     expect(attackerGot).toEqual([]);
   });
@@ -226,12 +236,18 @@ describe('ops organization feed', () => {
 
   it('refuses ops:subscribe with a session cookie that was never issued or already ended', async () => {
     const forged = await connect('ops_session=not-a-real-session');
-    expect(await forged.timeout(5000).emitWithAck('ops:subscribe')).toEqual({ ok: false, error: 'unauthorized' });
+    expect(await forged.timeout(5000).emitWithAck('ops:subscribe')).toEqual({
+      ok: false,
+      error: 'unauthorized',
+    });
 
     const cookie = await newOpsCookie();
     await destroySession(cookie.split('=')[1]);
     const ended = await connect(cookie);
-    expect(await ended.timeout(5000).emitWithAck('ops:subscribe')).toEqual({ ok: false, error: 'unauthorized' });
+    expect(await ended.timeout(5000).emitWithAck('ops:subscribe')).toEqual({
+      ok: false,
+      error: 'unauthorized',
+    });
     expect(await opsRoomSize()).toBe(0);
   });
 
@@ -315,7 +331,11 @@ describe('ops organization feed', () => {
     await insertEvent(ticket.id, 'triage.failed', 'Error 1');
     await insertEvent(ticket.id, 'triage.failed', 'Error 2');
     const ai = {
-      triage: vi.fn().mockRejectedValue(new Error(`LLM output failed schema validation: received '${SENTINEL}'`)),
+      triage: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(`LLM output failed schema validation: received '${SENTINEL}'`)
+        ),
       draft: vi.fn(),
     } as unknown as AIService;
 
@@ -325,10 +345,18 @@ describe('ops organization feed', () => {
     ops.on('ticket:failed', (p) => alerts.push(p));
 
     await processMessage(ticket.id, 'fake-receipt', 3, ai).catch(() => {});
-    await waitFor(() => alerts.some((a) => a.ticketId === ticket.id), 'ops never received the alert');
+    await waitFor(
+      () => alerts.some((a) => a.ticketId === ticket.id),
+      'ops never received the alert'
+    );
 
     const mine = alerts.find((a) => a.ticketId === ticket.id)!;
-    expect(Object.keys(mine).sort()).toEqual(['occurredAt', 'reason', 'referenceNumber', 'ticketId']);
+    expect(Object.keys(mine).sort()).toEqual([
+      'occurredAt',
+      'reason',
+      'referenceNumber',
+      'ticketId',
+    ]);
     expect(mine.reason).toBe('triage_retries_exhausted');
     expect(JSON.stringify(mine)).not.toContain(SENTINEL);
   });
@@ -356,7 +384,11 @@ describe('ops organization feed', () => {
 
     await processMessage(ticket.id, 'fake-receipt', 1, mockAi());
     const payload = await completed;
-    expect(payload).toEqual({ event: 'ticket.completed', ticketId: ticket.id, occurredAt: expect.any(String) });
+    expect(payload).toEqual({
+      event: 'ticket.completed',
+      ticketId: ticket.id,
+      occurredAt: expect.any(String),
+    });
 
     await waitFor(
       () => opsGot.filter((p) => (p as OpsEvent).ticketId === ticket.id).length >= 5,

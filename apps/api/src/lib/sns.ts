@@ -33,7 +33,10 @@ export function getSnsClient(): SnsTarget | null {
       secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? 'test',
     },
     maxAttempts: MAX_ATTEMPTS,
-    requestHandler: { requestTimeout: REQUEST_TIMEOUT_MS, connectionTimeout: CONNECTION_TIMEOUT_MS },
+    requestHandler: {
+      requestTimeout: REQUEST_TIMEOUT_MS,
+      connectionTimeout: CONNECTION_TIMEOUT_MS,
+    },
   });
   target = { client, topicArn };
   return target;

@@ -24,7 +24,8 @@ function get(root: Node, dotted: string): Node | undefined {
 
 function resolveValue(root: Node, value: unknown, depth = 0): string {
   if (depth > 12) throw new Error(`alias loop at ${String(value)}`);
-  if (typeof value !== 'string') throw new Error(`non-string token value: ${JSON.stringify(value)}`);
+  if (typeof value !== 'string')
+    throw new Error(`non-string token value: ${JSON.stringify(value)}`);
   const alias = /^\{([^}]+)\}$/.exec(value);
   if (!alias) return value;
   return resolveValue(root, tokenValue(root, alias[1]), depth + 1);

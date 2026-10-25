@@ -65,7 +65,10 @@ export function FormItem({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-export function FormLabel({ className, ...props }: React.ComponentProps<typeof LabelPrimitive.Root>) {
+export function FormLabel({
+  className,
+  ...props
+}: React.ComponentProps<typeof LabelPrimitive.Root>) {
   const { formItemId } = useFormField();
   return <Label htmlFor={formItemId} className={className} {...props} />;
 }
@@ -84,7 +87,13 @@ export function FormControl(props: React.ComponentProps<typeof Slot>) {
 
 export function FormDescription({ className, ...props }: React.ComponentProps<'p'>) {
   const { formDescriptionId } = useFormField();
-  return <p id={formDescriptionId} className={cn('text-xs text-muted-foreground', className)} {...props} />;
+  return (
+    <p
+      id={formDescriptionId}
+      className={cn('text-xs text-muted-foreground', className)}
+      {...props}
+    />
+  );
 }
 
 export function FormMessage({ className, children, ...props }: React.ComponentProps<'p'>) {

@@ -18,7 +18,12 @@ import {
 } from '../repositories/notifications.js';
 import { emitTicketUpdate } from './ticket-updates.js';
 import { recordTicketEvent } from './ticket-events.js';
-import { buildConfirmEmail, buildReplyReadyEmail, buildSnagEmail, type EmailContext } from './notification-emails.js';
+import {
+  buildConfirmEmail,
+  buildReplyReadyEmail,
+  buildSnagEmail,
+  type EmailContext,
+} from './notification-emails.js';
 
 // Customer email (story 6.9): opt-in with a confirmation link, then at most one "reply is ready"
 // and one "snag" email per ticket. The address is PII: it is passed to the mailer and nowhere
@@ -69,12 +74,17 @@ export async function getNotificationView(ticketId: string): Promise<Notificatio
 
 async function underDailyCap(): Promise<boolean> {
   const configured = Number(process.env.MAIL_DAILY_CAP);
-  const cap = process.env.MAIL_DAILY_CAP && Number.isFinite(configured) ? configured : DEFAULT_DAILY_CAP;
+  const cap =
+    process.env.MAIL_DAILY_CAP && Number.isFinite(configured) ? configured : DEFAULT_DAILY_CAP;
   const day = new Date().toISOString().slice(0, 10);
   return (await hit(`notify:sent:${day}`, DAY_S)) <= cap;
 }
 
-export async function requestNotification(ticketId: string, rawEmail: string, ip: string): Promise<NotificationView> {
+export async function requestNotification(
+  ticketId: string,
+  rawEmail: string,
+  ip: string
+): Promise<NotificationView> {
   const mailer = getMailer();
   if (!mailer) throw new NotificationError(503, 'Email notifications are not available');
 
@@ -83,26 +93,39 @@ export async function requestNotification(ticketId: string, rawEmail: string, ip
   const email = parsed.data;
 
   const ticket = await getTicketById(ticketId);
-  if (ticket.status === 'completed') throw new NotificationError(409, 'This ticket already has its reply');
+  if (ticket.status === 'completed')
+    throw new NotificationError(409, 'This ticket already has its reply');
 
   if ((await hit(`notify:optin:${ip}`, HOUR_S)) > OPT_IN_LIMIT_PER_HOUR) {
     throw new NotificationError(429, 'Too many requests, try again later');
   }
 
   const token = randomBytes(32).toString('base64url');
-  const created = await insertSubscription(ticket.id, email, hashToken(token), new Date(Date.now() + TOKEN_TTL_MS));
+  const created = await insertSubscription(
+    ticket.id,
+    email,
+    hashToken(token),
+    new Date(Date.now() + TOKEN_TTL_MS)
+  );
   if (!created) throw new NotificationError(409, 'An email address is already set for this ticket');
 
   try {
     if (!(await underDailyCap())) throw new Error('quota');
     await mailer.send({
       to: email,
-      ...buildConfirmEmail({ subject: ticket.subject, referenceNumber: ticket.referenceNumber, url: `${siteUrl()}/confirm/${token}` }),
+      ...buildConfirmEmail({
+        subject: ticket.subject,
+        referenceNumber: ticket.referenceNumber,
+        url: `${siteUrl()}/confirm/${token}`,
+      }),
     });
   } catch (err) {
     // Set-once and no resend: leaving the row would strand the customer with no way to retry.
     await deleteSubscription(ticket.id);
-    logger.warn({ ticketId: ticket.id, reason: (err as Error).message === 'quota' ? 'quota' : 'send_failed' }, 'Confirmation email not sent');
+    logger.warn(
+      { ticketId: ticket.id, reason: (err as Error).message === 'quota' ? 'quota' : 'send_failed' },
+      'Confirmation email not sent'
+    );
     throw new NotificationError(502, 'We could not send the confirmation email. Please try again.');
   }
 
@@ -112,14 +135,22 @@ export async function requestNotification(ticketId: string, rawEmail: string, ip
 }
 
 /** Read-only look at a confirmation link, for the confirm page. No state changes. */
-export async function previewConfirmation(token: string): Promise<{ valid: boolean; referenceNumber?: string; maskedEmail?: string }> {
+export async function previewConfirmation(
+  token: string
+): Promise<{ valid: boolean; referenceNumber?: string; maskedEmail?: string }> {
   const found = await peekByTokenHash(hashToken(token));
   if (!found) return { valid: false };
   const ticket = await getTicketById(found.ticketId);
-  return { valid: true, referenceNumber: ticket.referenceNumber, maskedEmail: maskEmail(found.email) };
+  return {
+    valid: true,
+    referenceNumber: ticket.referenceNumber,
+    maskedEmail: maskEmail(found.email),
+  };
 }
 
-export async function confirmNotification(token: string): Promise<{ referenceNumber: string; status: string; maskedEmail: string }> {
+export async function confirmNotification(
+  token: string
+): Promise<{ referenceNumber: string; status: string; maskedEmail: string }> {
   const ticketId = await confirmByTokenHash(hashToken(token));
   if (!ticketId) throw new NotificationError(410, 'This link has expired or was already used');
   const ticket = await getTicketById(ticketId);
@@ -128,7 +159,11 @@ export async function confirmNotification(token: string): Promise<{ referenceNum
   emitTicketUpdate(ticketId, 'notification.confirmed');
   // The outcome may already have happened while the customer was reading their inbox.
   await notifyIfDue(ticketId);
-  return { referenceNumber: ticket.referenceNumber, status: ticket.status, maskedEmail: maskEmail(email ?? '') };
+  return {
+    referenceNumber: ticket.referenceNumber,
+    status: ticket.status,
+    maskedEmail: maskEmail(email ?? ''),
+  };
 }
 
 type Kind = 'reply_ready' | 'snag';
@@ -169,7 +204,11 @@ export async function notifyIfDue(ticketId: string): Promise<void> {
 
 async function deliver(ticket: Ticket, kind: Kind, email: string): Promise<void> {
   const mailer = getMailer();
-  const ctx: EmailContext = { subject: ticket.subject, referenceNumber: ticket.referenceNumber, url: ticketUrl(ticket.referenceNumber) };
+  const ctx: EmailContext = {
+    subject: ticket.subject,
+    referenceNumber: ticket.referenceNumber,
+    url: ticketUrl(ticket.referenceNumber),
+  };
   const built = kind === 'reply_ready' ? buildReplyReadyEmail(ctx) : buildSnagEmail(ctx);
   const message: MailMessage = { to: email, ...built };
 

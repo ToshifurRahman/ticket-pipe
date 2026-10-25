@@ -121,7 +121,12 @@ export type AiSummaryRow = {
   avgDurationMs: number;
 };
 
-export type OpsSummary = { since: string; until: string; ticketsInWindow: number; summary: AiSummaryRow[] };
+export type OpsSummary = {
+  since: string;
+  until: string;
+  ticketsInWindow: number;
+  summary: AiSummaryRow[];
+};
 
 /** Body of a 200 from POST /api/tickets/:id/replay. */
 export type ReplayResponse = { success: true; status: 'queued'; previousStatus: TicketStatus };

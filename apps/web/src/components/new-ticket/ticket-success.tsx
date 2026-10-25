@@ -23,11 +23,21 @@ export function TicketSuccess({ referenceNumber, createdAt, onSubmitAnother }: T
 
   return (
     <FormPanel enter aria-label="Ticket received">
-      <FormHeader as="h2" titleRef={heading} kicker="Service ticket · Filed" title="We're on it" referenceNumber={referenceNumber} />
+      <FormHeader
+        as="h2"
+        titleRef={heading}
+        kicker="Service ticket · Filed"
+        title="We're on it"
+        referenceNumber={referenceNumber}
+      />
       <FormBody>
         <div className="flex flex-wrap items-center gap-4">
-          <Stamp className="border-2 border-current px-3 py-1 text-meta text-ply-triaged">Ticket received</Stamp>
-          <span className="font-mono text-meta text-muted-foreground">{printedTime(createdAt)}</span>
+          <Stamp className="border-2 border-current px-3 py-1 text-meta text-ply-triaged">
+            Ticket received
+          </Stamp>
+          <span className="font-mono text-meta text-muted-foreground">
+            {printedTime(createdAt)}
+          </span>
         </div>
         <p className="text-base text-muted-foreground">
           Keep your reference to come back to this ticket. A reply usually arrives within a minute.
@@ -39,7 +49,11 @@ export function TicketSuccess({ referenceNumber, createdAt, onSubmitAnother }: T
             <span className="font-mono text-sm break-all" data-testid="ticket-reference">
               {referenceNumber}
             </span>
-            <Button variant="tb" aria-label="Copy reference" onClick={() => copyText(referenceNumber)}>
+            <Button
+              variant="tb"
+              aria-label="Copy reference"
+              onClick={() => copyText(referenceNumber)}
+            >
               {copy === 'copied' ? 'Copied' : 'Copy'}
             </Button>
           </div>

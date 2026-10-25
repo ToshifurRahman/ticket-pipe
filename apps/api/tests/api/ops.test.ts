@@ -3,7 +3,10 @@ import request from '../helpers/ops-session.js';
 import { app } from '../../src/app.js';
 import { pool } from '../../src/lib/db.js';
 import { insertTicket } from '../../src/repositories/tickets.js';
-import { insertAiInteraction, type AiInteractionRecord } from '../../src/repositories/ai-interactions.js';
+import {
+  insertAiInteraction,
+  type AiInteractionRecord,
+} from '../../src/repositories/ai-interactions.js';
 
 const createdIds: string[] = [];
 
@@ -19,7 +22,9 @@ afterAll(async () => {
   await pool.end();
 });
 
-function record(overrides: Partial<AiInteractionRecord> & { ticketId: string }): AiInteractionRecord {
+function record(
+  overrides: Partial<AiInteractionRecord> & { ticketId: string }
+): AiInteractionRecord {
   return {
     operation: 'triage',
     provider: 'primary',
@@ -41,17 +46,25 @@ describe('GET /api/ops/ai-interactions', () => {
     expect(res.status).toBe(200);
     expect(res.body.total).toBe(1);
     expect(res.body.interactions).toHaveLength(1);
-    expect(res.body.interactions[0]).toMatchObject({ ticketId: ticket.id, provider: 'primary', outcome: 'success' });
+    expect(res.body.interactions[0]).toMatchObject({
+      ticketId: ticket.id,
+      provider: 'primary',
+      outcome: 'success',
+    });
   });
 
   it('returns 400 for an invalid outcome filter', async () => {
-    const res = await request(app).get('/api/ops/ai-interactions').query({ outcome: 'not-a-real-outcome' });
+    const res = await request(app)
+      .get('/api/ops/ai-interactions')
+      .query({ outcome: 'not-a-real-outcome' });
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ error: 'Invalid query parameters' });
   });
 
   it('returns 400 for a malformed ticketId', async () => {
-    const res = await request(app).get('/api/ops/ai-interactions').query({ ticketId: 'not-a-uuid' });
+    const res = await request(app)
+      .get('/api/ops/ai-interactions')
+      .query({ ticketId: 'not-a-uuid' });
     expect(res.status).toBe(400);
   });
 });
@@ -71,13 +84,16 @@ describe('GET /api/ops/ai-interactions/summary', () => {
     expect(res.body.ticketsInWindow).toBeGreaterThanOrEqual(1);
     expect(Array.isArray(res.body.summary)).toBe(true);
     const primaryTriage = res.body.summary.find(
-      (s: { provider: string; operation: string }) => s.provider === 'primary' && s.operation === 'triage'
+      (s: { provider: string; operation: string }) =>
+        s.provider === 'primary' && s.operation === 'triage'
     );
     expect(primaryTriage).toMatchObject({ count: 1, successCount: 1, successRate: 1 });
   });
 
   it('returns 400 for a malformed since date', async () => {
-    const res = await request(app).get('/api/ops/ai-interactions/summary').query({ since: 'not-a-date' });
+    const res = await request(app)
+      .get('/api/ops/ai-interactions/summary')
+      .query({ since: 'not-a-date' });
     expect(res.status).toBe(400);
   });
 });

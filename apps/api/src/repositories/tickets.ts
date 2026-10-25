@@ -49,7 +49,9 @@ export async function getTicketById(id: string): Promise<Ticket> {
 }
 
 export async function getTicketByReferenceNumber(referenceNumber: string): Promise<Ticket> {
-  const result = await pool.query<TicketRow>('SELECT * FROM tickets WHERE reference_number = $1', [referenceNumber]);
+  const result = await pool.query<TicketRow>('SELECT * FROM tickets WHERE reference_number = $1', [
+    referenceNumber,
+  ]);
   if (!result.rows[0]) throw new TicketNotFoundError(referenceNumber);
   return mapRow(result.rows[0]);
 }
@@ -104,7 +106,11 @@ export interface RequeuedFrom {
 // makes concurrent replays safe: exactly one caller gets the previous state back, every
 // other caller (and any ticket in another status) gets null.
 export async function requeueTicket(id: string): Promise<RequeuedFrom | null> {
-  const result = await pool.query<{ status: ReplayableStatus; failure_reason: FailureReason | null; failed_at: Date | null }>(
+  const result = await pool.query<{
+    status: ReplayableStatus;
+    failure_reason: FailureReason | null;
+    failed_at: Date | null;
+  }>(
     `WITH prev AS (
        SELECT id, status, failure_reason, failed_at FROM tickets
        WHERE id = $1 AND status IN ('failed', 'needs_attention')
@@ -122,7 +128,10 @@ export async function requeueTicket(id: string): Promise<RequeuedFrom | null> {
 
 // Undoes requeueTicket when the replay could not be completed. Only a still-`queued` ticket is
 // restored, so a ticket the worker has already claimed is never overwritten.
-export async function restoreTicketAfterFailedRequeue(id: string, prev: RequeuedFrom): Promise<boolean> {
+export async function restoreTicketAfterFailedRequeue(
+  id: string,
+  prev: RequeuedFrom
+): Promise<boolean> {
   const result = await pool.query(
     `UPDATE tickets SET status = $2, failure_reason = $3, failed_at = $4
      WHERE id = $1 AND status = 'queued'`,
@@ -172,7 +181,13 @@ export async function listTickets(options: ListTicketsOptions): Promise<ListTick
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   const orderBy =
-    sort === 'status' ? 't.status' : sort === 'failedAt' ? 't.failed_at' : sort === 'updatedAt' ? 'updated_at' : 't.created_at';
+    sort === 'status'
+      ? 't.status'
+      : sort === 'failedAt'
+        ? 't.failed_at'
+        : sort === 'updatedAt'
+          ? 'updated_at'
+          : 't.created_at';
   const orderDir = order.toUpperCase() + (sort === 'failedAt' ? ' NULLS LAST' : '');
 
   const countQuery = `SELECT COUNT(*) FROM tickets t ${whereClause}`;
@@ -189,7 +204,9 @@ export async function listTickets(options: ListTicketsOptions): Promise<ListTick
   const [countResult, dataResult, countsResult] = await Promise.all([
     pool.query(countQuery, params),
     pool.query(dataQuery, [...params, limit, offset]),
-    pool.query<{ status: string; count: string }>('SELECT status, COUNT(*) FROM tickets GROUP BY status'),
+    pool.query<{ status: string; count: string }>(
+      'SELECT status, COUNT(*) FROM tickets GROUP BY status'
+    ),
   ]);
 
   return {
@@ -207,7 +224,10 @@ export async function listTickets(options: ListTicketsOptions): Promise<ListTick
 }
 
 export async function countTicketsCreatedSince(since: Date, until: Date): Promise<number> {
-  const result = await pool.query('SELECT COUNT(*) FROM tickets WHERE created_at >= $1 AND created_at <= $2', [since, until]);
+  const result = await pool.query(
+    'SELECT COUNT(*) FROM tickets WHERE created_at >= $1 AND created_at <= $2',
+    [since, until]
+  );
   return Number(result.rows[0].count);
 }
 

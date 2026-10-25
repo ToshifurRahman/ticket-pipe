@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:16
     ports:
-      - "5433:5432"
+      - '5433:5432'
     environment:
       POSTGRES_DB: ticket_pipe
       POSTGRES_USER: postgres
@@ -11,14 +11,14 @@ services:
   localstack:
     image: localstack/localstack:3.8
     ports:
-      - "4566:4566"
+      - '4566:4566'
     environment:
       SERVICES: sqs,sns
-      PERSISTENCE: "1"
+      PERSISTENCE: '1'
     volumes:
       - localstack-data:/var/lib/localstack
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:4566/_localstack/health"]
+      test: ['CMD', 'curl', '-sf', 'http://localhost:4566/_localstack/health']
       interval: 5s
       timeout: 3s
       retries: 20
@@ -42,14 +42,14 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - '6379:6379'
 
   # Catches customer email locally (story 6.9): SMTP on 1025, inbox UI and API on 8025.
   mailpit:
     image: axllent/mailpit:v1.21
     ports:
-      - "1025:1025"
-      - "8025:8025"
+      - '1025:1025'
+      - '8025:8025'
 
 volumes:
   localstack-data:

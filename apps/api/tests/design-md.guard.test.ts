@@ -28,21 +28,29 @@ function frontMatterColours(): Map<string, string> {
   const block = /^---\n([\s\S]*?)\n---/.exec(design)?.[1] ?? '';
   const colourBlock = /^colors:\n((?: {2}.*\n?)+)/m.exec(block)?.[1] ?? '';
   const rows = new Map<string, string>();
-  for (const match of colourBlock.matchAll(/^ {2}([a-z0-9-]+):\s*"(#[0-9A-Fa-f]{6})"/gm)) rows.set(match[1]!, match[2]!);
+  for (const match of colourBlock.matchAll(/^ {2}([a-z0-9-]+):\s*"(#[0-9A-Fa-f]{6})"/gm))
+    rows.set(match[1]!, match[2]!);
   return rows;
 }
 
 describe('DESIGN.md colour primitives', () => {
   it('front matter lists the same primitives with the same values', () => {
     const expected = Object.fromEntries(
-      Object.entries(colors.primitive.color).map(([name, token]) => [name, token.$value.toUpperCase()])
+      Object.entries(colors.primitive.color).map(([name, token]) => [
+        name,
+        token.$value.toUpperCase(),
+      ])
     );
-    const actual = Object.fromEntries([...frontMatterColours()].map(([name, hex]) => [name, hex.toUpperCase()]));
+    const actual = Object.fromEntries(
+      [...frontMatterColours()].map(([name, hex]) => [name, hex.toUpperCase()])
+    );
     expect(actual).toEqual(expected);
   });
 
   const documented = documentedColours();
-  const source = Object.entries(colors.primitive.color).map(([name, token]) => [name, token.$value] as const);
+  const source = Object.entries(colors.primitive.color).map(
+    ([name, token]) => [name, token.$value] as const
+  );
 
   it('lists every primitive colour token', () => {
     expect([...documented.keys()].sort()).toEqual(source.map(([name]) => name).sort());

@@ -27,7 +27,10 @@ afterAll(async () => {
 async function ticketWithEvents(ref: string, names: string[]) {
   const ticket = await insertTicket(ref, 'Sub', 'Desc');
   createdIds.push(ticket.id);
-  await pool.query('INSERT INTO ticket_events (ticket_id, event) SELECT $1, unnest($2::text[])', [ticket.id, names]);
+  await pool.query('INSERT INTO ticket_events (ticket_id, event) SELECT $1, unnest($2::text[])', [
+    ticket.id,
+    names,
+  ]);
   return ticket;
 }
 
@@ -35,7 +38,10 @@ function numbered(count: number): string[] {
   return Array.from({ length: count }, (_, i) => `event-${String(i + 1).padStart(3, '0')}`);
 }
 
-async function walkHistory(id: string, limit?: number): Promise<{ events: string[]; pages: number }> {
+async function walkHistory(
+  id: string,
+  limit?: number
+): Promise<{ events: string[]; pages: number }> {
   const events: string[] = [];
   let cursor: string | null = null;
   let pages = 0;
@@ -54,7 +60,11 @@ async function walkHistory(id: string, limit?: number): Promise<{ events: string
 
 describe('status lookup (story 5.3)', () => {
   it('returns the whole history and a null cursor when it fits in the first page', async () => {
-    const ticket = await ticketWithEvents('TICK-HIST-001', ['ticket.submitted', 'triage.started', 'triage.completed']);
+    const ticket = await ticketWithEvents('TICK-HIST-001', [
+      'ticket.submitted',
+      'triage.started',
+      'triage.completed',
+    ]);
 
     const res = await request(app).get(`/api/tickets/${ticket.id}`);
 
@@ -65,7 +75,10 @@ describe('status lookup (story 5.3)', () => {
       'triage.completed',
     ]);
     // The public view leaves out `detail`; /api/ops/tickets/:id has it.
-    expect(res.body.events[0]).toEqual({ event: 'ticket.submitted', occurredAt: expect.any(String) });
+    expect(res.body.events[0]).toEqual({
+      event: 'ticket.submitted',
+      occurredAt: expect.any(String),
+    });
     expect(res.body.eventsNextCursor).toBeNull();
   });
 
@@ -78,7 +91,9 @@ describe('status lookup (story 5.3)', () => {
     expect(res.body.events.map((e: { event: string }) => e.event)).toEqual(names.slice(0, 50));
     expect(typeof res.body.eventsNextCursor).toBe('string');
 
-    const rest = await request(app).get(`/api/tickets/${ticket.id}/events`).query({ after: res.body.eventsNextCursor });
+    const rest = await request(app)
+      .get(`/api/tickets/${ticket.id}/events`)
+      .query({ after: res.body.eventsNextCursor });
     expect(rest.body.events[0].event).toBe('event-051');
   });
 
@@ -94,7 +109,14 @@ describe('status lookup (story 5.3)', () => {
 
   it('works out phases from the full history, not from the first page', async () => {
     // triage completes, then a long run of noise, then draft completes at the very end.
-    const names = ['ticket.submitted', 'triage.started', 'triage.completed', ...numbered(80), 'draft.started', 'draft.completed'];
+    const names = [
+      'ticket.submitted',
+      'triage.started',
+      'triage.completed',
+      ...numbered(80),
+      'draft.started',
+      'draft.completed',
+    ];
     const ticket = await ticketWithEvents('TICK-HIST-004', names);
 
     const res = await request(app).get(`/api/tickets/${ticket.id}`);
@@ -115,7 +137,10 @@ describe('status lookup (story 5.3)', () => {
     );
 
     const res = await request(app).get(`/api/tickets/${ticket.id}`);
-    expect(res.body.events.map((e: { event: string }) => e.event)).toEqual(['ticket.submitted', 'ticket.completed']);
+    expect(res.body.events.map((e: { event: string }) => e.event)).toEqual([
+      'ticket.submitted',
+      'ticket.completed',
+    ]);
   });
 });
 
@@ -146,7 +171,9 @@ describe('GET /api/tickets/:id/events (story 5.3)', () => {
     const big = await request(app).get(`/api/tickets/${ticket.id}/events`).query({ limit: 1000 });
     const zero = await request(app).get(`/api/tickets/${ticket.id}/events`).query({ limit: 0 });
     const junk = await request(app).get(`/api/tickets/${ticket.id}/events`).query({ limit: 'abc' });
-    const negative = await request(app).get(`/api/tickets/${ticket.id}/events`).query({ limit: -5 });
+    const negative = await request(app)
+      .get(`/api/tickets/${ticket.id}/events`)
+      .query({ limit: -5 });
 
     expect(big.body.events).toHaveLength(200);
     expect(zero.body.events).toHaveLength(50);
@@ -166,7 +193,11 @@ describe('GET /api/tickets/:id/events (story 5.3)', () => {
   it('rejects a malformed cursor with 400', async () => {
     const ticket = await ticketWithEvents('TICK-HIST-014', numbered(3));
 
-    for (const after of ['not-a-cursor', Buffer.from('v1:abc').toString('base64url'), `${encodeEventCursor(1)}!!`]) {
+    for (const after of [
+      'not-a-cursor',
+      Buffer.from('v1:abc').toString('base64url'),
+      `${encodeEventCursor(1)}!!`,
+    ]) {
       const res = await request(app).get(`/api/tickets/${ticket.id}/events`).query({ after });
       expect(res.status).toBe(400);
       expect(res.body).toEqual({ error: 'Invalid cursor' });

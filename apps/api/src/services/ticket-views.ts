@@ -113,7 +113,10 @@ export async function buildFullTicketView(ticket: Ticket): Promise<FullTicketVie
     events: firstPage.events,
     eventsNextCursor: firstPage.nextSeq === null ? null : encodeEventCursor(firstPage.nextSeq),
     phases: buildTicketPhases(allEvents, processing),
-    notification: { state: notification.state, maskedEmail: notification.email ? maskEmail(notification.email) : null },
+    notification: {
+      state: notification.state,
+      maskedEmail: notification.email ? maskEmail(notification.email) : null,
+    },
   };
 }
 
@@ -129,7 +132,9 @@ function toPublicPhases(phases: TicketPhases): PublicTicketPhases {
   return {
     triage: {
       status: triage.status,
-      ...(triage.output && { output: { category: triage.output.category, priority: triage.output.priority } }),
+      ...(triage.output && {
+        output: { category: triage.output.category, priority: triage.output.priority },
+      }),
     },
     draft: {
       status: draft.status,

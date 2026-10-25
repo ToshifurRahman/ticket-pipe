@@ -39,7 +39,10 @@ class TestRequest implements PromiseLike<TestResponse> {
   private async exec(): Promise<TestResponse> {
     const qs = this.params.toString();
     const url = qs ? `${this.path}${this.path.includes('?') ? '&' : '?'}${qs}` : this.path;
-    const init: RequestInit = { method: this.method, headers: { ...(await this.defaults?.()), ...this.headers } };
+    const init: RequestInit = {
+      method: this.method,
+      headers: { ...(await this.defaults?.()), ...this.headers },
+    };
     if (this.payload !== undefined) {
       const headers = init.headers as Record<string, string>;
       if (typeof this.payload === 'string') {

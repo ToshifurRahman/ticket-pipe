@@ -17,7 +17,9 @@ function redis(): CounterRedis {
     const created = createClient({ url: process.env.REDIS_URL });
     created.on('error', (err) => logger.error({ err }, 'Redis counters client error'));
     client = created as unknown as CounterRedis;
-    void created.connect().catch((err) => logger.error({ err }, 'Redis counters client failed to connect'));
+    void created
+      .connect()
+      .catch((err) => logger.error({ err }, 'Redis counters client failed to connect'));
   }
   return client;
 }

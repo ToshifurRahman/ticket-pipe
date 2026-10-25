@@ -5,7 +5,13 @@ import { TICKET_STATUSES_FOR_TABS } from './ops-ticket';
 export type OpsTab = 'all' | 'needs_attention' | 'failed' | 'completed';
 export type OpsSort = 'updatedAt' | 'createdAt';
 
-export type OpsParams = { tab: OpsTab; page: number; sort: OpsSort; order: 'asc' | 'desc'; ticket: string | null };
+export type OpsParams = {
+  tab: OpsTab;
+  page: number;
+  sort: OpsSort;
+  order: 'asc' | 'desc';
+  ticket: string | null;
+};
 
 export const PAGE_SIZE = 20;
 const TABS: OpsTab[] = ['all', ...TICKET_STATUSES_FOR_TABS];
@@ -38,7 +44,12 @@ export function toSearchParams(p: OpsParams): URLSearchParams {
 
 /** The query string for GET /api/tickets. */
 export function listQuery(p: OpsParams): string {
-  const query = new URLSearchParams({ page: String(p.page), limit: String(PAGE_SIZE), sort: p.sort, order: p.order });
+  const query = new URLSearchParams({
+    page: String(p.page),
+    limit: String(PAGE_SIZE),
+    sort: p.sort,
+    order: p.order,
+  });
   if (p.tab !== 'all') query.set('status', p.tab);
   return query.toString();
 }

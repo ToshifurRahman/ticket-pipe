@@ -21,7 +21,8 @@ export async function purgeExpiredTickets(now: Date = new Date()): Promise<numbe
 async function sweep(): Promise<void> {
   try {
     const deleted = await purgeExpiredTickets();
-    if (deleted > 0) logger.info({ deleted, retentionDays: RETENTION_DAYS }, 'Purged expired tickets');
+    if (deleted > 0)
+      logger.info({ deleted, retentionDays: RETENTION_DAYS }, 'Purged expired tickets');
   } catch (err) {
     logger.error({ err }, 'Retention purge failed');
   }

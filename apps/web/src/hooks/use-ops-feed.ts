@@ -4,7 +4,12 @@ import { setFeedState } from '@/lib/ops-feed-status';
 import { opsKeys } from '@/lib/ops-api';
 import { getSocket } from '@/lib/socket';
 
-export type OpsAlert = { kind: 'needs_attention' | 'failed'; ticketId: string; referenceNumber: string; reason: string };
+export type OpsAlert = {
+  kind: 'needs_attention' | 'failed';
+  ticketId: string;
+  referenceNumber: string;
+  reason: string;
+};
 
 type FeedOptions = {
   /** The feed only runs while someone is signed in. */
@@ -15,7 +20,12 @@ type FeedOptions = {
 };
 
 // Anything the organization feed says may change a row, a count, the KPIs or an open drawer.
-const REFRESH_EVENTS = ['ops:ticket_event', 'ticket:requeued', 'ticket:failed', 'ticket:needs_attention'];
+const REFRESH_EVENTS = [
+  'ops:ticket_event',
+  'ticket:requeued',
+  'ticket:failed',
+  'ticket:needs_attention',
+];
 // A ticket's five stage events arrive together; one refetch is enough.
 const REFRESH_DELAY_MS = 300;
 
@@ -41,10 +51,16 @@ export function useOpsFeed({ enabled, onSignedOut, onAlert }: FeedOptions): void
 
     const refresh = () => {
       clearTimeout(timer);
-      timer = setTimeout(() => void queryClient.invalidateQueries({ queryKey: opsKeys.all }), REFRESH_DELAY_MS);
+      timer = setTimeout(
+        () => void queryClient.invalidateQueries({ queryKey: opsKeys.all }),
+        REFRESH_DELAY_MS
+      );
     };
 
-    const handlers: [string, (...args: never[]) => void][] = REFRESH_EVENTS.map((event) => [event, refresh]);
+    const handlers: [string, (...args: never[]) => void][] = REFRESH_EVENTS.map((event) => [
+      event,
+      refresh,
+    ]);
     const onAlertEvent = (kind: OpsAlert['kind']) => (payload: Record<string, unknown>) => {
       alert.current({
         kind,

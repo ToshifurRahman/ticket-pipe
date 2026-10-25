@@ -8,7 +8,8 @@ export function createQueryClient(): QueryClient {
         staleTime: 10_000,
         // A 4xx will not fix itself; only retry network errors and 5xx.
         retry: (failureCount, error) =>
-          !(error instanceof ApiError && error.status >= 400 && error.status < 500) && failureCount < 2,
+          !(error instanceof ApiError && error.status >= 400 && error.status < 500) &&
+          failureCount < 2,
       },
     },
   });

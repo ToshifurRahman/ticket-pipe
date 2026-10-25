@@ -8,9 +8,10 @@ import { stampProps, useStampOnChange } from './use-stamp-on-change';
 
 /** Shown when failed or needs_attention. It claims no alert: only a person picking it up moves it. */
 export const ON_HOLD_MESSAGE =
-  "Your request is on hold and flagged for the team. This page updates by itself if it moves again. You can leave and come back with your reference.";
+  'Your request is on hold and flagged for the team. This page updates by itself if it moves again. You can leave and come back with your reference.';
 
-const WORKING_NOTE = 'You can leave this page. It keeps your place, and your reference brings you back.';
+const WORKING_NOTE =
+  'You can leave this page. It keeps your place, and your reference brings you back.';
 
 type TicketThreadProps = {
   description: string;
@@ -48,12 +49,18 @@ export function TicketThread({ description, createdAt, support, demo = false }: 
           {expanded ? 'Show less' : 'Show full message'}
         </Button>
       )}
-      <p className="label-caps self-end text-caption text-muted-foreground">You · {printedTime(createdAt)}</p>
+      <p className="label-caps self-end text-caption text-muted-foreground">
+        You · {printedTime(createdAt)}
+      </p>
 
       {/* The support side changes in place, so screen readers hear each stage and the reply. */}
       <div aria-live={demo ? undefined : 'polite'} className="flex flex-col gap-3">
         <div key={stamp.key} className={cn('flex flex-col gap-3', stamp.className)}>
-          <SupportMessage support={support} demo={demo} print={demo && stamp.className !== undefined} />
+          <SupportMessage
+            support={support}
+            demo={demo}
+            print={demo && stamp.className !== undefined}
+          />
         </div>
       </div>
     </div>

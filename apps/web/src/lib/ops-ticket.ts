@@ -38,7 +38,9 @@ export function replayStage(status: TicketStatus, phases: Phases): ReplayStage {
 }
 
 /** Why a ticket is waiting on a person, in words. Null when it is not. */
-export function stateReason(ticket: Pick<OpsTicketDetail, 'status' | 'failureReason' | 'phases'>): string | null {
+export function stateReason(
+  ticket: Pick<OpsTicketDetail, 'status' | 'failureReason' | 'phases'>
+): string | null {
   if (ticket.status === 'failed') {
     return (ticket.failureReason && FAILURE_REASONS[ticket.failureReason]) || 'Processing gave up';
   }
@@ -50,10 +52,17 @@ export function stateReason(ticket: Pick<OpsTicketDetail, 'status' | 'failureRea
   return null;
 }
 
-export type TimelineItem = { event: string; detail: string | null; occurredAt: string; count: number };
+export type TimelineItem = {
+  event: string;
+  detail: string | null;
+  occurredAt: string;
+  count: number;
+};
 
 /** Consecutive identical events (the same name and detail) collapse into one "×N" row. */
-export function groupTimeline(events: { event: string; detail: string | null; occurredAt: string }[]): TimelineItem[] {
+export function groupTimeline(
+  events: { event: string; detail: string | null; occurredAt: string }[]
+): TimelineItem[] {
   const out: TimelineItem[] = [];
   for (const e of events) {
     const last = out.at(-1);

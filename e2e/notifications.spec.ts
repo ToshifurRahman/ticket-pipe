@@ -13,7 +13,11 @@ test.afterAll(async () => {
   for (const id of created) await removeTicket(id);
 });
 
-async function createTicket(request: import('@playwright/test').APIRequestContext, subject: string, description: string) {
+async function createTicket(
+  request: import('@playwright/test').APIRequestContext,
+  subject: string,
+  description: string
+) {
   const res = await request.post('/api/tickets', { data: { subject, description } });
   expect(res.status()).toBe(201);
   const ticket = (await res.json()) as { ticketId: string; referenceNumber: string };
@@ -30,11 +34,25 @@ async function optInThroughPage(page: Page, referenceNumber: string, address: st
   await expect(page.getByRole('heading', { name: 'Check your inbox' })).toBeVisible();
 }
 
-test('confirming through the emailed link leads to a "reply is ready" email', async ({ page, request }) => {
+test('confirming through the emailed link leads to a "reply is ready" email', async ({
+  page,
+  request,
+}) => {
   const address = uniqueAddress();
-  const { ticketId, referenceNumber } = await createTicket(request, 'Dashboard is blank', 'The dashboard shows a blank page after I sign in.');
+  const { ticketId, referenceNumber } = await createTicket(
+    request,
+    'Dashboard is blank',
+    'The dashboard shows a blank page after I sign in.'
+  );
   // Straight after creating: the fake LLM takes a moment per stage, so the ticket is still open.
-  expect((await request.post(`/api/tickets/${ticketId}/notification`, { data: { email: address }, headers: asClient() })).status()).toBe(201);
+  expect(
+    (
+      await request.post(`/api/tickets/${ticketId}/notification`, {
+        data: { email: address },
+        headers: asClient(),
+      })
+    ).status()
+  ).toBe(201);
 
   const [confirmation] = await waitForMail(address);
   expect(confirmation.subject).toContain(referenceNumber);
@@ -52,7 +70,10 @@ test('confirming through the emailed link leads to a "reply is ready" email', as
   expect(mail[1].text).not.toContain('blank page');
 });
 
-test('a ticket that needs attention sends one snag email, then the reply after a replay', async ({ page, request }) => {
+test('a ticket that needs attention sends one snag email, then the reply after a replay', async ({
+  page,
+  request,
+}) => {
   const address = uniqueAddress();
   const { ticketId, referenceNumber } = await createTicket(
     request,
@@ -60,7 +81,12 @@ test('a ticket that needs attention sends one snag email, then the reply after a
     'The invoice total does not match the line items. [fake:invalid-draft]'
   );
   await expect
-    .poll(async () => ((await (await request.get(`/api/tickets/${ticketId}`)).json()) as { status: string }).status, { timeout: 15_000 })
+    .poll(
+      async () =>
+        ((await (await request.get(`/api/tickets/${ticketId}`)).json()) as { status: string })
+          .status,
+      { timeout: 15_000 }
+    )
     .toBe('needs_attention');
 
   // The card is still offered while the team looks into it.
@@ -76,7 +102,9 @@ test('a ticket that needs attention sends one snag email, then the reply after a
 
   await stripFakeMarkers(ticketId);
   const cookie = await opsCookie(request);
-  expect((await request.post(`/api/tickets/${ticketId}/replay`, { headers: { cookie } })).status()).toBe(200);
+  expect(
+    (await request.post(`/api/tickets/${ticketId}/replay`, { headers: { cookie } })).status()
+  ).toBe(200);
 
   const all = await waitForMail(address, 3);
   expect(all[2].subject).toMatch(/reply is ready/i);

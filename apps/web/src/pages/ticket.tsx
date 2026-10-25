@@ -31,7 +31,12 @@ export function TicketPage() {
 function LiveTicket({ reference }: { reference: string }) {
   const queryClient = useQueryClient();
   const queryKey = useMemo(() => ticketQueryKey(reference), [reference]);
-  const { data: ticket, error, refetch, isFetching } = useQuery({
+  const {
+    data: ticket,
+    error,
+    refetch,
+    isFetching,
+  } = useQuery({
     queryKey,
     queryFn: () => getTicketByRef(reference),
   });
@@ -60,8 +65,12 @@ function LiveTicket({ reference }: { reference: string }) {
   // replay by the team (`ticket.requeued`) brings the thread back to life.
   useSocketInvalidation(map, { onConnect, enabled: !!ticketId && ticket?.status !== 'completed' });
 
-  if (error instanceof ApiError && error.status === 404) return <TicketNotFound reference={reference} />;
-  if (!ticket && error) return <TicketLoadError reference={reference} onRetry={() => void refetch()} retrying={isFetching} />;
+  if (error instanceof ApiError && error.status === 404)
+    return <TicketNotFound reference={reference} />;
+  if (!ticket && error)
+    return (
+      <TicketLoadError reference={reference} onRetry={() => void refetch()} retrying={isFetching} />
+    );
   if (!ticket) return <TicketSkeleton reference={reference} />;
 
   return <TicketForm ticket={ticket} />;
@@ -70,7 +79,10 @@ function LiveTicket({ reference }: { reference: string }) {
 function TicketForm({ ticket }: { ticket: TicketDetail }) {
   const plies = ticketPlies(ticket);
   const support = supportSide(ticket);
-  const badges = support.kind === 'working' || support.kind === 'replied' || support.kind === 'on-hold' ? support.badges : null;
+  const badges =
+    support.kind === 'working' || support.kind === 'replied' || support.kind === 'on-hold'
+      ? support.badges
+      : null;
 
   return (
     <div className="grid w-full items-start gap-8 md:grid-cols-[minmax(0,8fr)_minmax(0,4fr)]">
@@ -82,7 +94,11 @@ function TicketForm({ ticket }: { ticket: TicketDetail }) {
           copyable
         />
         <PlyRow plies={plies} />
-        <TicketThread description={ticket.description} createdAt={ticket.createdAt} support={support} />
+        <TicketThread
+          description={ticket.description}
+          createdAt={ticket.createdAt}
+          support={support}
+        />
         {support.kind === 'replied' && <TicketClosed />}
       </FormPanel>
       <OfficeUse ticket={ticket} plies={plies} badges={badges} />

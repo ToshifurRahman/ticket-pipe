@@ -4,7 +4,15 @@ import { useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Turnstile, type TurnstileHandle } from '@/components/turnstile';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiError } from '@/lib/api';
@@ -46,10 +54,13 @@ export function TicketForm({ onCreated }: TicketFormProps) {
       });
       onCreated(ticket, subject);
     } catch (error) {
-      const fieldErrors = error instanceof ApiError && error.status === 400 ? error.fieldErrors : null;
+      const fieldErrors =
+        error instanceof ApiError && error.status === 400 ? error.fieldErrors : null;
       const known = FIELDS.filter((f) => typeof fieldErrors?.[f] === 'string');
       if (known.length > 0) {
-        known.forEach((f, i) => form.setError(f, { message: fieldErrors![f] }, { shouldFocus: i === 0 }));
+        known.forEach((f, i) =>
+          form.setError(f, { message: fieldErrors![f] }, { shouldFocus: i === 0 })
+        );
       } else {
         setSubmitError("We couldn't send your ticket. Please try again.");
       }
@@ -65,7 +76,12 @@ export function TicketForm({ onCreated }: TicketFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(submit)} noValidate aria-label="New ticket" className="grid gap-5 p-4 sm:p-5.5">
+      <form
+        onSubmit={form.handleSubmit(submit)}
+        noValidate
+        aria-label="New ticket"
+        className="grid gap-5 p-4 sm:p-5.5"
+      >
         <FormField
           control={form.control}
           name="subject"
@@ -88,7 +104,10 @@ export function TicketForm({ onCreated }: TicketFormProps) {
               <div className="flex items-center justify-between gap-3">
                 <FormLabel>Description</FormLabel>
                 <span
-                  className={cn('font-mono text-xs tabular-nums text-muted-foreground', overLimit && 'text-destructive')}
+                  className={cn(
+                    'font-mono text-xs tabular-nums text-muted-foreground',
+                    overLimit && 'text-destructive'
+                  )}
                   aria-hidden
                 >
                   {descriptionLength} / {TICKET_LIMITS.description.max}

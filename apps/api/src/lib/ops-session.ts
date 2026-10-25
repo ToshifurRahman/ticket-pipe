@@ -41,7 +41,9 @@ function redis(): SessionRedis {
     const created = createClient({ url: process.env.REDIS_URL });
     created.on('error', (err) => logger.error({ err }, 'Redis ops-session client error'));
     client = created as unknown as SessionRedis;
-    void created.connect().catch((err) => logger.error({ err }, 'Redis ops-session client failed to connect'));
+    void created
+      .connect()
+      .catch((err) => logger.error({ err }, 'Redis ops-session client failed to connect'));
   }
   return client;
 }
@@ -57,7 +59,9 @@ export function assertOpsTokenConfigured(): void {
   if (process.env.NODE_ENV !== 'production') return;
   const token = process.env.OPS_TOKEN;
   if (!token || token.length < MIN_PRODUCTION_TOKEN_LENGTH) {
-    throw new Error(`OPS_TOKEN must be set to at least ${MIN_PRODUCTION_TOKEN_LENGTH} characters in production`);
+    throw new Error(
+      `OPS_TOKEN must be set to at least ${MIN_PRODUCTION_TOKEN_LENGTH} characters in production`
+    );
   }
 }
 
@@ -73,7 +77,9 @@ export function checkOpsToken(candidate: string): boolean {
 
 export async function createSession(): Promise<{ id: string; expiresAt: Date }> {
   const id = randomBytes(32).toString('base64url');
-  await redis().set(sessionKey(hashSessionId(id)), JSON.stringify({ createdAt: Date.now() }), { EX: SESSION_TTL_S });
+  await redis().set(sessionKey(hashSessionId(id)), JSON.stringify({ createdAt: Date.now() }), {
+    EX: SESSION_TTL_S,
+  });
   return { id, expiresAt: new Date(Date.now() + SESSION_TTL_S * 1000) };
 }
 
@@ -95,7 +101,8 @@ export async function destroySession(id: string): Promise<string> {
 export function sessionIdFromCookieHeader(header: string | undefined): string | undefined {
   for (const part of (header ?? '').split(';')) {
     const eq = part.indexOf('=');
-    if (eq > 0 && part.slice(0, eq).trim() === OPS_SESSION_COOKIE) return part.slice(eq + 1).trim() || undefined;
+    if (eq > 0 && part.slice(0, eq).trim() === OPS_SESSION_COOKIE)
+      return part.slice(eq + 1).trim() || undefined;
   }
   return undefined;
 }

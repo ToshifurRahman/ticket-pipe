@@ -29,10 +29,7 @@ import { assertMailConfigured } from './lib/mailer.js';
 import { emitTicketUpdate } from './services/ticket-updates.js';
 import { UUID_RE } from './lib/ids.js';
 import { TicketNotFoundError } from './lib/errors.js';
-import {
-  warmEmitter,
-  shutdown as shutdownSocket,
-} from './lib/socket.js';
+import { warmEmitter, shutdown as shutdownSocket } from './lib/socket.js';
 import { AIService } from './lib/ai-service.js';
 import { assertLlmModeAllowed, getLlmMode } from './lib/llm-client.js';
 import {
@@ -52,8 +49,10 @@ import {
 assertLlmModeAllowed();
 assertMailConfigured();
 if (getLlmMode() === 'real') {
-  if (!process.env.GOOGLE_API_KEY) throw new Error('GOOGLE_API_KEY environment variable is required');
-  if (!process.env.PORTKEY_API_KEY) throw new Error('PORTKEY_API_KEY environment variable is required');
+  if (!process.env.GOOGLE_API_KEY)
+    throw new Error('GOOGLE_API_KEY environment variable is required');
+  if (!process.env.PORTKEY_API_KEY)
+    throw new Error('PORTKEY_API_KEY environment variable is required');
 }
 
 const aiService = new AIService();
@@ -139,7 +138,12 @@ async function setNeedsAttention(
   publishNeedsAttention(ticket, reason);
   if (marked) {
     void notifyIfDue(ticketId);
-    alertNeedsAttention({ ticketId, referenceNumber: ticket.referenceNumber, reason, occurredAt: new Date() });
+    alertNeedsAttention({
+      ticketId,
+      referenceNumber: ticket.referenceNumber,
+      reason,
+      occurredAt: new Date(),
+    });
   }
   await deleteMessage(receiptHandle);
 }
@@ -170,7 +174,10 @@ async function reuseStoredStage(
   phaseStatus: TicketPhaseStatus
 ): Promise<void> {
   if (phaseStatus === 'completed') {
-    logger.info({ ticketId: ticket.id, stage }, 'Stage already completed, reusing its saved output');
+    logger.info(
+      { ticketId: ticket.id, stage },
+      'Stage already completed, reusing its saved output'
+    );
     return;
   }
   await recordTicketEvent(ticket, `${stage}.completed`, 'reused stored output');
@@ -246,7 +253,11 @@ async function runPipeline(
 
   const ticket = await getTicketById(ticketId);
 
-  if (ticket.status === 'completed' || ticket.status === 'needs_attention' || ticket.status === 'failed') {
+  if (
+    ticket.status === 'completed' ||
+    ticket.status === 'needs_attention' ||
+    ticket.status === 'failed'
+  ) {
     logger.info({ ticketId, status: ticket.status }, 'Skipping terminal-state ticket');
     await deleteMessage(receiptHandle);
     return;
@@ -276,10 +287,18 @@ async function runPipeline(
     await reuseStoredStage(ticket, 'triage', phases.triage.status);
   } else {
     if (phases.triage.status === 'completed') {
-      logger.warn({ ticketId }, 'Triage is marked completed but its saved output is missing or invalid; running it again');
+      logger.warn(
+        { ticketId },
+        'Triage is marked completed but its saved output is missing or invalid; running it again'
+      );
     }
     if (failureCounts.triage >= MAX_ATTEMPTS) {
-      await setFailed(ticket, 'triage_retries_exhausted', 'Max triage attempts reached', receiptHandle);
+      await setFailed(
+        ticket,
+        'triage_retries_exhausted',
+        'Max triage attempts reached',
+        receiptHandle
+      );
       return;
     }
 
@@ -316,10 +335,18 @@ async function runPipeline(
     await reuseStoredStage(ticket, 'draft', phases.draft.status);
   } else {
     if (!triageRan && phases.draft.status === 'completed') {
-      logger.warn({ ticketId }, 'Draft is marked completed but its saved output is missing or invalid; running it again');
+      logger.warn(
+        { ticketId },
+        'Draft is marked completed but its saved output is missing or invalid; running it again'
+      );
     }
     if (failureCounts.draft >= MAX_ATTEMPTS) {
-      await setFailed(ticket, 'draft_retries_exhausted', 'Max draft attempts reached', receiptHandle);
+      await setFailed(
+        ticket,
+        'draft_retries_exhausted',
+        'Max draft attempts reached',
+        receiptHandle
+      );
       return;
     }
 
@@ -355,13 +382,23 @@ async function runPipeline(
   // Each stage is validated as it runs; this re-checks the saved row as a whole before finalizing.
   const processingResult = await getProcessingResultByTicketId(ticketId);
   if (!processingResult) {
-    await setNeedsAttention(ticket, 'processing_result_missing', 'Processing result not found', receiptHandle);
+    await setNeedsAttention(
+      ticket,
+      'processing_result_missing',
+      'Processing result not found',
+      receiptHandle
+    );
     return;
   }
 
   const validation = validateProcessingOutput(processingResult);
   if (!validation.valid) {
-    await setNeedsAttention(ticket, 'incomplete_output', incompleteOutputDetail(validation), receiptHandle);
+    await setNeedsAttention(
+      ticket,
+      'incomplete_output',
+      incompleteOutputDetail(validation),
+      receiptHandle
+    );
     return;
   }
 
@@ -414,7 +451,11 @@ export async function run(options: RunOptions = {}): Promise<void> {
       messages = await receiveMessages({ maxMessages: availableSlots, waitTimeSeconds });
     } catch (err) {
       // Log loudly once per outage, then quietly, so a missing queue does not flood the log.
-      if (receiveFailing) logger.warn({ err, retryInMs: receiveBackoffMs }, 'Still failing to receive queue messages');
+      if (receiveFailing)
+        logger.warn(
+          { err, retryInMs: receiveBackoffMs },
+          'Still failing to receive queue messages'
+        );
       else logger.error({ err, retryInMs: receiveBackoffMs }, 'Failed to receive queue messages');
       receiveFailing = true;
       await sleep(receiveBackoffMs);
@@ -438,7 +479,7 @@ export async function run(options: RunOptions = {}): Promise<void> {
 
     for (const { ticketId, receiptHandle, attemptNumber } of messages) {
       const task = processMessage(ticketId, receiptHandle, attemptNumber)
-        .catch(err => {
+        .catch((err) => {
           logger.error({ err, ticketId }, 'Failed to process ticket');
         })
         .finally(() => {
@@ -461,7 +502,7 @@ if (import.meta.main) {
       logger.info({ signal }, 'Worker shutting down');
       stopRetentionSweep();
       void shutdownSocket()
-        .catch(err => logger.error({ err }, 'Error shutting down Redis emitter'))
+        .catch((err) => logger.error({ err }, 'Error shutting down Redis emitter'))
         .finally(() => process.exit(0));
     });
   }
@@ -470,7 +511,7 @@ if (import.meta.main) {
   // dropped. Not awaited: processing must never wait on Redis (story 4.3).
   void warmEmitter();
 
-  run().catch(err => {
+  run().catch((err) => {
     logger.error({ err }, 'Worker exited unexpectedly');
     process.exitCode = 1;
   });

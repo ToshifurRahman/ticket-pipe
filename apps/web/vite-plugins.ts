@@ -8,7 +8,8 @@ import { brand } from './src/config/brand';
 const brotli = promisify(brotliCompress);
 const gz = promisify(gzip);
 
-const escapeAttr = (value: string) => value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+const escapeAttr = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
 // Writes the title, description, icons and social-card tags into index.html from brand.ts,
 // so the name lives in one place. The OG image and URL must be absolute for scrapers: set
@@ -23,17 +24,37 @@ export function brandHtml(siteUrl: string | undefined): Plugin {
     transformIndexHtml(_html, ctx) {
       if (!base && !warned) {
         warned = true;
-        console.warn('[brand-html] VITE_SITE_URL is not set: og:image / og:url will be relative paths.');
+        console.warn(
+          '[brand-html] VITE_SITE_URL is not set: og:image / og:url will be relative paths.'
+        );
       }
       const title = `${brand.name} · ${brand.tagline}`;
-      const meta = (attrs: Record<string, string>) => ({ tag: 'meta', attrs, injectTo: 'head' as const });
-      const link = (attrs: Record<string, string>) => ({ tag: 'link', attrs, injectTo: 'head' as const });
+      const meta = (attrs: Record<string, string>) => ({
+        tag: 'meta',
+        attrs,
+        injectTo: 'head' as const,
+      });
+      const link = (attrs: Record<string, string>) => ({
+        tag: 'link',
+        attrs,
+        injectTo: 'head' as const,
+      });
       // The body font is only discovered once the CSS is parsed; preloading the Latin subset
       // removes the late font swap that moves the largest paint on a throttled phone.
-      const body = Object.keys(ctx.bundle ?? {}).find((name) => /public-sans-latin-wght-normal-.*\.woff2$/.test(name));
+      const body = Object.keys(ctx.bundle ?? {}).find((name) =>
+        /public-sans-latin-wght-normal-.*\.woff2$/.test(name)
+      );
       return [
         ...(body
-          ? [link({ rel: 'preload', as: 'font', type: 'font/woff2', href: `/${body}`, crossorigin: '' })]
+          ? [
+              link({
+                rel: 'preload',
+                as: 'font',
+                type: 'font/woff2',
+                href: `/${body}`,
+                crossorigin: '',
+              }),
+            ]
           : []),
         { tag: 'title', children: escapeAttr(title), injectTo: 'head' as const },
         meta({ name: 'description', content: brand.description }),
@@ -84,7 +105,12 @@ export function precompress(): Plugin {
         if (!COMPRESSIBLE.test(file)) continue;
         const source = await readFile(file);
         const [br, gzipped] = await Promise.all([
-          brotli(source, { params: { [constants.BROTLI_PARAM_QUALITY]: 11, [constants.BROTLI_PARAM_SIZE_HINT]: source.length } }),
+          brotli(source, {
+            params: {
+              [constants.BROTLI_PARAM_QUALITY]: 11,
+              [constants.BROTLI_PARAM_SIZE_HINT]: source.length,
+            },
+          }),
           gz(source, { level: 9 }),
         ]);
         await Promise.all([writeFile(`${file}.br`, br), writeFile(`${file}.gz`, gzipped)]);

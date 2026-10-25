@@ -18,10 +18,10 @@ export { listTickets };
 export async function createTicket(subject: string, description: string): Promise<Ticket> {
   const referenceNumber = generateReferenceNumber();
   const ticket = await insertTicket(referenceNumber, subject, description);
-  recordTicketEvent(ticket, 'ticket.submitted', ticket.referenceNumber).catch(err =>
+  recordTicketEvent(ticket, 'ticket.submitted', ticket.referenceNumber).catch((err) =>
     logger.error({ err, ticketId: ticket.id }, 'Failed to write ticket.submitted event')
   );
-  enqueueTicket(ticket.id, ticket.referenceNumber).catch(err =>
+  enqueueTicket(ticket.id, ticket.referenceNumber).catch((err) =>
     logger.error({ err, ticketId: ticket.id }, 'Failed to enqueue ticket')
   );
   return ticket;
@@ -60,8 +60,12 @@ export async function replayTicket(id: string): Promise<ReplayResult> {
   } catch (err) {
     logger.error({ err, ticketId: id }, 'Replay failed; restoring the ticket');
     await restoreTicketAfterFailedRequeue(id, prev);
-    await recordTicketEvent(ticket, 'ticket.requeue_failed', (err as Error).message).catch(recordErr =>
-      logger.error({ err: recordErr, ticketId: id }, 'Failed to write ticket.requeue_failed event')
+    await recordTicketEvent(ticket, 'ticket.requeue_failed', (err as Error).message).catch(
+      (recordErr) =>
+        logger.error(
+          { err: recordErr, ticketId: id },
+          'Failed to write ticket.requeue_failed event'
+        )
     );
     return { ok: false, reason: 'enqueue_failed' };
   }

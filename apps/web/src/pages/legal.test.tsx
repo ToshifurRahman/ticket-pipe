@@ -39,18 +39,27 @@ describe('legal page', () => {
   it('switches documents from the tabs', async () => {
     const user = userEvent.setup();
     renderAt('/legal/privacy');
-    await user.click(screen.getByRole('navigation', { name: 'Legal page' }).querySelector('a[href="/legal/terms"]')!);
+    await user.click(
+      screen
+        .getByRole('navigation', { name: 'Legal page' })
+        .querySelector('a[href="/legal/terms"]')!
+    );
     expect(screen.getByRole('heading', { level: 1, name: 'Terms' })).toBeInTheDocument();
   });
 
   it('links the GitHub page from the privacy questions', () => {
     renderAt('/legal/privacy');
-    expect(screen.getByRole('link', { name: 'GitHub page' })).toHaveAttribute('href', expect.stringMatching(/\/issues$/));
+    expect(screen.getByRole('link', { name: 'GitHub page' })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/\/issues$/)
+    );
   });
 
   it.each(['privacy', 'terms'])('redirects /%s to the legal page', (doc) => {
     renderAt(`/${doc}`);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(new RegExp(`^${doc}$`, 'i'));
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      new RegExp(`^${doc}$`, 'i')
+    );
   });
 
   it('shows the 404 for an unknown document', () => {

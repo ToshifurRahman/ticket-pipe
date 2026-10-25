@@ -2,11 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { ticketAt } from '@/test/ticket-fixtures';
 import { humanize, onHoldTime, supportSide, ticketPlies } from './ticket-thread';
 
-const states = (ticket: Parameters<typeof ticketPlies>[0]) => ticketPlies(ticket).map((p) => p.state);
+const states = (ticket: Parameters<typeof ticketPlies>[0]) =>
+  ticketPlies(ticket).map((p) => p.state);
 
 describe('supportSide', () => {
   it('reviews until triage finishes, then writes with badges', () => {
-    expect(supportSide(ticketAt('queued'))).toEqual({ kind: 'working', stage: 'reviewing', badges: null });
+    expect(supportSide(ticketAt('queued'))).toEqual({
+      kind: 'working',
+      stage: 'reviewing',
+      badges: null,
+    });
     expect(supportSide(ticketAt('writing'))).toEqual({
       kind: 'working',
       stage: 'writing',
@@ -46,16 +51,24 @@ describe('ticketPlies', () => {
   it('shows the first three plies done and Reply on hold, with nothing live', () => {
     expect(states(ticketAt('failed'))).toEqual(['done', 'done', 'done', 'on-hold']);
     expect(states(ticketAt('needs_attention'))).toEqual(['done', 'done', 'done', 'on-hold']);
-    const atTriage = ticketAt('failed', { phases: { triage: { status: 'failed' }, draft: { status: 'pending' } } });
+    const atTriage = ticketAt('failed', {
+      phases: { triage: { status: 'failed' }, draft: { status: 'pending' } },
+    });
     expect(states(atTriage)).toEqual(['done', 'done', 'done', 'on-hold']);
   });
 
   it('goes live again after a requeue', () => {
-    expect(states(ticketAt('writing', { status: 'queued' }))).toEqual(['done', 'done', 'live', 'waiting']);
+    expect(states(ticketAt('writing', { status: 'queued' }))).toEqual([
+      'done',
+      'done',
+      'live',
+      'waiting',
+    ]);
   });
 
   it('words each stage by its state', () => {
-    const labels = (stage: Parameters<typeof ticketAt>[0]) => ticketPlies(ticketAt(stage)).map((p) => p.label);
+    const labels = (stage: Parameters<typeof ticketAt>[0]) =>
+      ticketPlies(ticketAt(stage)).map((p) => p.label);
     expect(labels('reviewing')).toEqual(['Received', 'Triaging', 'Draft', 'Reply']);
     expect(labels('writing')).toEqual(['Received', 'Triaged', 'Drafting', 'Reply']);
     expect(labels('replied')).toEqual(['Received', 'Triaged', 'Drafted', 'Replied']);
@@ -79,7 +92,9 @@ describe('ticketPlies', () => {
       '2026-01-01T10:05:01Z',
     ]);
     // A ply that is not done prints no time, even when an older event exists.
-    expect(ticketPlies(ticketAt('writing', { events: ticket.events })).map((p) => p.time)[2]).toBeNull();
+    expect(
+      ticketPlies(ticketAt('writing', { events: ticket.events })).map((p) => p.time)[2]
+    ).toBeNull();
   });
 });
 

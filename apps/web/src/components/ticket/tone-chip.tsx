@@ -1,7 +1,8 @@
 import { Stamp } from '@/components/form/stamp';
 import { cn } from '@/lib/utils';
 
-export type Tone = 'billing' | 'account' | 'bug' | 'tech' | 'feature' | 'low' | 'medium' | 'high' | 'urgent';
+export type Tone =
+  'billing' | 'account' | 'bug' | 'tech' | 'feature' | 'low' | 'medium' | 'high' | 'urgent';
 
 /** The category is free text from the model: match on the words a stamp can be coloured by. */
 export function toneForCategory(category: string): Tone | null {
@@ -72,7 +73,9 @@ export function ToneChip({
       style={style}
       className={cn(
         'border px-2 py-0.5 text-caption',
-        variant === 'outline' ? OUTLINE[tone] : cn(FILL[tone], 'border-ply-triaged-foreground text-ply-triaged-foreground'),
+        variant === 'outline'
+          ? OUTLINE[tone]
+          : cn(FILL[tone], 'border-ply-triaged-foreground text-ply-triaged-foreground'),
         className
       )}
     >

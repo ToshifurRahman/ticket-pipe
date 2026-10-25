@@ -45,6 +45,7 @@ export function useStampOnView<T extends HTMLElement>({
   }, [reduced, threshold]);
 
   const className = phase === 'blank' ? 'opacity-0' : phase === 'running' ? animation : undefined;
-  const style: CSSProperties | undefined = phase === 'running' && delayMs ? { animationDelay: `${delayMs}ms` } : undefined;
+  const style: CSSProperties | undefined =
+    phase === 'running' && delayMs ? { animationDelay: `${delayMs}ms` } : undefined;
   return { ref, className, style };
 }

@@ -46,7 +46,12 @@ describe('POST /api/tickets — ops feed', () => {
     expect(mockTo).toHaveBeenCalledWith('ops');
     const [name, payload] = mockOpsEmit.mock.calls[0]!;
     expect(name).toBe('ops:ticket_event');
-    expect(Object.keys(payload).sort()).toEqual(['event', 'occurredAt', 'referenceNumber', 'ticketId']);
+    expect(Object.keys(payload).sort()).toEqual([
+      'event',
+      'occurredAt',
+      'referenceNumber',
+      'ticketId',
+    ]);
     expect(payload).toMatchObject({
       event: 'ticket.submitted',
       ticketId: res.body.ticketId,

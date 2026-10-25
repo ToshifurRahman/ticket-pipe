@@ -22,7 +22,10 @@ export type SocketInvalidationOptions = {
  * The socket disconnects when `enabled` turns false or the component unmounts. The server
  * has no `leave`, so a fresh connection is the only way to drop the rooms joined before.
  */
-export function useSocketInvalidation(map: InvalidationMap, options: SocketInvalidationOptions = {}): void {
+export function useSocketInvalidation(
+  map: InvalidationMap,
+  options: SocketInvalidationOptions = {}
+): void {
   const { onConnect, enabled = true } = options;
   const queryClient = useQueryClient();
 

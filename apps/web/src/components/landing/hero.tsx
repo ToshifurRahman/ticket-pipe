@@ -17,8 +17,15 @@ export function Hero() {
             {brand.headline}
           </h1>
           <p className="max-w-[30em] text-[1.1875rem]">{brand.subline}</p>
-          <Button asChild className={cn('animate-print-in-3 mt-2 w-full sm:w-auto', nudge.className)}>
-            <Link to="/new" onAnimationEnd={nudge.onAnimationEnd} className="no-underline hover:no-underline">
+          <Button
+            asChild
+            className={cn('animate-print-in-3 mt-2 w-full sm:w-auto', nudge.className)}
+          >
+            <Link
+              to="/new"
+              onAnimationEnd={nudge.onAnimationEnd}
+              className="no-underline hover:no-underline"
+            >
               Submit a ticket
             </Link>
           </Button>

@@ -114,7 +114,13 @@ describe('GET /api/tickets/:id phase status accuracy', () => {
   it('returns draft failed for draft.failed path without stale processing state', async () => {
     const ticketId = await seedSnapshot({
       status: 'failed',
-      events: ['triage.started', 'triage.completed', 'draft.started', 'draft.failed', 'ticket.failed'],
+      events: [
+        'triage.started',
+        'triage.completed',
+        'draft.started',
+        'draft.failed',
+        'ticket.failed',
+      ],
     });
 
     const res = await request(app).get(`/api/tickets/${ticketId}`);

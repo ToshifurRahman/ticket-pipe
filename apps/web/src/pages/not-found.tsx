@@ -22,7 +22,9 @@ export function NotFoundPage() {
             <Stamp className="mt-5 mb-2 border-3 border-destructive px-4 py-2 text-lg leading-[normal] text-destructive">
               No such page
             </Stamp>
-            <p className="mt-5 mb-7 max-w-[24em] text-xl leading-[1.55]">The page you are looking for does not exist.</p>
+            <p className="mt-5 mb-7 max-w-[24em] text-xl leading-[1.55]">
+              The page you are looking for does not exist.
+            </p>
             <Button asChild variant="solid">
               <Link to="/" className="text-background no-underline hover:no-underline">
                 Back to home

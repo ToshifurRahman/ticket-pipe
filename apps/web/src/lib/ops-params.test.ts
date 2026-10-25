@@ -6,7 +6,13 @@ const parse = (qs: string) => parseOpsParams(new URLSearchParams(qs));
 
 describe('parseOpsParams', () => {
   it('defaults to All, page 1, newest update first, nothing open', () => {
-    expect(parse('')).toEqual({ tab: 'all', page: 1, sort: 'updatedAt', order: 'desc', ticket: null });
+    expect(parse('')).toEqual({
+      tab: 'all',
+      page: 1,
+      sort: 'updatedAt',
+      order: 'desc',
+      ticket: null,
+    });
   });
 
   it('reads every param', () => {
@@ -20,7 +26,9 @@ describe('parseOpsParams', () => {
   });
 
   it('ignores junk instead of throwing', () => {
-    expect(parse('status=nope&page=-2&sort=priority&order=sideways&ticket=not-a-uuid')).toEqual(parse(''));
+    expect(parse('status=nope&page=-2&sort=priority&order=sideways&ticket=not-a-uuid')).toEqual(
+      parse('')
+    );
     expect(parse('page=1.5').page).toBe(1);
   });
 });
@@ -39,7 +47,9 @@ describe('toSearchParams', () => {
 
 describe('listQuery', () => {
   it('sends the tab as a status filter and always the sort', () => {
-    expect(listQuery(parse('status=failed&page=2'))).toBe('page=2&limit=20&sort=updatedAt&order=desc&status=failed');
+    expect(listQuery(parse('status=failed&page=2'))).toBe(
+      'page=2&limit=20&sort=updatedAt&order=desc&status=failed'
+    );
     expect(listQuery(parse(''))).toBe('page=1&limit=20&sort=updatedAt&order=desc');
   });
 });

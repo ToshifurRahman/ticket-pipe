@@ -1,0 +1,19 @@
+# Build and test output
+node_modules/
+**/dist/
+test-results/
+playwright-report/
+.lighthouseci/
+docs/screenshots/
+bun.lock
+
+# Generated: must stay byte-equal to buildTokensCss() (apps/api/tests/web-tokens.guard.test.ts)
+apps/web/src/styles/tokens.css
+
+# Written by tools, so their format is the tool's
+DESIGN.md
+PRODUCT.md
+.impeccable/
+.ds-receipts/
+.claude/
+.husky/_/

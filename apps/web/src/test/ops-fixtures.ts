@@ -1,4 +1,10 @@
-import type { OpsListedTicket, OpsSummary, OpsTicketDetail, OpsTicketList, TicketStatus } from '@/lib/types';
+import type {
+  OpsListedTicket,
+  OpsSummary,
+  OpsTicketDetail,
+  OpsTicketList,
+  TicketStatus,
+} from '@/lib/types';
 
 export const OPS_ID = '3f6c0a52-1111-4222-8333-944455556666';
 export const OTHER_ID = '9a1b2c3d-2222-4333-8444-a55566667777';
@@ -28,7 +34,13 @@ export const summary = (overrides: Partial<OpsSummary> = {}): OpsSummary => ({
   until: '2026-10-12T14:00:00.000Z',
   ticketsInWindow: 142,
   summary: [
-    { operation: 'triage', provider: 'primary', count: 190, successCount: 190, avgDurationMs: 2000 },
+    {
+      operation: 'triage',
+      provider: 'primary',
+      count: 190,
+      successCount: 190,
+      avgDurationMs: 2000,
+    },
     { operation: 'draft', provider: 'primary', count: 10, successCount: 3, avgDurationMs: 4000 },
   ],
   ...overrides,
@@ -47,7 +59,10 @@ const triaged = {
 };
 
 /** The full ops view of a ticket in the given state. */
-export function opsTicket(status: TicketStatus = 'needs_attention', overrides: Partial<OpsTicketDetail> = {}): OpsTicketDetail {
+export function opsTicket(
+  status: TicketStatus = 'needs_attention',
+  overrides: Partial<OpsTicketDetail> = {}
+): OpsTicketDetail {
   const draftDone = status === 'completed';
   return {
     id: OPS_ID,

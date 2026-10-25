@@ -7,14 +7,20 @@ type Stage = 'queued' | 'reviewing' | 'writing' | 'replied' | 'failed' | 'needs_
 
 /** The public view of one ticket at a given point in its life. */
 export function ticketAt(stage: Stage, overrides: Partial<TicketDetail> = {}): TicketDetail {
-  const triaged = { status: 'completed' as const, output: { category: 'billing', priority: 'high' } };
+  const triaged = {
+    status: 'completed' as const,
+    output: { category: 'billing', priority: 'high' },
+  };
   const phases: Record<Stage, TicketDetail['phases']> = {
     queued: { triage: { status: 'pending' }, draft: { status: 'pending' } },
     reviewing: { triage: { status: 'processing' }, draft: { status: 'pending' } },
     writing: { triage: triaged, draft: { status: 'processing' } },
     replied: {
       triage: triaged,
-      draft: { status: 'completed', output: { customerReply: 'We refunded the duplicate charge.' } },
+      draft: {
+        status: 'completed',
+        output: { customerReply: 'We refunded the duplicate charge.' },
+      },
     },
     failed: { triage: triaged, draft: { status: 'failed' } },
     needs_attention: { triage: triaged, draft: { status: 'failed' } },
@@ -34,7 +40,10 @@ export function ticketAt(stage: Stage, overrides: Partial<TicketDetail> = {}): T
     description: 'My card was charged twice for the March invoice.',
     status: status[stage],
     createdAt: new Date().toISOString(),
-    events: stage === 'replied' ? [{ event: 'ticket.completed', occurredAt: new Date().toISOString() }] : [],
+    events:
+      stage === 'replied'
+        ? [{ event: 'ticket.completed', occurredAt: new Date().toISOString() }]
+        : [],
     eventsNextCursor: null,
     phases: phases[stage],
     ...overrides,

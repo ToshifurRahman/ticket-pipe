@@ -47,12 +47,18 @@ const plies = [
 const browser = await chromium.launch();
 try {
   const iconPage = await browser.newPage({ viewport: { width: 180, height: 180 } });
-  for (const [file, size] of [['favicon-32.png', 32], ['apple-touch-icon.png', 180]] as const) {
+  for (const [file, size] of [
+    ['favicon-32.png', 32],
+    ['apple-touch-icon.png', 180],
+  ] as const) {
     await iconPage.setViewportSize({ width: size, height: size });
     await iconPage.setContent(
-      `<body style="margin:0;background:transparent">${svg.replace('<svg ', `<svg width="${size}" height="${size}" `)}</body>`,
+      `<body style="margin:0;background:transparent">${svg.replace('<svg ', `<svg width="${size}" height="${size}" `)}</body>`
     );
-    await writeFile(path.join(publicDir, file), await iconPage.screenshot({ omitBackground: true }));
+    await writeFile(
+      path.join(publicDir, file),
+      await iconPage.screenshot({ omitBackground: true })
+    );
   }
 
   const card = await browser.newPage({ viewport: { width: 1200, height: 630 } });
@@ -90,7 +96,10 @@ try {
       <h1>${brand.headline}</h1>
     </div>
     <div class="plies">${plies
-      .map((p) => `<div class="ply" style="background:${p.bg};color:${p.fg}"><span class="n">${p.n}</span><span class="caps">${p.label}</span></div>`)
+      .map(
+        (p) =>
+          `<div class="ply" style="background:${p.bg};color:${p.fg}"><span class="n">${p.n}</span><span class="caps">${p.label}</span></div>`
+      )
       .join('')}</div>
   </div></body></html>`);
   await card.evaluate('document.fonts.ready');

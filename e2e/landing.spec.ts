@@ -7,7 +7,9 @@ test('every section fits a 360px screen', async ({ page }) => {
   await page.goto('/');
 
   for (const name of SECTIONS) await expect(page.getByRole('heading', { name })).toBeVisible();
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth
+  );
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
@@ -61,7 +63,9 @@ test('the finished demo has the same layout played or restored at 360px', async 
 
   expect(restored?.width).toBe(played?.width);
   expect(restored?.height).toBe(played?.height);
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - window.innerWidth
+  );
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
@@ -74,6 +78,9 @@ test('reduced motion shows the finished demo straight away', async ({ page }) =>
 
 test('the hero CTA opens the submit page', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('link', { name: /submit a ticket/i }).first().click();
+  await page
+    .getByRole('link', { name: /submit a ticket/i })
+    .first()
+    .click();
   await expect(page).toHaveURL(/\/new$/);
 });

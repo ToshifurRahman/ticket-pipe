@@ -23,7 +23,10 @@ function renderCard(initial: NotificationView) {
     http.get(`/api/tickets/${TICKET_ID}/notification`, () => HttpResponse.json(initial)),
     http.post(`/api/tickets/${TICKET_ID}/notification`, async ({ request }) => {
       posted.push(await request.json());
-      return HttpResponse.json({ available: true, state: 'pending', maskedEmail: 't•••@example.test' }, { status: 201 });
+      return HttpResponse.json(
+        { available: true, state: 'pending', maskedEmail: 't•••@example.test' },
+        { status: 201 }
+      );
     })
   );
   render(

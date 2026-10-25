@@ -98,7 +98,10 @@ describe('createNeedsAttentionAlerter', () => {
     expect(() => alerter.alert(needsAttention())).not.toThrow();
     await alerter.pending();
 
-    expect(error).toHaveBeenCalledWith(expect.objectContaining({ ticketId: needsAttention().ticketId }), 'Failed to send ops alert');
+    expect(error).toHaveBeenCalledWith(
+      expect.objectContaining({ ticketId: needsAttention().ticketId }),
+      'Failed to send ops alert'
+    );
   });
 
   it('logs a synchronous throw instead of throwing', () => {
@@ -130,7 +133,11 @@ describe('createNeedsAttentionAlerter — hourly cap', () => {
     const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
     let time = 0;
     const { send, target } = fakeSns();
-    const alerter = createNeedsAttentionAlerter({ sns: () => target, maxPerHour: 2, now: () => time });
+    const alerter = createNeedsAttentionAlerter({
+      sns: () => target,
+      maxPerHour: 2,
+      now: () => time,
+    });
 
     for (let n = 1; n <= 3; n++) alerter.alert(needsAttention(n));
     time = HOUR_MS - 1;

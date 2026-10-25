@@ -16,10 +16,9 @@ export interface ProcessingResult {
 export async function getProcessingResultByTicketId(
   ticketId: string
 ): Promise<ProcessingResult | null> {
-  const result = await pool.query(
-    'SELECT * FROM ticket_processing WHERE ticket_id = $1',
-    [ticketId]
-  );
+  const result = await pool.query('SELECT * FROM ticket_processing WHERE ticket_id = $1', [
+    ticketId,
+  ]);
   if (!result.rows[0]) return null;
   const row = result.rows[0];
   return {
@@ -91,7 +90,17 @@ export async function completeDraftOutput(
 
 export async function insertProcessingResult(
   ticketId: string,
-  result: { category: string; priority: string; sentiment: string; escalate: boolean; recommendedTeam: string; issueSummary: string; customerReply: string; internalNote: string; nextSteps: string[] }
+  result: {
+    category: string;
+    priority: string;
+    sentiment: string;
+    escalate: boolean;
+    recommendedTeam: string;
+    issueSummary: string;
+    customerReply: string;
+    internalNote: string;
+    nextSteps: string[];
+  }
 ): Promise<boolean> {
   const insertResult = await pool.query(
     `INSERT INTO ticket_processing

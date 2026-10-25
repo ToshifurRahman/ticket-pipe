@@ -71,23 +71,31 @@ export async function init(httpServer?: HttpServer): Promise<Server> {
     // whose handshake carries a live ops session may join; the ack tells the client which.
     // The session is revoked in two ways: sign-out evicts its sockets (revokeOpsSockets),
     // and a timer at its expiry covers a tab left open.
-    socket.on('ops:subscribe', async (ack?: (response: { ok: boolean; error?: string }) => void) => {
-      const reply = typeof ack === 'function' ? ack : () => {};
-      try {
-        const session = await lookupSession(sessionIdFromCookieHeader(socket.handshake.headers.cookie));
-        if (!session) return reply({ ok: false, error: 'unauthorized' });
-        if (socket.disconnected) return;
+    socket.on(
+      'ops:subscribe',
+      async (ack?: (response: { ok: boolean; error?: string }) => void) => {
+        const reply = typeof ack === 'function' ? ack : () => {};
+        try {
+          const session = await lookupSession(
+            sessionIdFromCookieHeader(socket.handshake.headers.cookie)
+          );
+          if (!session) return reply({ ok: false, error: 'unauthorized' });
+          if (socket.disconnected) return;
 
-        clearTimeout(socket.data.opsExpiry);
-        socket.data.opsSessionHash = session.hash;
-        socket.join(OPS_ROOM);
-        socket.data.opsExpiry = setTimeout(() => evict(socket), Math.max(session.expiresAt.getTime() - Date.now(), 0));
-        reply({ ok: true });
-      } catch (err) {
-        logger.error({ err, socketId: socket.id }, 'ops:subscribe failed');
-        reply({ ok: false, error: 'unavailable' });
+          clearTimeout(socket.data.opsExpiry);
+          socket.data.opsSessionHash = session.hash;
+          socket.join(OPS_ROOM);
+          socket.data.opsExpiry = setTimeout(
+            () => evict(socket),
+            Math.max(session.expiresAt.getTime() - Date.now(), 0)
+          );
+          reply({ ok: true });
+        } catch (err) {
+          logger.error({ err, socketId: socket.id }, 'ops:subscribe failed');
+          reply({ ok: false, error: 'unavailable' });
+        }
       }
-    });
+    );
     socket.on('disconnect', () => clearTimeout(socket.data.opsExpiry));
   });
   // The API publishes `ticket.submitted` to the ops feed, so it needs a connected emitter
@@ -96,7 +104,11 @@ export async function init(httpServer?: HttpServer): Promise<Server> {
   return io;
 }
 
-function evict(socket: { leave: (room: string) => unknown; emit: (event: string) => unknown; data: Record<string, unknown> }): void {
+function evict(socket: {
+  leave: (room: string) => unknown;
+  emit: (event: string) => unknown;
+  data: Record<string, unknown>;
+}): void {
   clearTimeout(socket.data.opsExpiry as NodeJS.Timeout | undefined);
   delete socket.data.opsSessionHash;
   socket.leave(OPS_ROOM);
