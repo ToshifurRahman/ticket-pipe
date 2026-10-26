@@ -1,10 +1,10 @@
 import { createHash, randomBytes } from 'crypto';
 import { z } from 'zod';
 
+import { maskEmail } from '../domain/mask-email.js';
 import { hit } from '../lib/counters.js';
 import { logger } from '../lib/logger.js';
 import { getMailer, isMailEnabled, type MailMessage } from '../lib/mailer.js';
-import { maskEmail } from '../lib/mask-email.js';
 import {
   claimCompleted,
   claimSnag,

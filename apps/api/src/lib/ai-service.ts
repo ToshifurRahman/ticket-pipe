@@ -1,9 +1,9 @@
+import type { ProcessingResult } from '../domain/ticket-phases.js';
 import {
   type AiInteractionRecord,
   type AiOperation,
   insertAiInteraction,
 } from '../repositories/ai-interactions.js';
-import type { ProcessingResult } from '../repositories/processing.js';
 import {
   draft as draftLlm,
   getBackupProvider,

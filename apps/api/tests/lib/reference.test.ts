@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { generateReferenceNumber } from '../../src/lib/reference.js';
+import { generateReferenceNumber } from '../../src/domain/reference.js';
 
 describe('generateReferenceNumber', () => {
   it('matches the TICK-{timestamp}-{4-hex} format', () => {

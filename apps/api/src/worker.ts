@@ -1,31 +1,31 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 
-import { AIService } from './lib/ai-service.js';
-import { TicketNotFoundError } from './lib/errors.js';
-import { UUID_RE } from './lib/ids.js';
-import { assertLlmModeAllowed, getLlmMode } from './lib/llm-client.js';
-import { logger } from './lib/logger.js';
-import { assertMailConfigured } from './lib/mailer.js';
-import { deleteMessage, receiveMessages } from './lib/queue.js';
-import { shutdown as shutdownSocket, warmEmitter } from './lib/socket.js';
+import { TicketNotFoundError } from './domain/errors.js';
+import { UUID_RE } from './domain/ids.js';
 import {
+  type ProcessingResult,
   resolveTicketFailureCounts,
   resolveTicketPhases,
   type TicketPhaseStatus,
   type TriageOutput,
-} from './lib/ticket-phases.js';
+} from './domain/ticket-phases.js';
 import {
   type DraftFields,
   validateDraftOutput,
   validateProcessingOutput,
   validateTriageOutput,
   type ValidationResult,
-} from './lib/validate-output.js';
+} from './domain/validate-output.js';
+import { AIService } from './lib/ai-service.js';
+import { assertLlmModeAllowed, getLlmMode } from './lib/llm-client.js';
+import { logger } from './lib/logger.js';
+import { assertMailConfigured } from './lib/mailer.js';
+import { deleteMessage, receiveMessages } from './lib/queue.js';
+import { shutdown as shutdownSocket, warmEmitter } from './lib/socket.js';
 import { getAllEventsByTicketId } from './repositories/events.js';
 import {
   completeDraftOutput,
   getProcessingResultByTicketId,
-  type ProcessingResult,
   upsertTriageOutput,
 } from './repositories/processing.js';
 import {

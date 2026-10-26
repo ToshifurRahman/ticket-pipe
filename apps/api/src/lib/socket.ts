@@ -5,8 +5,8 @@ import type { Server as HttpServer } from 'http';
 import { createClient } from 'redis';
 import { Server } from 'socket.io';
 
+import { isUuid } from '../domain/ids.js';
 import { closeCounters } from './counters.js';
-import { isUuid } from './ids.js';
 import { logger } from './logger.js';
 import { closeOpsSessionStore, lookupSession, sessionIdFromCookieHeader } from './ops-session.js';
 import { OPS_ROOM } from './rooms.js';

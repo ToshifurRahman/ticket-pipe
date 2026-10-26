@@ -1,6 +1,6 @@
+import { TicketNotFoundError } from '../domain/errors.js';
+import { isUuid } from '../domain/ids.js';
 import { pool } from '../lib/db.js';
-import { TicketNotFoundError } from '../lib/errors.js';
-import { isUuid } from '../lib/ids.js';
 import type { FailureReason } from '../services/ops-feed.js';
 
 export interface Ticket {

@@ -2,7 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { createFactory } from 'hono/factory';
 import { z } from 'zod';
 
-import { decodeEventCursor } from '../lib/event-cursor.js';
+import { decodeEventCursor } from '../domain/event-cursor.js';
 import { logger } from '../lib/logger.js';
 import type { TicketEvent } from '../repositories/events.js';
 import { getTicketById, getTicketByReferenceNumber } from '../repositories/tickets.js';

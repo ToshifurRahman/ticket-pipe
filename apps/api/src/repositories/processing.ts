@@ -1,17 +1,5 @@
+import type { ProcessingResult, TriageOutput } from '../domain/ticket-phases.js';
 import { pool } from '../lib/db.js';
-import type { TriageOutput } from '../lib/ticket-phases.js';
-
-export interface ProcessingResult {
-  category: string;
-  priority: string;
-  sentiment: string;
-  escalate: boolean;
-  recommendedTeam: string;
-  issueSummary: string;
-  customerReply: string | null;
-  internalNote: string | null;
-  nextSteps: string[] | null;
-}
 
 interface ProcessingRow {
   category: string;

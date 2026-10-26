@@ -1,5 +1,4 @@
-import type { ProcessingResult } from '../repositories/processing.js';
-import type { TriageOutput } from './ticket-phases.js';
+import type { ProcessingResult, TriageOutput } from './ticket-phases.js';
 
 export interface ValidationResult {
   valid: boolean;

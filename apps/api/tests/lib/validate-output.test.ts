@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
+import type { ProcessingResult } from '../../src/domain/ticket-phases.js';
 import {
   validateDraftOutput,
   validateProcessingOutput,
   validateTriageOutput,
-} from '../../src/lib/validate-output.js';
-import type { ProcessingResult } from '../../src/repositories/processing.js';
+} from '../../src/domain/validate-output.js';
 
 function validResult(): ProcessingResult {
   return {

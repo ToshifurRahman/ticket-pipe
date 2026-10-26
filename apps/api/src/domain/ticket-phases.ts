@@ -133,3 +133,15 @@ export function resolveTicketFailureCounts(
   }
   return counts;
 }
+
+export interface ProcessingResult {
+  category: string;
+  priority: string;
+  sentiment: string;
+  escalate: boolean;
+  recommendedTeam: string;
+  issueSummary: string;
+  customerReply: string | null;
+  internalNote: string | null;
+  nextSteps: string[] | null;
+}

@@ -4,7 +4,7 @@ import {
   resolveTicketFailureCounts,
   resolveTicketPhases,
   type TicketEventLike,
-} from '../../src/lib/ticket-phases.js';
+} from '../../src/domain/ticket-phases.js';
 
 function events(...names: string[]): TicketEventLike[] {
   return names.map((event) => ({ event }));

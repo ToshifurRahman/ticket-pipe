@@ -5,8 +5,8 @@
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 
 import { app } from '../../src/app.js';
+import { encodeEventCursor } from '../../src/domain/event-cursor.js';
 import { pool } from '../../src/lib/db.js';
-import { encodeEventCursor } from '../../src/lib/event-cursor.js';
 import { insertTicket } from '../../src/repositories/tickets.js';
 import type { PublicEventsBody, PublicTicketBody } from '../helpers/api-types.js';
 import { purgeTicketEvents } from '../helpers/purge-ticket-events.js';

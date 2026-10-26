@@ -1,12 +1,12 @@
-import { encodeEventCursor } from '../lib/event-cursor.js';
-import { maskEmail } from '../lib/mask-email.js';
+import { encodeEventCursor } from '../domain/event-cursor.js';
+import { maskEmail } from '../domain/mask-email.js';
 import {
   type DraftOutput,
   type PublicTicketPhases,
   resolveTicketPhases,
   type TicketPhases,
   type TriageOutput,
-} from '../lib/ticket-phases.js';
+} from '../domain/ticket-phases.js';
 import { getAllEventsByTicketId, getEventPage, type TicketEvent } from '../repositories/events.js';
 import { getNotificationStatus, type NotificationState } from '../repositories/notifications.js';
 import { getProcessingResultByTicketId } from '../repositories/processing.js';

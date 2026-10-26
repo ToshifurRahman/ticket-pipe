@@ -1,6 +1,6 @@
+import { generateReferenceNumber } from '../domain/reference.js';
 import { logger } from '../lib/logger.js';
 import { enqueueTicket } from '../lib/queue.js';
-import { generateReferenceNumber } from '../lib/reference.js';
 import {
   getTicketById,
   insertTicket,
