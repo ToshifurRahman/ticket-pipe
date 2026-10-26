@@ -31,7 +31,7 @@ When ops replays a ticket, the room also receives `ticket:requeued` with
 `apps/api/src/services/ops-feed.ts` may publish to it, and only identifiers, codes and timestamps. The ticket's own
 room, which only that customer joins, gets `ticket:update` with `{ event, ticketId, occurredAt }` and no AI
 output either: the page reads the reply from the public lookup.
-`apps/api/tests/ops-feed.guard.test.ts` fails if any other file publishes to the ops room.
+`apps/api/tests/guards/ops-feed.test.ts` fails if any other file publishes to the ops room.
 
 Every event goes through `recordTicketEvent()` (`apps/api/src/services/ticket-events.ts`), which writes the
 `ticket_events` row and publishes to the feed, so the two cannot drift apart. Publishing is best-effort
@@ -86,7 +86,7 @@ per consumer. That is the scaling direction, not something built here.
 
 **Same privacy boundary as the ops feed.** The alert is built field by field from `OpsNeedsAttention`, so it
 holds the reference number, ticket id, reason code and time, and never the subject, description, AI output or
-error text. Only `apps/api/src/services/ops-alerts.ts` may publish to SNS (`apps/api/tests/ops-alerts.guard.test.ts`).
+error text. Only `apps/api/src/services/ops-alerts.ts` may publish to SNS (`apps/api/tests/guards/ops-alerts.test.ts`).
 
 **Behaviour**
 
@@ -109,7 +109,7 @@ error text. Only `apps/api/src/services/ops-alerts.ts` may publish to SNS (`apps
 
 To try it locally, `bun --filter @ticket-pipe/api setup` creates the `ticket-needs-attention` topic in LocalStack and prints its ARN.
 Set `SNS_TOPIC_ARN` to it. LocalStack doesn't send email, so subscribe a queue to the topic to see the alerts
-(as `apps/api/tests/ops-alerts.localstack.test.ts` does). In production the topic, the email subscription (the recipient
+(as `apps/api/tests/integration/services/ops-alerts-localstack.test.ts` does). In production the topic, the email subscription (the recipient
 must click the confirmation link) and `sns:Publish` on that topic for the app's IAM user are set up by hand.
 
 ## Ticket Recovery

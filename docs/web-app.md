@@ -35,7 +35,7 @@ The customer routes return a **public view** of a ticket: its subject, descripti
 times, phase statuses, and from the AI output only `category`, `priority` and `customerReply`. They never
 return `sentiment`, `escalate`, `recommendedTeam`, `issueSummary`, `internalNote`, `nextActions` or event
 `detail` (failure reasons). `apps/api/src/services/ticket-views.ts` builds the public view field by field, so a new
-field stays private until it is added there on purpose; `apps/api/tests/api/ticket-redaction.test.ts` checks the exact
+field stays private until it is added there on purpose; `apps/api/tests/api/tickets/redaction.test.ts` checks the exact
 set of keys.
 
 | Route                                               | View                                        |
