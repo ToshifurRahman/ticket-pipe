@@ -50,16 +50,10 @@ import { getAllEventsByTicketId } from '../../../src/repositories/events.js';
 import { getTicketById, insertTicket } from '../../../src/repositories/tickets.js';
 import { pendingAlerts } from '../../../src/services/ops-alerts.js';
 import { processMessage } from '../../../src/worker.js';
+import { triageResult } from '../../fixtures/ai-output.js';
 import { purgeTicketEvents } from '../../helpers/purge-ticket-events.js';
 
-const TRIAGE_RESULT = {
-  category: 'technical',
-  priority: 'high',
-  sentiment: 'frustrated',
-  escalate: false,
-  recommendedTeam: 'tech-support',
-  issueSummary: 'Customer cannot log in',
-};
+const TRIAGE_RESULT = triageResult();
 
 const mockTriage = vi.fn();
 const mockDraft = vi.fn();

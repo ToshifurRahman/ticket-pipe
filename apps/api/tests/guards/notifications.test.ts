@@ -2,19 +2,15 @@
  * Story 6.9 — customer email addresses are PII. One module sends mail, and nothing logs or
  * records an address. If this fails, route the change through src/services/customer-notifications.ts.
  */
-import { readdirSync, readFileSync, statSync } from 'fs';
+import { readFileSync } from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
+
+import { sourceFiles } from '../helpers/source-files.js';
 
 const SRC = path.resolve(__dirname, '../../src');
 const MAILER = path.join(SRC, 'lib', 'mailer.ts');
 
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const full = path.join(dir, name);
-    return statSync(full).isDirectory() ? sourceFiles(full) : full.endsWith('.ts') ? [full] : [];
-  });
-}
 const rel = (file: string) => path.relative(SRC, file);
 
 describe('customer email', () => {

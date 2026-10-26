@@ -31,23 +31,13 @@ import {
 import { getAllEventsByTicketId, insertEvent } from '../../../src/repositories/events.js';
 import { insertTicket } from '../../../src/repositories/tickets.js';
 import { processMessage } from '../../../src/worker.js';
+import { draftResult, triageResult } from '../../fixtures/ai-output.js';
 import { newOpsCookie } from '../../helpers/ops-session.js';
 import { purgeTicketEvents } from '../../helpers/purge-ticket-events.js';
 
-const TRIAGE_RESULT = {
-  category: 'technical',
-  priority: 'high',
-  sentiment: 'frustrated',
-  escalate: false,
-  recommendedTeam: 'tech-support',
-  issueSummary: 'Customer cannot log in',
-};
+const TRIAGE_RESULT = triageResult();
 
-const DRAFT_RESULT = {
-  customerReply: 'We are looking into your login issue.',
-  internalNote: 'Check auth service logs.',
-  nextSteps: ['Check auth logs', 'Reset session'],
-};
+const DRAFT_RESULT = draftResult();
 
 function mockAi(): AIService {
   return {

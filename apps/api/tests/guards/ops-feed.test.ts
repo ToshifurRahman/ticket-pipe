@@ -3,19 +3,14 @@
  * Every payload built there is made of IDs, codes and timestamps. If this fails, a new emit
  * site was added: route it through src/services/ops-feed.ts instead.
  */
-import { readdirSync, readFileSync, statSync } from 'fs';
+import { readFileSync } from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
 
+import { sourceFiles } from '../helpers/source-files.js';
+
 const SRC = path.resolve(__dirname, '../../src');
 const ALLOWED = path.join(SRC, 'services', 'ops-feed.ts');
-
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const full = path.join(dir, name);
-    return statSync(full).isDirectory() ? sourceFiles(full) : full.endsWith('.ts') ? [full] : [];
-  });
-}
 
 describe('ops room publishing', () => {
   it('only src/services/ops-feed.ts publishes to the ops room', () => {

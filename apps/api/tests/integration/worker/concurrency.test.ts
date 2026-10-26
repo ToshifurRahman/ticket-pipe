@@ -12,20 +12,9 @@ const mockQueue = vi.hoisted(
     }>
 );
 
-const TRIAGE_RESULT = {
-  category: 'technical',
-  priority: 'high',
-  sentiment: 'frustrated',
-  escalate: false,
-  recommendedTeam: 'tech-support',
-  issueSummary: 'Customer cannot log in',
-};
+const TRIAGE_RESULT = triageResult();
 
-const DRAFT_RESULT = {
-  customerReply: 'We are looking into your login issue.',
-  internalNote: 'Check auth service logs.',
-  nextSteps: ['Check auth logs', 'Reset session'],
-};
+const DRAFT_RESULT = draftResult();
 
 vi.mock('../../../src/lib/ai-service.js', () => ({
   AIService: class {
@@ -67,6 +56,7 @@ import { enqueueTicket } from '../../../src/lib/queue.js';
 import { getAllEventsByTicketId } from '../../../src/repositories/events.js';
 import { getTicketById, insertTicket } from '../../../src/repositories/tickets.js';
 import { run } from '../../../src/worker.js';
+import { draftResult, triageResult } from '../../fixtures/ai-output.js';
 import { purgeTicketEvents } from '../../helpers/purge-ticket-events.js';
 
 const createdIds: string[] = [];

@@ -3,19 +3,14 @@
  * module may publish to SNS. If this fails, a new publish site was added: route it through
  * src/services/ops-alerts.ts instead.
  */
-import { readdirSync, readFileSync, statSync } from 'fs';
+import { readFileSync } from 'fs';
 import path from 'path';
 import { describe, expect, it } from 'vitest';
 
+import { sourceFiles } from '../helpers/source-files.js';
+
 const SRC = path.resolve(__dirname, '../../src');
 const ALLOWED = path.join(SRC, 'services', 'ops-alerts.ts');
-
-function sourceFiles(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const full = path.join(dir, name);
-    return statSync(full).isDirectory() ? sourceFiles(full) : full.endsWith('.ts') ? [full] : [];
-  });
-}
 
 describe('SNS publishing', () => {
   it('only src/services/ops-alerts.ts uses PublishCommand', () => {
