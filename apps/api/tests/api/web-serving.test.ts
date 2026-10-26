@@ -5,7 +5,7 @@ import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { brotliCompressSync, brotliDecompressSync, gunzipSync, gzipSync } from 'zlib';
 
-import { mountWebApp } from '../../src/lib/web-app.js';
+import { mountWebApp } from '../../src/middleware/web-app.js';
 import request from '../helpers/request.js';
 
 let dist: string;

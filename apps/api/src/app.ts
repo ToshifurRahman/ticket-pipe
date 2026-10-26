@@ -6,9 +6,9 @@ import { fileURLToPath } from 'url';
 
 import { TicketNotFoundError } from './domain/errors.js';
 import { logger } from './lib/logger.js';
-import { type AppEnv, requestLogger } from './lib/request-logger.js';
 import { getEngine } from './lib/socket.js';
-import { mountWebApp } from './lib/web-app.js';
+import { type AppEnv, requestLogger } from './middleware/request-logger.js';
+import { mountWebApp } from './middleware/web-app.js';
 import { healthRouter } from './routes/health.js';
 import { notificationsRouter } from './routes/notifications.js';
 import { opsRouter } from './routes/ops.js';

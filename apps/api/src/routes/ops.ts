@@ -6,7 +6,7 @@ import {
   listTicketEventsHandler,
   summarizeAiInteractionsHandler,
 } from '../controllers/ops.js';
-import { requireOpsSession } from '../lib/ops-auth.js';
+import { requireOpsSession } from '../middleware/ops-auth.js';
 
 export const opsRouter = new Hono();
 

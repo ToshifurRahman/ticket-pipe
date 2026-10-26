@@ -2,7 +2,7 @@ import { zValidator } from '@hono/zod-validator';
 import { createFactory } from 'hono/factory';
 import { z } from 'zod';
 
-import { clientIp } from '../lib/client-ip.js';
+import { clientIp } from '../middleware/client-ip.js';
 import {
   confirmNotification,
   getNotificationView,

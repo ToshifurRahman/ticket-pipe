@@ -1,7 +1,7 @@
 import { getCookie } from 'hono/cookie';
 import { createMiddleware } from 'hono/factory';
 
-import { lookupSession, OPS_SESSION_COOKIE, type OpsSession } from './ops-session.js';
+import { lookupSession, OPS_SESSION_COOKIE, type OpsSession } from '../lib/ops-session.js';
 
 // Staff-only routes. No session: 401 and nothing else, so no ticket data leaks.
 export const requireOpsSession = createMiddleware<{ Variables: { opsSession: OpsSession } }>(

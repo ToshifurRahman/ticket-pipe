@@ -4,7 +4,7 @@ import type { Context, Env, Hono, Next } from 'hono';
 import { getMimeType } from 'hono/utils/mime';
 import path from 'path';
 
-import { logger } from './logger.js';
+import { logger } from '../lib/logger.js';
 
 const NON_APP_PATH = /^\/(api|health|socket\.io)(\/|$)/;
 const API_PATH = /^\/api(\/|$)/;
