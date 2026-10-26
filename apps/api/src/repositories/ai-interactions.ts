@@ -1,3 +1,5 @@
+// Slightly over the ~250-line guideline on purpose: insert, list and summarize all query the
+// one ai_interactions table, and the SQL reads best side by side.
 import { pool } from '../lib/db.js';
 
 export type AiOperation = 'triage' | 'draft';

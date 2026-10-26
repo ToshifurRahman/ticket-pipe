@@ -1,3 +1,5 @@
+// Over the ~250-line guideline on purpose: one poll loop and one pipeline whose stages share
+// the resume-from-failure state, so splitting it would scatter rules that must read together.
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import { TicketNotFoundError } from './domain/errors.js';

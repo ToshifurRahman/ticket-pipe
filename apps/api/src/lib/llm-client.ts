@@ -1,3 +1,5 @@
+// Over the ~250-line guideline on purpose: one client for both operations, with the provider
+// fallback and the fake mode sharing a single call path.
 import { createHeaders, PORTKEY_GATEWAY_URL } from 'portkey-ai';
 import { z } from 'zod';
 

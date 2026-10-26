@@ -7,6 +7,14 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+// Story 7.0.5: the Hono family belongs to the HTTP layer, and domain/ stays pure.
+const honoPaths = [
+  { name: 'hono', message: 'Hono is for routes, controllers and middleware only.' },
+];
+const honoPatterns = [
+  { group: ['hono/*', '@hono/*'], message: 'Hono is for routes, controllers and middleware only.' },
+];
+
 // Story 7.0.4: one flat config for the API, the web app, e2e and scripts. Type-aware rules read
 // the nearest tsconfig through the project service (root tsconfig.json covers e2e and scripts).
 export default tseslint.config(
@@ -49,6 +57,33 @@ export default tseslint.config(
       '*.{ts,js,mjs,cjs}',
     ],
     languageOptions: { globals: globals.node },
+  },
+  {
+    files: ['apps/api/src/**/*.ts'],
+    ignores: [
+      'apps/api/src/{routes,controllers,middleware}/**',
+      'apps/api/src/{app,server}.ts',
+      'apps/api/src/domain/**',
+    ],
+    rules: { 'no-restricted-imports': ['error', { paths: honoPaths, patterns: honoPatterns }] },
+  },
+  {
+    files: ['apps/api/src/domain/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: honoPaths,
+          patterns: [
+            ...honoPatterns,
+            {
+              group: ['**/lib/*', '**/services/*', '**/repositories/*'],
+              message: 'domain/ is pure: no infrastructure, services or repositories.',
+            },
+          ],
+        },
+      ],
+    },
   },
   {
     files: ['apps/web/src/**/*.{ts,tsx}'],

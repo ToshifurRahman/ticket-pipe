@@ -1,6 +1,6 @@
 import { spawnSync } from 'child_process';
 import { ESLint } from 'eslint';
-import { existsSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, readdirSync, rmSync, writeFileSync } from 'fs';
 import path from 'path';
 import { expect, it } from 'vitest';
 
@@ -41,6 +41,58 @@ it('fails a disable comment without a reason', async () => {
     '@eslint-community/eslint-comments/require-description'
   );
 }, 60_000);
+
+// Story 7.0.5: each API folder has one job, and the boundaries are lint errors.
+const restricted = 'no-restricted-imports';
+
+it('fails hono in a service', async () => {
+  const code = "import { Hono } from 'hono';\nexport const app = new Hono();\n";
+  expect(await rulesFor(code, 'apps/api/src/services/__guard__.ts')).toContain(restricted);
+}, 60_000);
+
+it('fails hono subpaths and @hono packages outside the HTTP layer', async () => {
+  const sub = "import { getCookie } from 'hono/cookie';\nexport const c = getCookie;\n";
+  const pkg = "import { zValidator } from '@hono/zod-validator';\nexport const v = zValidator;\n";
+  expect(await rulesFor(sub, 'apps/api/src/services/__guard__.ts')).toContain(restricted);
+  expect(await rulesFor(pkg, 'apps/api/src/services/__guard__.ts')).toContain(restricted);
+}, 60_000);
+
+it('allows hono in routes and middleware', async () => {
+  const code = "import { Hono } from 'hono';\nexport const app = new Hono();\n";
+  expect(await rulesFor(code, 'apps/api/src/routes/__guard__.ts')).not.toContain(restricted);
+  expect(await rulesFor(code, 'apps/api/src/middleware/__guard__.ts')).not.toContain(restricted);
+}, 60_000);
+
+it('fails domain importing lib, services or repositories', async () => {
+  for (const dir of ['lib/db', 'services/tickets', 'repositories/tickets']) {
+    const code = `import * as x from '../${dir}.js';\nexport const y = x;\n`;
+    expect(await rulesFor(code, 'apps/api/src/domain/__guard__.ts')).toContain(restricted);
+  }
+}, 120_000);
+
+it('fails hono in domain', async () => {
+  const code = "import { Hono } from 'hono';\nexport const app = new Hono();\n";
+  expect(await rulesFor(code, 'apps/api/src/domain/__guard__.ts')).toContain(restricted);
+}, 60_000);
+
+it('keeps only infrastructure clients in lib/', () => {
+  const libDir = path.join(root, 'apps/api/src/lib');
+  expect(readdirSync(libDir).sort()).toEqual(
+    [
+      'ai-service.ts',
+      'counters.ts',
+      'db.ts',
+      'llm-client.ts',
+      'logger.ts',
+      'mailer.ts',
+      'ops-session.ts',
+      'queue.ts',
+      'rooms.ts',
+      'sns.ts',
+      'socket.ts',
+    ].sort()
+  );
+});
 
 it('applies jsx-a11y to the web app', async () => {
   const code = 'export const A = () => <img src="x" />;\n';
