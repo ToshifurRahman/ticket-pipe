@@ -1,9 +1,9 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
+import { PublicLayout } from '@/app/layout/public-layout';
 import { TicketSkeleton } from '@/components/ticket/ticket-states';
 import { LEGAL_DOCS, type LegalDocKey } from '@/content/legal';
-import { PublicLayout } from '@/layouts/public-layout';
 import { HomePage } from '@/pages/home';
 import { LegalPage } from '@/pages/legal';
 import { NotFoundPage } from '@/pages/not-found';
@@ -14,7 +14,7 @@ import { NotFoundPage } from '@/pages/not-found';
 // The ops console brings the drawer, toasts and the whole staff UI; visitors never load it.
 // The layout is lazy too: it holds the toaster and the sign-out control.
 const OpsLayout = lazy(() =>
-  import('@/layouts/ops-layout').then((m) => ({ default: m.OpsLayout }))
+  import('@/app/layout/ops-layout').then((m) => ({ default: m.OpsLayout }))
 );
 const OpsPage = lazy(() => import('@/pages/ops').then((m) => ({ default: m.OpsPage })));
 const NewTicketPage = lazy(() =>

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
-import { AppRoutes } from '@/routes';
+import { AppRoutes } from '@/app/routes';
 
 function renderAt(path: string) {
   return render(

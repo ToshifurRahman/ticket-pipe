@@ -1,11 +1,11 @@
 import { Stamp } from '@/components/form/stamp';
+import { type Tone, ToneChip, toneForCategory, toneForPriority } from '@/components/form/tone-chip';
 import { printedTime } from '@/lib/relative-time';
 import { humanize, type Ply, type TriageBadges } from '@/lib/ticket-thread';
 import type { TicketDetail } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { NotifyCard } from './notify-card';
-import { type Tone, ToneChip, toneForCategory, toneForPriority } from './tone-chip';
 import { stampProps, useStampOnChange } from './use-stamp-on-change';
 
 const TIME_LABELS: Record<Ply['key'], string> = {

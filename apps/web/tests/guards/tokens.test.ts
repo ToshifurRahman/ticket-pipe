@@ -28,7 +28,7 @@ it('loads the bold figures face wherever bold figures are used', () => {
   const BOLD_MONO =
     /['"`][^'"`]*\bfont-mono\b[^'"`]*\bfont-(medium|semibold|bold)\b|['"`][^'"`]*\bfont-(medium|semibold|bold)\b[^'"`]*\bfont-mono\b/;
   const offenders = files.filter((f) => BOLD_MONO.test(readFileSync(f, 'utf8')));
-  const loaded = readFileSync(path.join(SRC, 'main.tsx'), 'utf8').includes(
+  const loaded = readFileSync(path.join(SRC, 'app/main.tsx'), 'utf8').includes(
     '@fontsource/courier-prime/700.css'
   );
   expect(offenders.length === 0 || loaded).toBe(true);

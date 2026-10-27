@@ -1,9 +1,9 @@
 import { Outlet } from 'react-router-dom';
 
+import { SkipLink } from '@/app/layout/skip-link';
 import { Wordmark } from '@/components/brand-mark';
 import { Stamp } from '@/components/form/stamp';
 import { OpsHeaderActions } from '@/components/ops/ops-header-actions';
-import { SkipLink } from '@/components/skip-link';
 import { Toaster } from '@/components/ui/sonner';
 
 // No track field and no footer: this is a working surface. The feed indicator and Sign out

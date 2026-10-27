@@ -1,11 +1,11 @@
 import { type CSSProperties, useLayoutEffect, useRef, useState } from 'react';
 
+import { ToneChip, toneForCategory, toneForPriority } from '@/components/form/tone-chip';
 import { Button } from '@/components/ui/button';
 import { printedTime } from '@/lib/relative-time';
 import { humanize, type SupportSide, type TriageBadges } from '@/lib/ticket-thread';
 import { cn } from '@/lib/utils';
 
-import { ToneChip, toneForCategory, toneForPriority } from './tone-chip';
 import { stampProps, useStampOnChange } from './use-stamp-on-change';
 
 /** Shown when failed or needs_attention. It claims no alert: only a person picking it up moves it. */

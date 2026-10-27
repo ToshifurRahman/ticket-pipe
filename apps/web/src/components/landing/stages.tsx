@@ -1,5 +1,5 @@
 import { Stamp } from '@/components/form/stamp';
-import { type Tone, ToneChip } from '@/components/ticket/tone-chip';
+import { type Tone, ToneChip } from '@/components/form/tone-chip';
 import { FEATURES, FEATURES_HEADING } from '@/content/landing';
 import { printedTime } from '@/lib/relative-time';
 import { cn } from '@/lib/utils';
