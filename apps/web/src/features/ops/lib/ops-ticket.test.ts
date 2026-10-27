@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import type { OpsTicketDetail } from '../types';
 import { groupTimeline, humanize, replayStage, stateReason } from './ops-ticket';
-import type { OpsTicketDetail } from './types';
 
 const phases = (triage: string, draft: string) =>
   ({ triage: { status: triage }, draft: { status: draft } }) as OpsTicketDetail['phases'];

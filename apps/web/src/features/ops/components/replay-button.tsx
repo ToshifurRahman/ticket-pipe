@@ -4,8 +4,9 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { ApiError } from '@/lib/api';
-import { opsKeys, replayTicket } from '@/lib/ops-api';
-import type { ReplayStage } from '@/lib/ops-ticket';
+
+import { opsKeys, replayTicket } from '../api';
+import type { ReplayStage } from '../lib/ops-ticket';
 
 function failureMessage(error: unknown): string {
   if (error instanceof ApiError) {

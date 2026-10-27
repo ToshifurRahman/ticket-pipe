@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeKpis, formatPercent, formatSeconds } from './ops-kpis';
-import type { AiSummaryRow, OpsSummary } from './types';
+import type { AiSummaryRow, OpsSummary } from '../types';
+import { computeKpis, formatPercent, formatSeconds } from './kpis';
 
 const row = (r: Partial<AiSummaryRow>): AiSummaryRow => ({
   operation: 'triage',

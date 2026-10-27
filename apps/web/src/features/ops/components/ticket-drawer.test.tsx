@@ -7,9 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Toaster } from '@/components/ui/sonner';
 import type { TicketStatus } from '@/lib/types';
-import { aiCall, events, OPS_ID, opsTicket } from '@/test/ops-fixtures';
 import { server } from '@/test/server';
 
+import { aiCall, events, OPS_ID, opsTicket } from '../testing';
 import { TicketDrawer } from './ticket-drawer';
 
 // No retries: a failing request should show its error state at once.

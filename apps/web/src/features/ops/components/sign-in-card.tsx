@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError } from '@/lib/api';
-import { opsKeys, signIn } from '@/lib/ops-api';
+
+import { opsKeys, signIn } from '../api';
 
 function messageFor(error: unknown): string {
   if (error instanceof ApiError) {

@@ -3,9 +3,10 @@ import { useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
-import { getOpsSession, opsKeys, signOut } from '@/lib/ops-api';
-import { type FeedState, getFeedState, subscribeFeedState } from '@/lib/ops-feed-status';
 import { cn } from '@/lib/utils';
+
+import { getOpsSession, opsKeys, signOut } from '../api';
+import { type FeedState, getFeedState, subscribeFeedState } from '../lib/feed-status';
 
 const FEED: Record<FeedState, { label: string; dot: string }> = {
   connected: { label: 'Live feed connected', dot: 'bg-ply-triaged' },

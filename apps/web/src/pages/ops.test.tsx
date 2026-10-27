@@ -6,11 +6,8 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { OpsHeaderActions } from '@/components/ops/ops-header-actions';
 import { Toaster } from '@/components/ui/sonner';
-import { createQueryClient } from '@/lib/query-client';
-import type { OpsSession } from '@/lib/types';
-import { createFakeSocket } from '@/test/fake-socket';
+import { OpsHeaderActions, type OpsSession } from '@/features/ops';
 import {
   aiCall,
   events,
@@ -20,7 +17,9 @@ import {
   OTHER_ID,
   summary,
   ticketList,
-} from '@/test/ops-fixtures';
+} from '@/features/ops/testing';
+import { createQueryClient } from '@/lib/query-client';
+import { createFakeSocket } from '@/test/fake-socket';
 import { server } from '@/test/server';
 
 import { OpsPage } from './ops';

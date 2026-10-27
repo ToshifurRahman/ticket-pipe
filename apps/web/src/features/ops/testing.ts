@@ -1,10 +1,6 @@
-import type {
-  OpsListedTicket,
-  OpsSummary,
-  OpsTicketDetail,
-  OpsTicketList,
-  TicketStatus,
-} from '@/lib/types';
+import type { TicketStatus } from '@/lib/types';
+
+import type { OpsListedTicket, OpsSummary, OpsTicketDetail, OpsTicketList } from './types';
 
 export const OPS_ID = '3f6c0a52-1111-4222-8333-944455556666';
 export const OTHER_ID = '9a1b2c3d-2222-4333-8444-a55566667777';

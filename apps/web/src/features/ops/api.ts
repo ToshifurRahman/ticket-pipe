@@ -1,4 +1,5 @@
-import { request } from './api';
+import { request } from '@/lib/api';
+
 import type {
   AiInteraction,
   OpsEventPage,

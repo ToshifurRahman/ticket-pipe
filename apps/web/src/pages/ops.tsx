@@ -3,25 +3,28 @@ import { useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { KpiStrip } from '@/components/ops/kpi-strip';
-import { SignInCard } from '@/components/ops/sign-in-card';
-import { StatusTabs } from '@/components/ops/status-tabs';
-import { TicketDrawer } from '@/components/ops/ticket-drawer';
-import { TicketTable } from '@/components/ops/ticket-table';
 import { Button } from '@/components/ui/button';
 import { brand } from '@/config/brand';
-import { type OpsAlert, useOpsFeed } from '@/hooks/use-ops-feed';
-import { ApiError } from '@/lib/api';
-import { getOpsSession, listTickets, opsKeys } from '@/lib/ops-api';
 import {
+  getOpsSession,
+  humanize,
+  KpiStrip,
   listQuery,
+  listTickets,
+  type OpsAlert,
+  opsKeys,
   type OpsParams,
   type OpsSort,
   type OpsTab,
   parseOpsParams,
+  SignInCard,
+  StatusTabs,
+  TicketDrawer,
+  TicketTable,
   toSearchParams,
-} from '@/lib/ops-params';
-import { humanize } from '@/lib/ops-ticket';
+  useOpsFeed,
+} from '@/features/ops';
+import { ApiError } from '@/lib/api';
 
 export function OpsPage() {
   const queryClient = useQueryClient();

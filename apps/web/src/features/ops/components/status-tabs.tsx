@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
-import type { OpsTab } from '@/lib/ops-params';
-import type { OpsTicketList } from '@/lib/types';
+
+import type { OpsTab } from '../lib/params';
+import type { OpsTicketList } from '../types';
 
 const TABS: { tab: OpsTab; label: string }[] = [
   { tab: 'all', label: 'All' },

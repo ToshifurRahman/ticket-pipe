@@ -1,6 +1,7 @@
-import { STATUS_LABELS } from '@/lib/ops-ticket';
 import type { TicketStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
+
+import { STATUS_LABELS } from '../lib/ops-ticket';
 
 const TONES: Record<TicketStatus, string> = {
   queued: 'text-muted-foreground',

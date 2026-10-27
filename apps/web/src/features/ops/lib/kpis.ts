@@ -1,4 +1,4 @@
-import type { OpsSummary } from './types';
+import type { OpsSummary } from '../types';
 
 export type OpsKpis = {
   tickets: number;

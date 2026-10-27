@@ -1,4 +1,6 @@
-import type { OpsTicketDetail, TicketStatus } from './types';
+import type { TicketStatus } from '@/lib/types';
+
+import type { OpsTicketDetail } from '../types';
 
 export const TICKET_STATUSES_FOR_TABS = ['needs_attention', 'failed', 'completed'] as const;
 

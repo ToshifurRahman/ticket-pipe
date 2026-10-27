@@ -1,9 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 
-import { opsKeys } from '@/lib/ops-api';
-import { setFeedState } from '@/lib/ops-feed-status';
 import { getSocket } from '@/lib/socket';
+
+import { opsKeys } from '../api';
+import { setFeedState } from '../lib/feed-status';
 
 export type OpsAlert = {
   kind: 'needs_attention' | 'failed';

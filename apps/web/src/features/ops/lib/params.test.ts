@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { listQuery, parseOpsParams, toSearchParams } from './ops-params';
+import { listQuery, parseOpsParams, toSearchParams } from './params';
 
 const ID = '3f6c0a52-1111-4222-8333-944455556666';
 const parse = (qs: string) => parseOpsParams(new URLSearchParams(qs));
