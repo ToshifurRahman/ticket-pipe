@@ -16,8 +16,8 @@ import {
 } from '../services/ticket-views.js';
 import { createTicket, listTickets, replayTicket } from '../services/tickets.js';
 
-// Lengths count after trimming. web/src/lib/ticket-form.ts repeats these limits and messages
-// for inline validation; keep the two in step.
+// Lengths count after trimming. apps/web/src/features/tickets/lib/ticket-form.ts repeats these
+// limits and messages for inline validation; keep the two in step.
 export const SUBJECT_MIN = 3;
 export const SUBJECT_MAX = 120;
 export const DESCRIPTION_MIN = 20;

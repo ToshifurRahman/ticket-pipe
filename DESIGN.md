@@ -244,7 +244,7 @@ From PRODUCT.md: believable, not demonstrative.
 - Failure is calm and neutral ("On hold", "With our team") with a next step; no error details to the customer.
 - Never promise what the pipeline cannot keep: no human follow-up, no guaranteed times beyond the two kept lines below.
 - No invented customers, logos, testimonials, stats or benchmarks. Pricing is cosmetic. Architecture and tech detail stay in the README.
-- Brand name "Relay", tagline "AI help desk"; copy lives in `apps/web/src/config/brand.ts` and `apps/web/src/content/`.
+- Brand name "Relay", tagline "AI help desk"; copy lives in `apps/web/src/config/brand.ts`, `apps/web/src/features/landing/content.ts` and `apps/web/src/content/legal.ts`.
 - Plain language, short sentences, no em-dash filler.
 
 ## Do's and Don'ts

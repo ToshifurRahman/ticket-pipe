@@ -64,7 +64,7 @@ a `401` from any console request sends the operator back to it, and **Sign out**
 - **Replay**: offered for `failed` and `needs_attention` tickets, and asks once because a replay spends AI calls. It resumes at
   the stage that did not finish. A `409` (something already moved the ticket) and a `503` (it could not be requeued and was left as it was) show as plain toasts.
 
-`apps/web/src/pages/ops.test.tsx` and `apps/web/src/components/ops/ticket-drawer.test.tsx` cover the console; `e2e/ops-console.spec.ts`
+`apps/web/src/pages/ops.test.tsx` and `apps/web/src/features/ops/components/ticket-drawer.test.tsx` cover the console; `e2e/ops-console.spec.ts`
 signs in, filters to a `needs_attention` ticket made with `[fake:invalid-draft]`, replays it and watches the row complete.
 
 ## Testing without an AI provider
