@@ -51,6 +51,7 @@ export default tseslint.config(
     files: [
       'apps/api/**',
       'apps/web/scripts/**',
+      'apps/web/tests/**',
       'apps/web/vite*.ts',
       'e2e/**',
       'scripts/**',

@@ -19,10 +19,24 @@ export default defineConfig({
       '/socket.io': { target: API, ws: true },
     },
   },
+  // `ui` renders components in jsdom; `guards` read source files and tokens from disk in Node.
   test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: ['./src/test/setup.ts'],
-    css: false,
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'ui',
+          include: ['src/**/*.test.{ts,tsx}'],
+          environment: 'jsdom',
+          globals: true,
+          setupFiles: ['./src/test/setup.ts'],
+          css: false,
+        },
+      },
+      {
+        extends: true,
+        test: { name: 'guards', include: ['tests/**/*.test.ts'], environment: 'node' },
+      },
+    ],
   },
 });

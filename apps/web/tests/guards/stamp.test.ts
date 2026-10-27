@@ -3,12 +3,12 @@ import path from 'node:path';
 
 import { expect, it } from 'vitest';
 
-import { resolveToken } from '../../../web/scripts/build-tokens.js';
+import { resolveToken } from '../../scripts/build-tokens';
 
 // The ply stamp is Carbon Set's one motion: a stage lands on the form in two hard frames
 // (steps(2), 90ms), never eased, and not at all under reduced motion. 6.13 applies
 // `animate-stamp` to the ply row; this pins the primitive it builds on.
-const css = readFileSync(path.resolve(import.meta.dirname, '../../../web/src/index.css'), 'utf8');
+const css = readFileSync(path.resolve(import.meta.dirname, '../../src/index.css'), 'utf8');
 
 it('animate-stamp runs the stamp keyframes on the stamp tokens', () => {
   expect(css).toContain('--animate-stamp: stamp var(--duration-stamp) var(--ease-stamp) both;');

@@ -3,8 +3,8 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { buildTokensCss, OUTPUT, resolveToken } from '../../../web/scripts/build-tokens.js';
-import { brand } from '../../../web/src/config/brand.js';
+import { buildTokensCss, OUTPUT, resolveToken } from '../../scripts/build-tokens';
+import { brand } from '../../src/config/brand';
 
 // apps/web/tokens/*.json is the design system's source of truth; apps/web/src/styles/tokens.css is
 // generated from it and committed. These guard the two things that drift silently: a hand
@@ -18,7 +18,7 @@ it('tokens.css is up to date with apps/web/tokens (run `bun --filter @ticket-pip
 // The demo sets prices and KPIs in bold Courier Prime, so the 700 file must be loaded, or the
 // browser would synthesise the bold.
 it('loads the bold figures face wherever bold figures are used', () => {
-  const SRC = path.resolve(import.meta.dirname, '../../../web/src');
+  const SRC = path.resolve(import.meta.dirname, '../../src');
   const files = (function walk(dir: string): string[] {
     return readdirSync(dir).flatMap((name) => {
       const full = path.join(dir, name);

@@ -31,6 +31,7 @@ describe('bun workspace layout', () => {
       'apps/api/tsconfig.json',
       'apps/web/tsconfig.app.json',
       'apps/web/tsconfig.node.json',
+      'apps/web/tsconfig.test.json',
     ]) {
       expect(json(f).extends, f).toBe('../../tsconfig.base.json');
     }
