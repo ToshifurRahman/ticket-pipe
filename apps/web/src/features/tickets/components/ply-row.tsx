@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 
 import { printedTime } from '@/lib/relative-time';
-import type { Ply, PlyState } from '@/lib/ticket-thread';
 import { cn } from '@/lib/utils';
 
-import { stampProps, useStampOnChange } from './use-stamp-on-change';
+import { stampProps, useStampOnChange } from '../hooks/use-stamp-on-change';
+import type { Ply, PlyState } from '../lib/ticket-thread';
 
 const SURFACE: Record<Ply['key'], string> = {
   received: 'bg-ply-received text-ply-received-foreground',

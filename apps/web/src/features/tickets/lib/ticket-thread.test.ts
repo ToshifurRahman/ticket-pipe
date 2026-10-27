@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ticketAt } from '@/test/ticket-fixtures';
-
+import { ticketAt } from '../testing';
 import { humanize, onHoldTime, supportSide, ticketPlies } from './ticket-thread';
 
 const states = (ticket: Parameters<typeof ticketPlies>[0]) =>

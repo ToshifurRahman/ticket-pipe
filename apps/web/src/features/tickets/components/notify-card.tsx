@@ -6,11 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError } from '@/lib/api';
-import {
-  getNotification,
-  notificationQueryKey,
-  requestNotification,
-} from '@/lib/notifications-api';
+
+import { getNotification, notificationQueryKey, requestNotification } from '../api';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

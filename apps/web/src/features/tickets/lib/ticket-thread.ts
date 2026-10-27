@@ -1,4 +1,4 @@
-import type { TicketDetail } from './types';
+import type { TicketDetail } from '../types';
 
 // What the ticket page shows, worked out from the public view only. The API decides the
 // phases; this only picks which of the customer-facing states they mean.

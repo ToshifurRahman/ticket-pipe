@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isValidRef } from '@/lib/ticket-ref';
+import { isValidRef } from '@/features/tickets';
 
 import { DEMO_FRAMES, DEMO_REFERENCE, FINAL_FRAME } from './demo-script';
 

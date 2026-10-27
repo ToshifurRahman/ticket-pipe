@@ -1,4 +1,4 @@
-import type { Ply, SupportSide } from '@/lib/ticket-thread';
+import type { Ply, SupportSide } from '@/features/tickets';
 
 // A scripted sample ticket for the landing page. Each frame is a state the real ticket page
 // can be in; nothing here touches the API.

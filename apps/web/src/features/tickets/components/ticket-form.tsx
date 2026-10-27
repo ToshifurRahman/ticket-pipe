@@ -17,10 +17,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiError } from '@/lib/api';
-import { TICKET_LIMITS, ticketFormSchema, type TicketFormValues } from '@/lib/ticket-form';
-import { createTicket } from '@/lib/tickets-api';
-import type { CreateTicketResponse } from '@/lib/types';
 import { cn } from '@/lib/utils';
+
+import { createTicket } from '../api';
+import { TICKET_LIMITS, ticketFormSchema, type TicketFormValues } from '../lib/ticket-form';
+import type { CreateTicketResponse } from '../types';
 
 const FIELDS = ['subject', 'description'] as const;
 

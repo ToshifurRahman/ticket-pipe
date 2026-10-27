@@ -2,11 +2,12 @@ import { Link } from 'react-router-dom';
 
 import { FormHeader } from '@/components/form/form-header';
 import { FormBody, FormPanel } from '@/components/form/form-panel';
-import { PlyRow } from '@/components/ticket/ply-row';
-import { TrackForm } from '@/components/track-ticket-field';
 import { Button } from '@/components/ui/button';
-import { REF_EXAMPLE } from '@/lib/ticket-ref';
-import type { Ply } from '@/lib/ticket-thread';
+
+import { REF_EXAMPLE } from '../lib/ticket-ref';
+import type { Ply } from '../lib/ticket-thread';
+import { PlyRow } from './ply-row';
+import { TrackForm } from './track-ticket-field';
 
 // The ticket page's other states, printed on the same form: loading, unknown, load failed.
 

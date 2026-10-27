@@ -7,7 +7,7 @@ import { FormBody, FormPanel } from '@/components/form/form-panel';
 import { Stamp } from '@/components/form/stamp';
 import { Button } from '@/components/ui/button';
 import { brand } from '@/config/brand';
-import { confirmNotification, previewConfirmation } from '@/lib/notifications-api';
+import { confirmNotification, previewConfirmation } from '@/features/tickets';
 
 // The link in the email lands here, and only the button changes anything: mail scanners open
 // links on their own, and a GET that confirmed would let them confirm for the customer.

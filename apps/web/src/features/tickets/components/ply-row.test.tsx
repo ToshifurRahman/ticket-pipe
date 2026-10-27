@@ -1,9 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { ticketPlies } from '@/lib/ticket-thread';
-import { ticketAt } from '@/test/ticket-fixtures';
-
+import { ticketPlies } from '../lib/ticket-thread';
+import { ticketAt } from '../testing';
 import { PlyRow } from './ply-row';
 
 const stamped = () => document.querySelectorAll('.animate-stamp').length;

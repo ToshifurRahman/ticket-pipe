@@ -2,8 +2,8 @@ import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { PublicLayout } from '@/app/layout/public-layout';
-import { TicketSkeleton } from '@/components/ticket/ticket-states';
 import { LEGAL_DOCS, type LegalDocKey } from '@/content/legal';
+import { TicketSkeleton } from '@/features/tickets';
 import { HomePage } from '@/pages/home';
 import { LegalPage } from '@/pages/legal';
 import { NotFoundPage } from '@/pages/not-found';

@@ -4,20 +4,27 @@ import { Navigate, useParams } from 'react-router-dom';
 
 import { FormHeader } from '@/components/form/form-header';
 import { FormPanel } from '@/components/form/form-panel';
-import { OfficeUse } from '@/components/ticket/office-use';
-import { PlyRow } from '@/components/ticket/ply-row';
-import { TicketClosed } from '@/components/ticket/ticket-closed';
-import { TicketLoadError, TicketNotFound, TicketSkeleton } from '@/components/ticket/ticket-states';
-import { TicketThread } from '@/components/ticket/ticket-thread';
 import { brand } from '@/config/brand';
+import {
+  getTicketByRef,
+  isValidRef,
+  normalizeRef,
+  notificationQueryKey,
+  OfficeUse,
+  PlyRow,
+  supportSide,
+  TicketClosed,
+  type TicketDetail,
+  TicketLoadError,
+  TicketNotFound,
+  ticketPlies,
+  ticketQueryKey,
+  TicketSkeleton,
+  TicketThread,
+} from '@/features/tickets';
 import { type InvalidationMap, useSocketInvalidation } from '@/hooks/use-socket-invalidation';
 import { ApiError } from '@/lib/api';
-import { notificationQueryKey } from '@/lib/notifications-api';
 import type { getSocket } from '@/lib/socket';
-import { isValidRef, normalizeRef } from '@/lib/ticket-ref';
-import { supportSide, ticketPlies } from '@/lib/ticket-thread';
-import { getTicketByRef, ticketQueryKey } from '@/lib/tickets-api';
-import type { TicketDetail } from '@/lib/types';
 
 export function TicketPage() {
   const raw = useParams().ref ?? '';

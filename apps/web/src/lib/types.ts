@@ -7,38 +7,8 @@ export type FieldErrors = Record<string, string>;
 
 export type TicketStatus = 'queued' | 'processing' | 'completed' | 'failed' | 'needs_attention';
 
-/** Body of a 201 from POST /api/tickets. */
-export type CreateTicketResponse = {
-  ticketId: string;
-  referenceNumber: string;
-  status: TicketStatus;
-  createdAt: string;
-};
-
-/** The fields of GET /api/tickets/ref/:ref that the recent-tickets list reads. */
-export type TicketSummary = {
-  referenceNumber: string;
-  subject: string;
-  status: TicketStatus;
-  createdAt: string;
-};
-
+/** Shared by the public ticket view and the ops console. */
 export type TicketPhaseStatus = 'pending' | 'processing' | 'completed' | 'failed';
-
-/**
- * Body of GET /api/tickets/ref/:ref: the public view. It never carries internal AI output or
- * failure reasons; those are on the ops routes.
- */
-export type TicketDetail = TicketSummary & {
-  id: string;
-  description: string;
-  events: { event: string; occurredAt: string }[];
-  eventsNextCursor: string | null;
-  phases: {
-    triage: { status: TicketPhaseStatus; output?: { category: string; priority: string } };
-    draft: { status: TicketPhaseStatus; output?: { customerReply: string } };
-  };
-};
 
 // ---- Ops console (6.6). Everything below comes from staff-only routes. ----
 
@@ -130,20 +100,3 @@ export type OpsSummary = {
 
 /** Body of a 200 from POST /api/tickets/:id/replay. */
 export type ReplayResponse = { success: true; status: 'queued'; previousStatus: TicketStatus };
-
-// ---- Email notifications (6.9) ----
-
-export type NotificationState = 'none' | 'pending' | 'confirmed' | 'sent';
-
-/** GET /api/tickets/:id/notification. `available` is false when email is off or not offered. */
-export type NotificationView = {
-  available: boolean;
-  state: NotificationState;
-  maskedEmail?: string;
-};
-
-/** GET /api/notifications/confirm/:token. Read-only; nothing changes until the POST. */
-export type ConfirmPreview = { valid: boolean; referenceNumber?: string; maskedEmail?: string };
-
-/** Body of a 200 from POST /api/notifications/confirm. */
-export type ConfirmResult = { referenceNumber: string; status: TicketStatus; maskedEmail: string };

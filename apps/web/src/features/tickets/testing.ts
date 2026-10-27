@@ -1,4 +1,4 @@
-import type { TicketDetail } from '@/lib/types';
+import type { TicketDetail } from './types';
 
 export const TICKET_REF = 'TICK-1759993412345-A1B2C3D4';
 export const TICKET_ID = '6f1c2a9e-0b5d-4c1e-9a37-2f8d5b6e7c10';

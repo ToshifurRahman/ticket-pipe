@@ -5,10 +5,10 @@ import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { TICKET_REF, ticketAt } from '@/features/tickets/testing';
 import { createQueryClient } from '@/lib/query-client';
 import { createFakeSocket } from '@/test/fake-socket';
 import { server } from '@/test/server';
-import { TICKET_REF, ticketAt } from '@/test/ticket-fixtures';
 
 import { AppRoutes } from './routes';
 
