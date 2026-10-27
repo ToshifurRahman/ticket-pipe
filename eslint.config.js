@@ -15,6 +15,69 @@ const honoPatterns = [
   { group: ['hono/*', '@hono/*'], message: 'Hono is for routes, controllers and middleware only.' },
 ];
 
+// Story 7.0.7: the web app imports one way, app → pages → features → shared. Outside code
+// reaches a feature only through its index.ts (tests may also use its testing.ts); inside, a
+// feature uses relative paths and never climbs out of its folder. landing → tickets is the one
+// allowed cross-feature edge. The last block matching a file wins, so each block lists every
+// pattern that applies to it.
+const WEB = 'apps/web/src';
+const TESTS = '**/*.test.{ts,tsx}';
+const webRule = (...patterns) => ({ 'no-restricted-imports': ['error', { patterns }] });
+const toShell = { regex: '^@/(app|pages)/', message: 'Only app/ and pages/ compose features.' };
+const intoFeature = {
+  regex: '^@/features/[^/]+/',
+  message: "Import a feature through its index: '@/features/<name>'.",
+};
+const intoFeatureFromTest = {
+  regex: '^@/features/[^/]+/(?!testing$)',
+  message: "Import a feature through its index, or its fixtures from '@/features/<name>/testing'.",
+};
+const crossFeature = {
+  regex: '^@/features/',
+  message: 'Features never import other features; inside a feature use relative paths.',
+};
+const crossFeatureFromLanding = {
+  regex: '^@/features/(?!tickets$)',
+  message: "Landing may import only '@/features/tickets'; inside a feature use relative paths.",
+};
+const featureBlocks = (dir, cross) => [
+  {
+    files: [`${WEB}/features/${dir}/*.{ts,tsx}`],
+    rules: webRule(toShell, cross, {
+      regex: '^\\.\\./',
+      message: 'Stay inside the feature folder.',
+    }),
+  },
+  {
+    files: [`${WEB}/features/${dir}/*/**/*.{ts,tsx}`],
+    rules: webRule(toShell, cross, {
+      regex: '^\\.\\./\\.\\./',
+      message: 'Stay inside the feature folder.',
+    }),
+  },
+];
+const webBoundaries = [
+  {
+    files: [`${WEB}/{components,hooks,lib,content,config}/**/*.{ts,tsx}`],
+    rules: webRule({
+      regex: '^@/(app|pages|features)(/|$)',
+      message: 'Shared code never imports app/, pages/ or features/.',
+    }),
+  },
+  { files: [`${WEB}/app/**/*.{ts,tsx}`], rules: webRule(intoFeature) },
+  { files: [`${WEB}/app/${TESTS}`], rules: webRule(intoFeatureFromTest) },
+  { files: [`${WEB}/pages/**/*.{ts,tsx}`], rules: webRule(toShell, intoFeature) },
+  {
+    files: [`${WEB}/pages/${TESTS}`],
+    rules: webRule(
+      { regex: '^@/(app/(?!routes$)|pages/)', message: 'Page tests may import only @/app/routes.' },
+      intoFeatureFromTest
+    ),
+  },
+  ...featureBlocks('*', crossFeature),
+  ...featureBlocks('landing', crossFeatureFromLanding),
+];
+
 // Story 7.0.4: one flat config for the API, the web app, e2e and scripts. Type-aware rules read
 // the nearest tsconfig through the project service (root tsconfig.json covers e2e and scripts).
 export default tseslint.config(
@@ -51,6 +114,7 @@ export default tseslint.config(
     files: [
       'apps/api/**',
       'apps/web/scripts/**',
+      'apps/web/tests/**',
       'apps/web/vite*.ts',
       'e2e/**',
       'scripts/**',
@@ -98,6 +162,7 @@ export default tseslint.config(
       ],
     },
   },
+  ...webBoundaries,
   { files: ['**/*.{js,mjs,cjs}'], extends: [tseslint.configs.disableTypeChecked] },
   prettier
 );

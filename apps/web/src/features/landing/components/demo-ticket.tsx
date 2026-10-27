@@ -1,0 +1,50 @@
+import { FormHeader } from '@/components/form/form-header';
+import { FormFoot, FormPanel } from '@/components/form/form-panel';
+import { Button } from '@/components/ui/button';
+import { PlyRow, TicketThread } from '@/features/tickets';
+
+import { useDemoPlayback } from '../hooks/use-demo-playback';
+import {
+  DEMO_MESSAGE,
+  DEMO_REFERENCE,
+  DEMO_REPLY,
+  DEMO_SUBJECT,
+  DEMO_TIMES,
+} from '../lib/demo-script';
+
+// A sample ticket that plays through the real form header, ply stack and thread. It is
+// decoration: screen readers get one summary instead of the fake stages.
+export function DemoTicket({ className }: { className?: string }) {
+  const { frame, canReplay, replay } = useDemoPlayback();
+
+  return (
+    <FormPanel aria-label="Example ticket" className={className}>
+      <p className="sr-only">
+        Example: a customer asks for a refund of a duplicate charge. The ticket is received, triaged
+        as a high priority billing issue, and answered with: {DEMO_REPLY}
+      </p>
+      <div aria-hidden>
+        <FormHeader
+          as="h2"
+          kicker="Service ticket · Sample copy"
+          title={DEMO_SUBJECT}
+          referenceNumber={DEMO_REFERENCE}
+        />
+        <PlyRow plies={frame.plies} liveClock />
+        <TicketThread
+          demo
+          description={DEMO_MESSAGE}
+          createdAt={DEMO_TIMES[0]}
+          support={frame.support}
+        />
+      </div>
+      {canReplay && (
+        <FormFoot className="justify-end">
+          <Button variant="tb" onClick={replay}>
+            Replay
+          </Button>
+        </FormFoot>
+      )}
+    </FormPanel>
+  );
+}

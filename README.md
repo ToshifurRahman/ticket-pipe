@@ -108,9 +108,25 @@ apps/api/                       Bun workspace @ticket-pipe/api
   tests/                        Vitest suite, including the privacy guard tests
   scripts/                      Migrations, infra setup, purge
 apps/web/                       Bun workspace @ticket-pipe/web: React app (Vite, Tailwind, shadcn/ui), built to apps/web/dist
+  src/
+    app/                          Entry point, routes, analytics, layout (header, footer)
+    pages/                        Thin route components; each lazy route is its own chunk
+    features/                     tickets, ops, landing: index.ts, api.ts, types.ts, testing.ts,
+                                  plus components/, hooks/, lib/
+    components/ hooks/ lib/       Shared: shadcn ui/, paper-form primitives, API client, socket
+    content/ config/              Legal copy, brand
+  tests/guards/                 Node guards: import rules, tokens, no innerHTML
 e2e/                            Playwright tests
 scripts/                        Lighthouse, screenshots, gate
 ```
+
+### Web layout
+
+Imports go one way: `app → pages → features → shared`. Shared code (`components/`, `hooks/`,
+`lib/`, `content/`, `config/`) never imports a feature. Code outside a feature imports only its
+`index.ts` (`@/features/tickets`); tests may also use `@/features/<name>/testing`. Inside a
+feature, imports are relative. Features don't import each other, except that landing uses the
+tickets index for its demo. ESLint enforces all of this (`eslint.config.js`, story 7.0.7).
 
 ## Deployment
 

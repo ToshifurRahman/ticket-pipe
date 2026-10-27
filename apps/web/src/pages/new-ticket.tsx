@@ -2,10 +2,7 @@ import { useState } from 'react';
 
 import { FormHeader } from '@/components/form/form-header';
 import { FormPanel } from '@/components/form/form-panel';
-import { RecentTickets } from '@/components/new-ticket/recent-tickets';
-import { TicketForm } from '@/components/new-ticket/ticket-form';
-import { TicketSuccess } from '@/components/new-ticket/ticket-success';
-import { useRecentTickets } from '@/lib/recent-tickets';
+import { RecentTickets, TicketForm, TicketSuccess, useRecentTickets } from '@/features/tickets';
 
 export function NewTicketPage() {
   const { tickets, remember, forget } = useRecentTickets();
