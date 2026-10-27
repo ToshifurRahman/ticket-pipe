@@ -1,11 +1,11 @@
 import { Stamp } from '@/components/form/stamp';
 import { type Tone, ToneChip } from '@/components/form/tone-chip';
-import { FEATURES, FEATURES_HEADING } from '@/content/landing';
 import { printedTime } from '@/lib/relative-time';
 import { cn } from '@/lib/utils';
 
-import { DEMO_TIMES } from './demo-script';
-import { useStampOnView } from './use-stamp-on-view';
+import { FEATURES, FEATURES_HEADING } from '../content';
+import { useStampOnView } from '../hooks/use-stamp-on-view';
+import { DEMO_TIMES } from '../lib/demo-script';
 
 const TOPICS: [Tone, string][] = [
   ['billing', 'Billing'],

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
 
-import { CLEAR_FRAMES, DEMO_FRAMES, FINAL_FRAME } from './demo-script';
+import { CLEAR_FRAMES, DEMO_FRAMES, FINAL_FRAME } from '../lib/demo-script';
 
 const SEEN_KEY = 'demo-seen';
 

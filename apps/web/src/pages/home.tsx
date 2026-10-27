@@ -1,10 +1,7 @@
 import { useEffect } from 'react';
 
-import { Faq } from '@/components/landing/faq';
-import { Hero } from '@/components/landing/hero';
-import { Pricing } from '@/components/landing/pricing';
-import { Stages } from '@/components/landing/stages';
 import { brand } from '@/config/brand';
+import { Faq, Hero, Pricing, Stages } from '@/features/landing';
 
 export function HomePage() {
   useEffect(() => {

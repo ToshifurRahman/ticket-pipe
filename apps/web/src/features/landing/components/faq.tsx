@@ -1,4 +1,4 @@
-import { FAQ_HEADING, FAQS } from '@/content/landing';
+import { FAQ_HEADING, FAQS } from '../content';
 
 export function Faq() {
   return (

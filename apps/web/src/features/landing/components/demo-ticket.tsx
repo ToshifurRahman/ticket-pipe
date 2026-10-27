@@ -3,8 +3,14 @@ import { FormFoot, FormPanel } from '@/components/form/form-panel';
 import { Button } from '@/components/ui/button';
 import { PlyRow, TicketThread } from '@/features/tickets';
 
-import { DEMO_MESSAGE, DEMO_REFERENCE, DEMO_REPLY, DEMO_SUBJECT, DEMO_TIMES } from './demo-script';
-import { useDemoPlayback } from './use-demo-playback';
+import { useDemoPlayback } from '../hooks/use-demo-playback';
+import {
+  DEMO_MESSAGE,
+  DEMO_REFERENCE,
+  DEMO_REPLY,
+  DEMO_SUBJECT,
+  DEMO_TIMES,
+} from '../lib/demo-script';
 
 // A sample ticket that plays through the real form header, ply stack and thread. It is
 // decoration: screen readers get one summary instead of the fake stages.

@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { brand } from '@/config/brand';
 import { cn } from '@/lib/utils';
 
+import { useIdleNudge } from '../hooks/use-idle-nudge';
 import { DemoTicket } from './demo-ticket';
-import { useIdleNudge } from './use-idle-nudge';
 
 // The green band: the headline prints in, then the sample form, then the button. If nobody
 // has touched the page after a few seconds the button presses itself down.
