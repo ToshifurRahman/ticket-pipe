@@ -75,17 +75,19 @@ For the web UI, run `bun --filter @ticket-pipe/web build` once and open http://l
 ## Tests and checks
 
 ```bash
-bun --filter '*' test   # API, worker, repository and web tests (Vitest on Node)
+bun run check           # format check, lint, typecheck and tests
+bun run test            # API, worker, repository and web tests (Vitest on Node)
 bun run test:e2e        # Playwright against the built app (needs the Docker services up)
-bun --filter '*' lint   # ESLint
 ```
 
-Use `bun --filter '*' test`, not `bun test`: Vitest has to run on Node because `vi.mock` does not work under Bun. Stop any dev worker before `test:e2e`, since it reads the same queue.
+Use `bun run test`, not `bun test`: Vitest has to run on Node because `vi.mock` does not work under Bun. Stop any dev worker before `test:e2e`, since it reads the same queue.
 
 ## More detail
 
 | Doc                                              | Covers                                                       |
 | ------------------------------------------------ | ------------------------------------------------------------ |
+| [Architecture](docs/ARCHITECTURE.md)             | Folder map, import rules, test layout, naming                |
+| [Contributing](CONTRIBUTING.md)                  | Setup, scripts, branch and commit rules                      |
 | [Web app](docs/web-app.md)                       | Pages, public vs ops views, ops console, fake LLM mode       |
 | [Ops](docs/ops.md)                               | Live feed, sign-in, email alerts, ticket recovery and replay |
 | [Customer email](docs/customer-email.md)         | Opt-in notifications and mail drivers                        |
@@ -95,38 +97,7 @@ Use `bun --filter '*' test`, not `bun test`: Vitest has to run on Node because `
 
 ## Project structure
 
-```
-apps/api/                       Bun workspace @ticket-pipe/api
-  src/
-    index.ts, server.ts, app.ts   Entry points and the Hono app
-    worker.ts                     Queue consumer: triage → draft → finish
-    routes/ controllers/          HTTP layer
-    services/                     Business logic, ops feed, alerts, notifications
-    repositories/                 PostgreSQL access
-    lib/                          llm-client, ai-service, queue, mailer, sessions, sockets
-  migrations/                   Database schema
-  tests/                        Vitest suite, including the privacy guard tests
-  scripts/                      Migrations, infra setup, purge
-apps/web/                       Bun workspace @ticket-pipe/web: React app (Vite, Tailwind, shadcn/ui), built to apps/web/dist
-  src/
-    app/                          Entry point, routes, analytics, layout (header, footer)
-    pages/                        Thin route components; each lazy route is its own chunk
-    features/                     tickets, ops, landing: index.ts, api.ts, types.ts, testing.ts,
-                                  plus components/, hooks/, lib/
-    components/ hooks/ lib/       Shared: shadcn ui/, paper-form primitives, API client, socket
-    content/ config/              Legal copy, brand
-  tests/guards/                 Node guards: import rules, tokens, no innerHTML
-e2e/                            Playwright tests
-scripts/                        Lighthouse, screenshots, gate
-```
-
-### Web layout
-
-Imports go one way: `app → pages → features → shared`. Shared code (`components/`, `hooks/`,
-`lib/`, `content/`, `config/`) never imports a feature. Code outside a feature imports only its
-`index.ts` (`@/features/tickets`); tests may also use `@/features/<name>/testing`. Inside a
-feature, imports are relative. Features don't import each other, except that landing uses the
-tickets index for its demo. ESLint enforces all of this (`eslint.config.js`, story 7.0.7).
+The repo is `apps/api`, `apps/web`, `e2e/`, `scripts/` and `docs/`. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the folder map, import rules, test layout and naming.
 
 ## Deployment
 
