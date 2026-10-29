@@ -17,11 +17,16 @@
     "lighthouse": "bun scripts/lighthouse.ts",
     "screenshots": "bun scripts/screenshots.ts",
     "lint": "eslint . --max-warnings 0",
-    "lint:fix": "eslint . --max-warnings 0 --fix"
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun --filter '*' test",
+    "typecheck": "tsc --noEmit -p apps/api && tsc -b apps/web && tsc --noEmit -p .",
+    "check": "bun run format:check && bun run lint && bun run typecheck && bun run test"
   },
   "devDependencies": {
     "@aws-sdk/client-sqs": "^3.758.0",
     "@axe-core/playwright": "^4.13.0",
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
     "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
     "@eslint/js": "10.0.1",
     "@lhci/cli": "^0.15.1",
