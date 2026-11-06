@@ -7,6 +7,11 @@ services:
       POSTGRES_DB: ticket_pipe
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d ticket_pipe']
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   localstack:
     image: localstack/localstack:3.8
@@ -25,14 +30,16 @@ services:
 
   # Creates the queues and SNS topic once LocalStack is healthy (apps/api/scripts/setup-infra.ts is idempotent).
   setup:
-    image: oven/bun:1
+    image: oven/bun:1.3.14
     working_dir: /app
     volumes:
       - .:/app
     environment:
       SQS_ENDPOINT: http://localstack:4566
       SNS_ENDPOINT: http://localstack:4566
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     command: bun apps/api/scripts/setup-infra.ts
     depends_on:
       localstack:
@@ -50,6 +57,54 @@ services:
     ports:
       - '1025:1025'
       - '8025:8025'
+
+  # Redis for the `image` profile only: no published port, so it never clashes with a Redis already
+  # on the host's 6379 and never shares rate limits or socket rooms with the dev Redis.
+  redis-image:
+    profiles: [image]
+    image: redis:7-alpine
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # The production image, run against this stack (story 7.2): `docker compose --profile image up`.
+  # Own database and queues, so the dev data is untouched. Driven by `bun run test:image`.
+  app:
+    profiles: [image]
+    image: ticket-pipe-app:local
+    build:
+      context: .
+      network: ${IMAGE_BUILD_NETWORK:-default}
+      args:
+        VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+    environment:
+      NODE_ENV: production
+      PORT: '8080'
+      OPS_TOKEN: image-smoke-ops-token-0123456789abcdef
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ticket_pipe_image
+      REDIS_URL: redis://redis-image:6379
+      SQS_ENDPOINT: http://localstack:4566
+      SNS_ENDPOINT: http://localstack:4566
+      SQS_QUEUE_NAME: ticket-processing-image
+      SQS_DLQ_NAME: ticket-processing-image-dlq
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      PORTKEY_API_KEY: image-smoke-placeholder
+      GOOGLE_API_KEY: image-smoke-placeholder
+      PRIMARY_GATEWAY: google
+      PRIMARY_MODEL: placeholder
+    ports:
+      - '3200:8080'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis-image:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
 
 volumes:
   localstack-data:
