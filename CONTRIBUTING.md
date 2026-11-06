@@ -22,6 +22,8 @@ bun --filter @ticket-pipe/web dev      # Vite on :5173
 
 For a production-style local run, `bun run build` then `bun --env-file=.env run start` (both services in one process). Use `start:api` or `start:worker` to run either alone.
 
+`bun run test:image` builds the production image and checks it against the compose stack: it refuses a build without `VITE_TURNSTILE_SITE_KEY`, inspects the image, then runs it under the `image` compose profile (own database, queues and Redis) until a ticket reaches `triage.started`. It needs Docker only. If `docker build` needs host networking on your machine, set `IMAGE_BUILD_NETWORK=host`.
+
 Set `LLM_MODE=fake` in `.env` to work without an AI provider. See the [README](README.md) for the full quick start and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for where things go.
 
 ## Scripts

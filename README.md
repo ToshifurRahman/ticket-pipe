@@ -114,3 +114,12 @@ The repo is `apps/api`, `apps/web`, `e2e/`, `scripts/` and `docs/`. See [docs/AR
 ## Deployment
 
 The `Dockerfile` builds the web app and runs the API and the worker together on `oven/bun` (`src/main.ts`). To split them later, override the command: `docker run <image> bun src/index.ts` for the API or `bun src/worker.ts` for the worker. The target is Render's free tier.
+
+The image is built the same way everywhere (pinned `oven/bun:1.3.14`, frozen lockfile, non-root `bun` user, no `.env`, tests or dev dependencies) and has a `HEALTHCHECK` on `/health`. The web app reads three public values at build time, so pass them as build args: `VITE_TURNSTILE_SITE_KEY` (required: the build fails without it), `VITE_CF_ANALYTICS_TOKEN` and `VITE_SITE_URL`.
+
+```bash
+docker build --build-arg VITE_TURNSTILE_SITE_KEY=<site key> -t ticket-pipe .
+bun run test:image   # builds the image and runs it against the compose stack (no .env, no LLM call)
+```
+
+A worker-only container (`bun src/worker.ts`) has no HTTP server, so add `--no-healthcheck` to `docker run`.
