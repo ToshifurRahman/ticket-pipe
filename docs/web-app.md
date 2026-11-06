@@ -7,9 +7,9 @@ The UI is a React single-page app in `apps/web/` (Vite, TypeScript, Tailwind v4,
 bun --filter @ticket-pipe/api dev
 bun --filter @ticket-pipe/web dev
 
-# Production-style: build once, then the API serves it on :3000
-bun --filter @ticket-pipe/web build
-bun --filter @ticket-pipe/api dev
+# Production-style: build once, then the API and worker run together on :3000
+bun run build
+bun --env-file=.env run start
 ```
 
 If `apps/web/dist` has not been built, the API starts normally and logs a warning; only the UI is missing.
@@ -84,6 +84,6 @@ bun --filter @ticket-pipe/web test   # web unit tests (Vitest + Testing Library 
 bun run test:e2e    # Playwright against the built app; needs `docker compose up -d`, `bun --filter @ticket-pipe/api migrate`, `bun --filter @ticket-pipe/api setup`
 ```
 
-`test:e2e` builds the web app and starts `e2e/stack.ts`: the API and the worker in one process with
-`LLM_MODE=fake`, so submitted tickets really get processed. Stop any dev worker before running it, because it
+`test:e2e` builds the web app and starts `e2e/stack.ts`, a fake-mode wrapper around the combined
+`main.ts` entry point with `LLM_MODE=fake`, so submitted tickets really get processed. Stop any dev worker before running it, because it
 reads the same queue and, in real mode, would spend LLM calls on e2e tickets.

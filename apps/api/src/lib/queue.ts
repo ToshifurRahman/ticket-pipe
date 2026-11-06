@@ -17,6 +17,7 @@ export interface QueueMessage {
 export interface ReceiveMessagesOptions {
   maxMessages?: number;
   waitTimeSeconds?: number;
+  signal?: AbortSignal;
 }
 
 function isQueueMissing(err: unknown): boolean {
@@ -42,9 +43,11 @@ export class QueueService {
     private readonly queueName: string
   ) {}
 
-  private async getQueueUrl(): Promise<string> {
+  private async getQueueUrl(signal?: AbortSignal): Promise<string> {
     if (this.queueUrl) return this.queueUrl;
-    const result = await this.client.send(new GetQueueUrlCommand({ QueueName: this.queueName }));
+    const result = await this.client.send(new GetQueueUrlCommand({ QueueName: this.queueName }), {
+      abortSignal: signal,
+    });
     if (!result.QueueUrl) throw new Error(`Queue not found: ${this.queueName}`);
     this.queueUrl = result.QueueUrl;
     return this.queueUrl;
@@ -53,13 +56,16 @@ export class QueueService {
   // The queue can vanish (LocalStack recreated, queue deleted) after its URL was cached. Drop the
   // cache and resolve again once; if the queue is still missing the error reaches the caller, which
   // owns the backoff.
-  private async withQueueUrl<T>(call: (queueUrl: string) => Promise<T>): Promise<T> {
+  private async withQueueUrl<T>(
+    call: (queueUrl: string) => Promise<T>,
+    signal?: AbortSignal
+  ): Promise<T> {
     try {
-      return await call(await this.getQueueUrl());
+      return await call(await this.getQueueUrl(signal));
     } catch (err) {
       if (!isQueueMissing(err)) throw err;
       this.queueUrl = null;
-      return call(await this.getQueueUrl());
+      return call(await this.getQueueUrl(signal));
     }
   }
 
@@ -77,15 +83,18 @@ export class QueueService {
   async receive(options: ReceiveMessagesOptions = {}): Promise<QueueMessage[]> {
     const maxMessages = normalizeMaxMessages(options.maxMessages);
     const waitTimeSeconds = normalizeWaitTimeSeconds(options.waitTimeSeconds);
-    const result = await this.withQueueUrl((queueUrl) =>
-      this.client.send(
-        new ReceiveMessageCommand({
-          QueueUrl: queueUrl,
-          MaxNumberOfMessages: maxMessages,
-          WaitTimeSeconds: waitTimeSeconds,
-          MessageSystemAttributeNames: [MessageSystemAttributeName.ApproximateReceiveCount],
-        })
-      )
+    const result = await this.withQueueUrl(
+      (queueUrl) =>
+        this.client.send(
+          new ReceiveMessageCommand({
+            QueueUrl: queueUrl,
+            MaxNumberOfMessages: maxMessages,
+            WaitTimeSeconds: waitTimeSeconds,
+            MessageSystemAttributeNames: [MessageSystemAttributeName.ApproximateReceiveCount],
+          }),
+          { abortSignal: options.signal }
+        ),
+      options.signal
     );
     return (result.Messages ?? []).map((m) => ({
       ...(JSON.parse(m.Body!) as Pick<QueueMessage, 'ticketId' | 'referenceNumber'>),

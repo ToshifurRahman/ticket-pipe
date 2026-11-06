@@ -20,6 +20,8 @@ bun --filter @ticket-pipe/api worker   # second terminal
 bun --filter @ticket-pipe/web dev      # Vite on :5173
 ```
 
+For a production-style local run, `bun run build` then `bun --env-file=.env run start` (both services in one process). Use `start:api` or `start:worker` to run either alone.
+
 Set `LLM_MODE=fake` in `.env` to work without an AI provider. See the [README](README.md) for the full quick start and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for where things go.
 
 ## Scripts
@@ -29,6 +31,10 @@ Run these from the repo root.
 | Script                                    | Does                                                      |
 | ----------------------------------------- | --------------------------------------------------------- |
 | `bun run check`                           | Format check, lint, typecheck and tests. Run before a PR  |
+| `bun run build`                           | Type-check the API and build `apps/web/dist`              |
+| `bun run start`                           | API and worker together (reads the process environment)   |
+| `bun run start:api`                       | API only                                                  |
+| `bun run start:worker`                    | Worker only                                               |
 | `bun run format`                          | Prettier over the whole repo                              |
 | `bun run lint`                            | ESLint, zero warnings allowed                             |
 | `bun run typecheck`                       | `tsc` for the API, web and root                           |

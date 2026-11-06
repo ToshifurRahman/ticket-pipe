@@ -146,15 +146,21 @@ ClickUp `z8py7adu77`, `backlog`. Comment on the task: paths change to `apps/*` a
 
 `apps/api/src/{index,server,worker,app}.ts`, `apps/api/src/middleware/web-app.ts`, `apps/api/src/lib/logger.ts`, `apps/api/package.json`, root `package.json`, `Dockerfile`.
 
+### Decisions (7.1 plan, 2026-11-06)
+
+- Bun runs the TypeScript directly; there is no API `dist/` (PA-7.1-01). Corrected acceptance: `bun run build` type-checks the API and builds `apps/web/dist`; `bun run start` runs API and worker together; `start:api` and `start:worker` run each alone; with `NODE_ENV=production` logs are JSON and `pino-pretty` is not installed; SIGTERM/SIGINT stops HTTP, drains the worker, then closes Redis and Postgres within 25 s.
+- The image `CMD` moved from 7.2 to 7.1 and now runs `src/main.ts` (PA-7.1-02).
+- `NODE_ENV` comes from the environment, not the start scripts. The Dockerfile sets it.
+
 ### Findings
 
 | ID        | Severity | Location                                               | Evidence                                                                                                                 | Fix or accepted-risk reason                                                                                                       | Status |
 | --------- | -------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| PA-7.1-01 | High     | Story text; `Dockerfile:25`; `apps/api/tsconfig.json`  | Description requires `tsc` into `dist/`. The image already runs `bun src/index.ts`, and `tsc -p apps/api` emits in place | Decide before 7.1 starts: run TypeScript with Bun (recommended; drop `dist/`) or add a bundling step. Rewrite the acceptance text | Open   |
-| PA-7.1-02 | High     | `Dockerfile:25`; `apps/api/src/index.ts`; no `main.ts` | `CMD` starts only `src/index.ts`. Tickets are enqueued to SQS and nothing in the container consumes them                 | Add `main.ts` starting the server and `run()`. Point `CMD` at it in 7.2                                                           | Open   |
-| PA-7.1-03 | Medium   | `apps/api/src/worker.ts:435`, `index.ts:15`            | `run()` loops forever with no stop signal, and each entry point installs its own signal handlers                         | Give `run()` an `AbortSignal`; `main.ts` owns one shutdown: stop polling, drain in-flight, close server and Redis                 | Open   |
-| PA-7.1-04 | Medium   | `apps/api/package.json`, root `package.json`           | No `build`, `start`, `start:api` or `start:worker` scripts; the story names `npm run`                                    | Add them with `bun --filter`. Keep `start:api` and `start:worker` for a later split                                               | Open   |
-| PA-7.1-05 | Low      | Story text                                             | "Express serves" and `web/dist` (now Hono and `apps/web/dist`)                                                           | Update the wording when the plan is written                                                                                       | Open   |
+| PA-7.1-01 | High     | Story text; `Dockerfile:25`; `apps/api/tsconfig.json`  | Description requires `tsc` into `dist/`. The image already runs `bun src/index.ts`, and `tsc -p apps/api` emits in place | Decide before 7.1 starts: run TypeScript with Bun (recommended; drop `dist/`) or add a bundling step. Rewrite the acceptance text | Fixed  |
+| PA-7.1-02 | High     | `Dockerfile:25`; `apps/api/src/index.ts`; no `main.ts` | `CMD` starts only `src/index.ts`. Tickets are enqueued to SQS and nothing in the container consumes them                 | Add `main.ts` starting the server and `run()`. Point `CMD` at it in 7.2                                                           | Fixed  |
+| PA-7.1-03 | Medium   | `apps/api/src/worker.ts:435`, `index.ts:15`            | `run()` loops forever with no stop signal, and each entry point installs its own signal handlers                         | Give `run()` an `AbortSignal`; `main.ts` owns one shutdown: stop polling, drain in-flight, close server and Redis                 | Fixed  |
+| PA-7.1-04 | Medium   | `apps/api/package.json`, root `package.json`           | No `build`, `start`, `start:api` or `start:worker` scripts; the story names `npm run`                                    | Add them with `bun --filter`. Keep `start:api` and `start:worker` for a later split                                               | Fixed  |
+| PA-7.1-05 | Low      | Story text                                             | "Express serves" and `web/dist` (now Hono and `apps/web/dist`)                                                           | Update the wording when the plan is written                                                                                       | Fixed  |
 
 ## 7.2 Container Image
 

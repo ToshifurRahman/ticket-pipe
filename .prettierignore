@@ -17,3 +17,6 @@ PRODUCT.md
 .ds-receipts/
 .claude/
 .husky/_/
+
+# Temporary files written by the lint guard while Prettier runs
+**/__guard__.*

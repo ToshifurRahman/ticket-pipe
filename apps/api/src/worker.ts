@@ -19,11 +19,13 @@ import {
   type ValidationResult,
 } from './domain/validate-output.js';
 import { AIService } from './lib/ai-service.js';
+import { pool } from './lib/db.js';
 import { assertLlmModeAllowed, getLlmMode } from './lib/llm-client.js';
 import { logger } from './lib/logger.js';
 import { assertMailConfigured } from './lib/mailer.js';
 import { deleteMessage, receiveMessages } from './lib/queue.js';
 import { shutdown as shutdownSocket, warmEmitter } from './lib/socket.js';
+import { onShutdownSignal, runShutdown } from './lifecycle.js';
 import { getAllEventsByTicketId } from './repositories/events.js';
 import {
   completeDraftOutput,
@@ -430,20 +432,36 @@ export interface RunOptions {
   concurrency?: number;
   stopWhenIdle?: boolean;
   receiveWaitTimeSeconds?: number;
+  signal?: AbortSignal;
+}
+
+function abortPromise(signal: AbortSignal | undefined): Promise<void> {
+  if (!signal) return new Promise(() => {});
+  if (signal.aborted) return Promise.resolve();
+  return new Promise((resolve) =>
+    signal.addEventListener('abort', () => resolve(), { once: true })
+  );
+}
+
+function isAbortError(err: unknown): boolean {
+  const name = (err as { name?: string } | null)?.name;
+  return name === 'AbortError' || name === 'RequestAbortedError';
 }
 
 export async function run(options: RunOptions = {}): Promise<void> {
   const concurrency = resolveWorkerConcurrency(process.env.WORKER_CONCURRENCY, options.concurrency);
   const waitTimeSeconds = options.receiveWaitTimeSeconds;
+  const signal = options.signal;
+  const aborted = abortPromise(signal);
   const inFlight = new Set<Promise<void>>();
   let receiveBackoffMs = RECEIVE_ERROR_BACKOFF_MS;
   let receiveFailing = false;
 
   logger.info({ concurrency }, 'Worker started, polling...');
 
-  while (true) {
+  while (!signal?.aborted) {
     if (inFlight.size >= concurrency) {
-      await Promise.race(inFlight);
+      await Promise.race([Promise.race(inFlight), aborted]);
       continue;
     }
 
@@ -451,8 +469,9 @@ export async function run(options: RunOptions = {}): Promise<void> {
 
     let messages;
     try {
-      messages = await receiveMessages({ maxMessages: availableSlots, waitTimeSeconds });
+      messages = await receiveMessages({ maxMessages: availableSlots, waitTimeSeconds, signal });
     } catch (err) {
+      if (signal?.aborted || isAbortError(err)) break;
       // Log loudly once per outage, then quietly, so a missing queue does not flood the log.
       if (receiveFailing)
         logger.warn(
@@ -461,7 +480,12 @@ export async function run(options: RunOptions = {}): Promise<void> {
         );
       else logger.error({ err, retryInMs: receiveBackoffMs }, 'Failed to receive queue messages');
       receiveFailing = true;
-      await sleep(receiveBackoffMs);
+      try {
+        await sleep(receiveBackoffMs, undefined, { signal });
+      } catch (sleepErr) {
+        if (signal?.aborted || isAbortError(sleepErr)) break;
+        throw sleepErr;
+      }
       receiveBackoffMs = Math.min(receiveBackoffMs * 2, RECEIVE_ERROR_BACKOFF_MAX_MS);
       continue;
     }
@@ -472,10 +496,10 @@ export async function run(options: RunOptions = {}): Promise<void> {
 
     if (messages.length === 0) {
       if (options.stopWhenIdle && inFlight.size === 0) {
-        return;
+        break;
       }
       if (inFlight.size > 0) {
-        await Promise.race(inFlight);
+        await Promise.race([Promise.race(inFlight), aborted]);
       }
       continue;
     }
@@ -491,31 +515,43 @@ export async function run(options: RunOptions = {}): Promise<void> {
       inFlight.add(task);
     }
   }
+
+  if (signal?.aborted) {
+    logger.info({ inFlight: inFlight.size }, 'Worker stopping; draining in-flight work');
+  }
+  await Promise.all(inFlight);
 }
 
 if (import.meta.main) {
-  // The worker has no Socket.IO server, but it does own the emitter's Redis client —
-  // without this it never gets closed. Guarded so a repeated signal is a no-op.
-  let closing = false;
+  const controller = new AbortController();
   const stopRetentionSweep = startRetentionSweep();
-  for (const signal of ['SIGTERM', 'SIGINT'] as const) {
-    process.on(signal, () => {
-      if (closing) return;
-      closing = true;
-      logger.info({ signal }, 'Worker shutting down');
-      stopRetentionSweep();
-      void shutdownSocket()
-        .catch((err) => logger.error({ err }, 'Error shutting down Redis emitter'))
-        .finally(() => process.exit(0));
-    });
-  }
+
+  const workerDone = run({ signal: controller.signal }).catch((err) => {
+    if (!controller.signal.aborted) throw err;
+  });
+
+  onShutdownSignal((signal) => {
+    logger.info({ signal }, 'Worker shutting down');
+    void runShutdown([
+      {
+        name: 'worker-drain',
+        run: () => {
+          controller.abort();
+          return workerDone;
+        },
+      },
+      { name: 'retention-sweep', run: stopRetentionSweep },
+      { name: 'socket-redis', run: shutdownSocket },
+      { name: 'postgres', run: () => pool.end() },
+    ]).then((result) => process.exit(result === 'completed' ? 0 : 1));
+  });
 
   // Connect the notification emitter now rather than on the first event, which would be
   // dropped. Not awaited: processing must never wait on Redis (story 4.3).
   void warmEmitter();
 
-  run().catch((err) => {
+  workerDone.catch((err) => {
     logger.error({ err }, 'Worker exited unexpectedly');
-    process.exitCode = 1;
+    process.exit(1);
   });
 }

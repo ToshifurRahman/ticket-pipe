@@ -32,7 +32,7 @@ docs/    Feature docs and this file
 | `domain/`       | Pure rules (ticket phases, masking). No I/O, no Hono                         |
 | `lib/`          | Infra clients only: llm-client, ai-service, queue, mailer, sessions, sockets |
 
-Entry points sit next to them: `index.ts` and `server.ts` start the API, `app.ts` builds the Hono app, `worker.ts` consumes the queue (triage, then draft, then finish).
+Entry points sit next to them: `main.ts` runs the API and worker together, `index.ts` and `server.ts` start the API alone, `app.ts` builds the Hono app, `worker.ts` consumes the queue (triage, then draft, then finish), and `lifecycle.ts` holds the shared shutdown: on SIGTERM or SIGINT each entry point stops HTTP, drains in-flight tickets, then closes Redis and Postgres, all inside one 25 s deadline (Render sends SIGKILL after 30 s). A second signal, or a timeout, exits 1; the unfinished SQS message is redelivered.
 
 ### `apps/api/tests`
 

@@ -47,3 +47,36 @@ describe('bun workspace layout', () => {
     expect(read('Dockerfile')).not.toMatch(/cd web/);
   });
 });
+
+describe('production commands', () => {
+  const rootScripts = json('package.json').scripts ?? {};
+  const apiScripts = json('apps/api/package.json').scripts ?? {};
+
+  it('builds the web app and type-checks the API without emitting a dist/', () => {
+    expect(rootScripts.build).toBe(
+      'tsc --noEmit -p apps/api && bun --filter @ticket-pipe/web build'
+    );
+  });
+
+  it('starts the combined entry point and each service from the root', () => {
+    expect(rootScripts.start).toBe('bun --filter @ticket-pipe/api start');
+    expect(rootScripts['start:api']).toBe('bun --filter @ticket-pipe/api start:api');
+    expect(rootScripts['start:worker']).toBe('bun --filter @ticket-pipe/api start:worker');
+  });
+
+  it('runs Bun directly against the TypeScript entry points', () => {
+    expect(apiScripts.start).toBe('bun src/main.ts');
+    expect(apiScripts['start:api']).toBe('bun src/index.ts');
+    expect(apiScripts['start:worker']).toBe('bun src/worker.ts');
+  });
+
+  it('keeps pretty logging out of production dependencies', () => {
+    const api = json('apps/api/package.json');
+    expect(api.dependencies?.['pino-pretty']).toBeUndefined();
+    expect(api.devDependencies?.['pino-pretty']).toBeTruthy();
+  });
+
+  it('starts the combined API and worker entry point in the image', () => {
+    expect(read('Dockerfile')).toContain('CMD ["bun", "src/main.ts"]');
+  });
+});
