@@ -59,6 +59,18 @@ bun --filter @ticket-pipe/api worker           # in a second terminal
 
 In `.env`, set `PORTKEY_API_KEY`, `GOOGLE_API_KEY` (primary, Gemini) and `BACKUP_API_KEY` (Groq). To skip providers entirely, set `LLM_MODE=fake`.
 
+For a production-style local run, build once and start the API and worker together:
+
+```bash
+bun run build          # type-checks the API and builds apps/web/dist
+bun --env-file=.env run start
+# or run each service on its own:
+bun --env-file=.env run start:api
+bun --env-file=.env run start:worker
+```
+
+Bun runs the API TypeScript directly, so there is no API `dist/`; `apps/web/dist` is the only build output. Start scripts read the process environment only, which is why the local commands above pass `--env-file`.
+
 Try it:
 
 ```bash
@@ -70,7 +82,7 @@ curl -X POST http://localhost:3000/api/tickets \
 curl http://localhost:3000/api/tickets/<ticketId>
 ```
 
-For the web UI, run `bun --filter @ticket-pipe/web build` once and open http://localhost:3000, or run `bun --filter @ticket-pipe/web dev` for the Vite dev server on :5173. Staff sign in at `/ops` with `OPS_TOKEN` (`dev-ops-token` locally).
+For the web UI, run `bun run build` once and open http://localhost:3000, or run `bun --filter @ticket-pipe/web dev` for the Vite dev server on :5173. Staff sign in at `/ops` with `OPS_TOKEN` (`dev-ops-token` locally).
 
 ## Tests and checks
 
@@ -101,4 +113,4 @@ The repo is `apps/api`, `apps/web`, `e2e/`, `scripts/` and `docs/`. See [docs/AR
 
 ## Deployment
 
-The `Dockerfile` builds the web app and runs the API on `oven/bun`. The same image runs the worker with `docker run <image> bun src/worker.ts`. The target is Render's free tier.
+The `Dockerfile` builds the web app and runs the API and the worker together on `oven/bun` (`src/main.ts`). To split them later, override the command: `docker run <image> bun src/index.ts` for the API or `bun src/worker.ts` for the worker. The target is Render's free tier.
