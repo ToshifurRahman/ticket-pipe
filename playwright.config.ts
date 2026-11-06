@@ -2,8 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 3100;
 
-// Drives the real stack: e2e/stack.ts runs the Bun API (serving apps/web/dist) and the worker in
-// one process, with the fake LLM. Needs `docker compose up -d`, migrations and
+// Drives the real stack: e2e/stack.ts wraps main.ts, which runs the Bun API (serving apps/web/dist)
+// and the worker in one process, with the fake LLM. Needs `docker compose up -d`, migrations and
 // `bun --filter @ticket-pipe/api setup`, like the backend tests. Stop any dev worker first: it shares the queue
 // and, in real mode, would spend LLM calls on e2e tickets.
 export default defineConfig({
