@@ -18,6 +18,7 @@
     "start:api": "bun --filter @ticket-pipe/api start:api",
     "start:worker": "bun --filter @ticket-pipe/api start:worker",
     "test:e2e": "playwright test",
+    "test:image": "bun scripts/image-smoke.ts",
     "lighthouse": "bun scripts/lighthouse.ts",
     "screenshots": "bun scripts/screenshots.ts",
     "lint": "eslint . --max-warnings 0",
