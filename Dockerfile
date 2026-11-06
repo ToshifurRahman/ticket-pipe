@@ -1,4 +1,5 @@
-# API (default) and worker share one image: `docker run <image> bun src/worker.ts` runs the worker.
+# Default command runs the API and the worker together (src/main.ts). To run them as two services,
+# override the command: `bun src/index.ts` (API only) or `bun src/worker.ts` (worker only).
 FROM oven/bun:1.3 AS web
 WORKDIR /app
 COPY package.json bun.lock tsconfig.base.json ./
@@ -22,4 +23,4 @@ COPY --from=web /app/apps/web/dist apps/web/dist
 WORKDIR /app/apps/api
 USER bun
 EXPOSE 3000
-CMD ["bun", "src/index.ts"]
+CMD ["bun", "src/main.ts"]
