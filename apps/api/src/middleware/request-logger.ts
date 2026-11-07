@@ -4,6 +4,10 @@ import { logger } from '../lib/logger.js';
 
 export type AppEnv = { Variables: { requestId: string } };
 
+// Every `/health` route (live, ready, and the bare alias) is matched at a segment boundary, so
+// `/healthy` is not quiet.
+const HEALTH_PATH = /^\/health(\/|$)/;
+
 // One structured line per request, tagged with a request id (the caller's `x-request-id`
 // when present) that is echoed back so a client report can be matched to a log line.
 // Health checks are logged at debug: orchestrators poll them constantly.
@@ -13,7 +17,7 @@ export const requestLogger = createMiddleware<AppEnv>(async (c, next) => {
   c.header('x-request-id', requestId);
   const start = performance.now();
   await next();
-  const level = c.req.path === '/health' ? 'debug' : 'info';
+  const level = HEALTH_PATH.test(c.req.path) ? 'debug' : 'info';
   logger[level](
     {
       requestId,
