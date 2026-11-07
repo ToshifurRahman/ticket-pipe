@@ -10,7 +10,14 @@ export const CSP_DIRECTIVES = {
     'https://static.cloudflareinsights.com',
   ],
   scriptSrcAttr: ["'none'"],
-  styleSrc: ["'self'"],
+  // The two hashes are the inline <style> elements the ops console renders (the browser log
+  // shows style-src-elem violations from the feed-status chunk); a hash keeps style-src free
+  // of 'unsafe-inline'.
+  styleSrc: [
+    "'self'",
+    "'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='",
+    "'sha256-StEaX+se6YS7pqjzrzMIA0KaX9zF/8zAhvQXZAe5epY='",
+  ],
   // React writes inline style attributes; the landing demo relies on them.
   styleSrcAttr: ["'unsafe-inline'"],
   fontSrc: ["'self'"],

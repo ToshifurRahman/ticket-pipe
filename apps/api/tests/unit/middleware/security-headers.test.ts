@@ -6,6 +6,19 @@ import { CSP_DIRECTIVES, securityHeaders } from '../../../src/middleware/securit
 const app = new Hono();
 app.use('*', securityHeaders);
 app.get('/ok', (c) => c.json({ ok: true }));
+app.get(
+  '/page',
+  () =>
+    new Response('<!doctype html><body>page</body>', {
+      headers: { 'content-type': 'text/html; charset=UTF-8' },
+    })
+);
+app.get(
+  '/asset.js',
+  () => new Response('console.log(1)', { headers: { 'content-type': 'text/javascript' } })
+);
+app.get('/forbidden', (c) => c.json({ error: 'Origin not allowed' }, 403));
+app.post('/large', (c) => c.json({ error: 'Payload too large' }, 413));
 app.get('/boom', () => {
   throw new Error('boom');
 });
@@ -54,6 +67,17 @@ describe('security headers', () => {
   it('are on a 500 from onError', async () => {
     const res = await app.request('/boom');
     expect(res.status).toBe(500);
+    expectSecurityHeaders(res);
+  });
+
+  it.each([
+    ['an HTML page', '/page', 200],
+    ['a static asset', '/asset.js', 200],
+    ['a 403', '/forbidden', 403],
+    ['a 413', '/large', 413],
+  ])('are on %s', async (_name, path, status) => {
+    const res = await app.request(path, { method: path === '/large' ? 'POST' : 'GET' });
+    expect(res.status).toBe(status);
     expectSecurityHeaders(res);
   });
 
