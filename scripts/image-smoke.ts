@@ -56,7 +56,7 @@ async function checkImageContents() {
   const hc = (
     await run(['docker', 'image', 'inspect', IMAGE, '--format', '{{json .Config.Healthcheck}}'])
   ).out;
-  if (hc === 'null' || !hc.includes('/health')) fail(`no /health HEALTHCHECK: ${hc}`);
+  if (hc === 'null' || !hc.includes('/health/live')) fail(`no /health/live HEALTHCHECK: ${hc}`);
 
   const script = [
     'cd /app',
@@ -98,6 +98,12 @@ async function checkApp() {
   const html = await page.text();
   if (!page.ok || !html.includes('id="root"')) fail(`GET / returned ${page.status}`);
   console.log('ok: SPA served');
+
+  // The container healthcheck only proves the process; ready is what proves the database.
+  step('GET /health/ready answers 200');
+  const ready = await fetch(`${BASE}/health/ready`);
+  if (ready.status !== 200) fail(`GET /health/ready returned ${ready.status}`);
+  console.log('ok: ready');
 
   step('POST a ticket and wait for the worker to pick it up');
   const res = await fetch(`${BASE}/api/tickets`, {

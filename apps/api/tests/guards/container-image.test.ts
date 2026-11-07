@@ -43,11 +43,11 @@ describe('runtime stage', () => {
     expect(runtimeStage).toMatch(/^USER bun$/m);
   });
 
-  it('has a healthcheck on /health that follows $PORT and needs no curl', () => {
+  it('has a healthcheck on /health/live that follows $PORT and needs no curl', () => {
     const healthcheck = runtimeStage.match(/^HEALTHCHECK [\s\S]*?\n(?=[A-Z]+ )/m)?.[0] ?? '';
     expect(healthcheck).not.toBe('');
     expect(healthcheck).toContain('process.env.PORT');
-    expect(healthcheck).toContain("/health'");
+    expect(healthcheck).toContain("/health/live'");
     expect(healthcheck).not.toContain('curl');
   });
 });
