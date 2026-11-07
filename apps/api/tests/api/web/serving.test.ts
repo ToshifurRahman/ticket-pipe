@@ -14,6 +14,7 @@ let emptyDist: string;
 function buildApp(distDir: string) {
   const app = new Hono();
   app.get('/health', (c) => c.json({ status: 'ok' }));
+  app.get('/health/live', (c) => c.json({ status: 'ok' }));
   mountWebApp(app, distDir);
   return app;
 }
@@ -115,9 +116,10 @@ describe('web app serving', () => {
     expect(res.body).toEqual({ error: 'Not found' });
   });
 
-  it('leaves /health and /socket.io to their own handlers', async () => {
+  it('leaves /health, /health/live and /socket.io to their own handlers', async () => {
     const app = buildApp(dist);
     expect((await request(app).get('/health')).body).toEqual({ status: 'ok' });
+    expect((await request(app).get('/health/live')).body).toEqual({ status: 'ok' });
     expect((await request(app).get('/socket.io/').set('Accept', 'text/html')).text).not.toContain(
       'app shell'
     );
