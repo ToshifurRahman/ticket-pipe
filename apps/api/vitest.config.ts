@@ -22,6 +22,7 @@ const env = {
   PORTKEY_API_KEY: 'test-portkey-key',
   ...parseEnvFile(path.resolve(import.meta.dirname, '../../.env')),
   OPS_TOKEN: 'test-ops-token',
+  GOOGLE_API_KEY: 'test-google-key',
   SQS_QUEUE_NAME: 'ticket-processing-test',
 };
 

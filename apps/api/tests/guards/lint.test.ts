@@ -80,6 +80,7 @@ it('keeps only infrastructure clients in lib/', () => {
   expect(readdirSync(libDir).sort()).toEqual(
     [
       'ai-service.ts',
+      'config.ts',
       'counters.ts',
       'db.ts',
       'llm-client.ts',
