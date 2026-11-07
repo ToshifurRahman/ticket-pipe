@@ -73,6 +73,39 @@ describe.each(['/health/ready', '/health'])('GET %s', (path) => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('raises no unhandled rejection when the query rejects after the timeout fired', async () => {
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => {
+      unhandled.push(reason);
+    };
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      vi.useFakeTimers();
+      let rejectQuery: (reason: Error) => void = () => {};
+      query.mockReturnValue(
+        new Promise((_, reject) => {
+          rejectQuery = reject;
+        })
+      );
+      const pending = Promise.resolve(app.request(path));
+
+      await vi.advanceTimersByTimeAsync(READY_DB_TIMEOUT_MS);
+      const res = await pending;
+      expect(res.status).toBe(503);
+
+      rejectQuery(new Error('connection lost after the timeout'));
+      // Node reports an unhandled rejection after the microtask queue drains, so wait on real
+      // macrotasks before reading what the listener saw.
+      vi.useRealTimers();
+      await new Promise((resolve) => setImmediate(resolve));
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(unhandled).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+      vi.useRealTimers();
+    }
+  });
+
   it('leaves no timer behind after an answer or a failure', async () => {
     vi.useFakeTimers();
     query.mockResolvedValueOnce({ rows: [] });
