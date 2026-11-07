@@ -57,7 +57,7 @@ bun --filter @ticket-pipe/api dev              # API on http://localhost:3000
 bun --filter @ticket-pipe/api worker           # in a second terminal
 ```
 
-In `.env`, set `PORTKEY_API_KEY`, `GOOGLE_API_KEY` (primary, Gemini) and `BACKUP_API_KEY` (Groq). To skip providers entirely, set `LLM_MODE=fake`.
+In `.env`, set `PORTKEY_API_KEY`, `GOOGLE_API_KEY` (primary, Gemini) and `BACKUP_API_KEY` (Groq). To skip providers entirely, set `LLM_MODE=fake`. `.env.example` lists every variable. The API, the worker and each script validate them once at startup (`apps/api/src/lib/config.ts`): a missing or invalid variable stops the process at once and the message names it. AWS keys are required unless `SQS_ENDPOINT` is set (LocalStack).
 
 For a production-style local run, build once and start the API and worker together:
 
