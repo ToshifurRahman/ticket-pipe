@@ -1,5 +1,7 @@
 import { SNSClient } from '@aws-sdk/client-sns';
 
+import { getConfig } from './config.js';
+
 export interface SnsTarget {
   client: SNSClient;
   topicArn: string;
@@ -19,18 +21,19 @@ let target: SnsTarget | null | undefined;
 export function getSnsClient(): SnsTarget | null {
   if (target !== undefined) return target;
 
-  const topicArn = process.env.SNS_TOPIC_ARN;
+  const config = getConfig();
+  const topicArn = config.SNS_TOPIC_ARN;
   if (!topicArn) {
     target = null;
     return target;
   }
 
   const client = new SNSClient({
-    endpoint: process.env.SNS_ENDPOINT,
-    region: process.env.AWS_REGION ?? 'us-east-1',
+    endpoint: config.SNS_ENDPOINT,
+    region: config.AWS_REGION,
     credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? 'test',
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? 'test',
+      accessKeyId: config.AWS_ACCESS_KEY_ID,
+      secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
     },
     maxAttempts: MAX_ATTEMPTS,
     requestHandler: {

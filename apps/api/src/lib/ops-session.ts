@@ -1,13 +1,13 @@
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { createClient } from 'redis';
 
+import { collectIssues, getConfig } from './config.js';
 import { logger } from './logger.js';
 
 export const OPS_SESSION_COOKIE = 'ops_session';
 // A fixed lifetime: the Redis TTL and the cookie's Max-Age are the same and never extended.
 export const SESSION_TTL_S = 12 * 60 * 60;
 
-const MIN_PRODUCTION_TOKEN_LENGTH = 32;
 const MAX_FAILED_SIGN_INS = 5;
 const SIGN_IN_WINDOW_S = 15 * 60;
 
@@ -38,8 +38,7 @@ let client: SessionRedis | null = null;
 // Its own lazily opened connection: the Socket.IO clients are for pub/sub only.
 function redis(): SessionRedis {
   if (!client) {
-    if (!process.env.REDIS_URL) throw new Error('REDIS_URL environment variable is required');
-    const created = createClient({ url: process.env.REDIS_URL });
+    const created = createClient({ url: getConfig().REDIS_URL });
     created.on('error', (err) => logger.error({ err }, 'Redis ops-session client error'));
     client = created;
     void created
@@ -57,20 +56,15 @@ export async function closeOpsSessionStore(): Promise<void> {
 
 /** In production the token must be set and long enough that guessing is infeasible. */
 export function assertOpsTokenConfigured(): void {
-  if (process.env.NODE_ENV !== 'production') return;
-  const token = process.env.OPS_TOKEN;
-  if (!token || token.length < MIN_PRODUCTION_TOKEN_LENGTH) {
-    throw new Error(
-      `OPS_TOKEN must be set to at least ${MIN_PRODUCTION_TOKEN_LENGTH} characters in production`
-    );
-  }
+  const [message] = collectIssues(['OPS_TOKEN']);
+  if (message) throw new Error(message);
 }
 
-export const isOpsSignInConfigured = () => Boolean(process.env.OPS_TOKEN);
+export const isOpsSignInConfigured = () => Boolean(getConfig().OPS_TOKEN);
 
 // Hashing first gives both sides the same length, which timingSafeEqual requires.
 export function checkOpsToken(candidate: string): boolean {
-  const expected = process.env.OPS_TOKEN;
+  const expected = getConfig().OPS_TOKEN;
   if (!expected) return false;
   const digest = (value: string) => createHash('sha256').update(value).digest();
   return timingSafeEqual(digest(candidate), digest(expected));

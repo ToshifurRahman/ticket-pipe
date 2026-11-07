@@ -19,8 +19,9 @@ import {
   type ValidationResult,
 } from './domain/validate-output.js';
 import { AIService } from './lib/ai-service.js';
+import { getConfig, startupConfig } from './lib/config.js';
 import { pool } from './lib/db.js';
-import { assertLlmModeAllowed, getLlmMode } from './lib/llm-client.js';
+import { assertLlmModeAllowed } from './lib/llm-client.js';
 import { logger } from './lib/logger.js';
 import { assertMailConfigured } from './lib/mailer.js';
 import { deleteMessage, receiveMessages } from './lib/queue.js';
@@ -51,19 +52,9 @@ import { recordTicketEvent, type TicketRef } from './services/ticket-events.js';
 import { startRetentionSweep } from './services/ticket-retention.js';
 import { emitTicketUpdate } from './services/ticket-updates.js';
 
-assertLlmModeAllowed();
-assertMailConfigured();
-if (getLlmMode() === 'real') {
-  if (!process.env.GOOGLE_API_KEY)
-    throw new Error('GOOGLE_API_KEY environment variable is required');
-  if (!process.env.PORTKEY_API_KEY)
-    throw new Error('PORTKEY_API_KEY environment variable is required');
-}
-
 const aiService = new AIService();
 
 const MAX_SQS_BATCH_SIZE = 10;
-const DEFAULT_WORKER_CONCURRENCY = 10;
 const RECEIVE_ERROR_BACKOFF_MS = 1000;
 const RECEIVE_ERROR_BACKOFF_MAX_MS = 30_000;
 const MAX_ATTEMPTS = 3;
@@ -81,22 +72,11 @@ class FinalizeError extends Error {
   }
 }
 
-function resolveWorkerConcurrency(envValue: string | undefined, override?: number): number {
+function resolveWorkerConcurrency(configured: number, override?: number): number {
   if (typeof override === 'number' && Number.isInteger(override) && override > 0) {
     return override;
   }
-  if (!envValue) return DEFAULT_WORKER_CONCURRENCY;
-
-  const parsed = Number(envValue);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    logger.warn(
-      { workerConcurrency: envValue, fallback: DEFAULT_WORKER_CONCURRENCY },
-      'Invalid WORKER_CONCURRENCY, using default'
-    );
-    return DEFAULT_WORKER_CONCURRENCY;
-  }
-
-  return parsed;
+  return configured;
 }
 
 // Terminal: the ticket is `failed`, its message is removed, and nothing will pick it up again
@@ -449,7 +429,7 @@ function isAbortError(err: unknown): boolean {
 }
 
 export async function run(options: RunOptions = {}): Promise<void> {
-  const concurrency = resolveWorkerConcurrency(process.env.WORKER_CONCURRENCY, options.concurrency);
+  const concurrency = resolveWorkerConcurrency(getConfig().WORKER_CONCURRENCY, options.concurrency);
   const waitTimeSeconds = options.receiveWaitTimeSeconds;
   const signal = options.signal;
   const aborted = abortPromise(signal);
@@ -523,6 +503,9 @@ export async function run(options: RunOptions = {}): Promise<void> {
 }
 
 if (import.meta.main) {
+  startupConfig();
+  assertLlmModeAllowed();
+  assertMailConfigured();
   const controller = new AbortController();
   const stopRetentionSweep = startRetentionSweep();
 

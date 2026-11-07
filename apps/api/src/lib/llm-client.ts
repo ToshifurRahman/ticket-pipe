@@ -3,6 +3,8 @@
 import { createHeaders, PORTKEY_GATEWAY_URL } from 'portkey-ai';
 import { z } from 'zod';
 
+import { collectIssues, getConfig } from './config.js';
+
 export const TriageOutputSchema = z.object({
   category: z.string(),
   priority: z.enum(['low', 'medium', 'high', 'critical']),
@@ -62,28 +64,21 @@ export type LlmMode = 'real' | 'fake';
 // without a provider call. Everything above this layer (recording, validation, events)
 // still runs for real.
 export function getLlmMode(): LlmMode {
-  const raw = process.env.LLM_MODE;
-  if (raw === undefined || raw === '' || raw === 'real') return 'real';
-  if (raw === 'fake') return 'fake';
-  throw new Error(`LLM_MODE must be "real" or "fake", got "${raw}"`);
+  return getConfig().LLM_MODE;
 }
 
 // Called by every process at startup. Throws on a typo (so real traffic is never sent by
 // accident) and refuses fake mode in production.
 export function assertLlmModeAllowed(): void {
-  if (getLlmMode() === 'fake' && process.env.NODE_ENV === 'production') {
-    throw new Error('LLM_MODE=fake is not allowed when NODE_ENV=production');
-  }
+  const [message] = collectIssues(['LLM_MODE']);
+  if (message) throw new Error(message);
 }
 
 const FAKE_INVALID_TRIAGE = '[fake:invalid-triage]';
 const FAKE_INVALID_DRAFT = '[fake:invalid-draft]';
 
 function resolveFakeDelayMs(): number {
-  const parsed = Number(process.env.LLM_FAKE_DELAY_MS);
-  return process.env.LLM_FAKE_DELAY_MS !== undefined && Number.isFinite(parsed) && parsed >= 0
-    ? parsed
-    : 1500;
+  return getConfig().LLM_FAKE_DELAY_MS;
 }
 
 async function fakeCall<T>(output: T): Promise<LlmCallResult<T>> {
@@ -111,37 +106,36 @@ function apiKeyForGateway(gateway: LlmGateway, envValue: string | undefined): st
 export function getPrimaryProvider(): LlmProvider {
   if (getLlmMode() === 'fake')
     return { name: 'primary', gateway: 'groq', apiKey: 'fake', model: 'fake' };
-  const gateway = resolveGateway(process.env.PRIMARY_GATEWAY);
-  const apiKey = gateway === 'google' ? process.env.GOOGLE_API_KEY : process.env.GROQ_API_KEY;
+  const gateway = resolveGateway(getConfig().PRIMARY_GATEWAY);
+  const apiKey = gateway === 'google' ? getConfig().GOOGLE_API_KEY : getConfig().GROQ_API_KEY;
   return {
     name: 'primary',
     gateway,
     apiKey: apiKeyForGateway(gateway, apiKey),
-    model: process.env.PRIMARY_MODEL || DEFAULT_MODEL,
+    model: getConfig().PRIMARY_MODEL || DEFAULT_MODEL,
   };
 }
 
 export function isBackupConfigured(): boolean {
   if (getLlmMode() === 'fake') return false;
-  const gateway = resolveGateway(process.env.BACKUP_GATEWAY);
-  const apiKey = gateway === 'google' ? process.env.GOOGLE_API_KEY : process.env.BACKUP_API_KEY;
+  const gateway = resolveGateway(getConfig().BACKUP_GATEWAY);
+  const apiKey = gateway === 'google' ? getConfig().GOOGLE_API_KEY : getConfig().BACKUP_API_KEY;
   return !!apiKey;
 }
 
 export function getBackupProvider(): LlmProvider {
-  const gateway = resolveGateway(process.env.BACKUP_GATEWAY);
-  const apiKey = gateway === 'google' ? process.env.GOOGLE_API_KEY : process.env.BACKUP_API_KEY;
+  const gateway = resolveGateway(getConfig().BACKUP_GATEWAY);
+  const apiKey = gateway === 'google' ? getConfig().GOOGLE_API_KEY : getConfig().BACKUP_API_KEY;
   return {
     name: 'backup',
     gateway,
     apiKey: apiKeyForGateway(gateway, apiKey),
-    model: process.env.BACKUP_MODEL || DEFAULT_MODEL,
+    model: getConfig().BACKUP_MODEL || DEFAULT_MODEL,
   };
 }
 
 function resolveTimeoutMs(): number {
-  const parsed = Number(process.env.AI_TIMEOUT_MS);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 30000;
+  return getConfig().AI_TIMEOUT_MS;
 }
 
 async function callLlmWithFunction<T>(
@@ -154,7 +148,7 @@ async function callLlmWithFunction<T>(
 ): Promise<LlmCallResult<T>> {
   const headers = createHeaders({
     provider: provider.gateway,
-    apiKey: process.env.PORTKEY_API_KEY!,
+    apiKey: getConfig().PORTKEY_API_KEY!,
     Authorization: provider.apiKey,
   });
 

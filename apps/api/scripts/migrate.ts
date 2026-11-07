@@ -3,13 +3,11 @@ import { join } from 'node:path';
 
 import pg from 'pg';
 
+import { startupConfig } from '../src/lib/config.js';
+
 const { Client } = pg;
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is required');
-}
-
-const client = new Client({ connectionString: process.env.DATABASE_URL });
+const client = new Client({ connectionString: startupConfig().DATABASE_URL });
 await client.connect();
 
 try {

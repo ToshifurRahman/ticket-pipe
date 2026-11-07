@@ -1,9 +1,17 @@
 import pg from 'pg';
 
+import { getConfig } from './config.js';
+
 const { Pool } = pg;
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is required');
-}
+let instance: pg.Pool | undefined;
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Created on first use, so importing this module never needs DATABASE_URL: the entry points
+// validate the environment before they touch the pool.
+export const pool: pg.Pool = new Proxy({} as pg.Pool, {
+  get(_target, property) {
+    instance ??= new Pool({ connectionString: getConfig().DATABASE_URL });
+    const value: unknown = Reflect.get(instance, property, instance);
+    return typeof value === 'function' ? (value as () => unknown).bind(instance) : value;
+  },
+});

@@ -1,5 +1,6 @@
 import { PublishCommand } from '@aws-sdk/client-sns';
 
+import { getConfig } from '../lib/config.js';
 import { logger } from '../lib/logger.js';
 import { getSnsClient, type SnsTarget } from '../lib/sns.js';
 import type { OpsNeedsAttention } from './ops-feed.js';
@@ -12,7 +13,6 @@ import type { OpsNeedsAttention } from './ops-feed.js';
 // This is the only module allowed to publish to SNS (tests/ops-alerts.guard.test.ts).
 
 const HOUR_MS = 60 * 60 * 1000;
-const DEFAULT_MAX_PER_HOUR = 20;
 
 export interface AlertMessage {
   subject: string;
@@ -115,24 +115,21 @@ export function createNeedsAttentionAlerter({
   };
 }
 
-function parseMaxPerHour(value: string | undefined): number {
-  if (value === undefined || value === '') return DEFAULT_MAX_PER_HOUR;
-  const parsed = Number(value);
-  if (Number.isInteger(parsed) && parsed >= 0) return parsed;
-  logger.warn({ value }, `Invalid SNS_ALERT_MAX_PER_HOUR; using ${DEFAULT_MAX_PER_HOUR}`);
-  return DEFAULT_MAX_PER_HOUR;
+// Built on first use so importing this module never reads the environment.
+let defaultAlerter: ReturnType<typeof createNeedsAttentionAlerter> | undefined;
+function alerter(): ReturnType<typeof createNeedsAttentionAlerter> {
+  defaultAlerter ??= createNeedsAttentionAlerter({
+    sns: getSnsClient,
+    maxPerHour: getConfig().SNS_ALERT_MAX_PER_HOUR,
+  });
+  return defaultAlerter;
 }
 
-const defaultAlerter = createNeedsAttentionAlerter({
-  sns: getSnsClient,
-  maxPerHour: parseMaxPerHour(process.env.SNS_ALERT_MAX_PER_HOUR),
-});
-
 export function alertNeedsAttention(alert: OpsNeedsAttention): void {
-  defaultAlerter.alert(alert);
+  alerter().alert(alert);
 }
 
 // For tests: wait for alerts the worker started without awaiting.
 export function pendingAlerts(): Promise<void> {
-  return defaultAlerter.pending();
+  return alerter().pending();
 }

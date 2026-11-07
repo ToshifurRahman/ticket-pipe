@@ -1,5 +1,6 @@
 import { createClient } from 'redis';
 
+import { getConfig } from './config.js';
 import { logger } from './logger.js';
 
 // Fixed-window counters in Redis, for the opt-in rate limit and the daily send cap (story 6.9).
@@ -14,8 +15,7 @@ let client: CounterRedis | null = null;
 
 function redis(): CounterRedis {
   if (!client) {
-    if (!process.env.REDIS_URL) throw new Error('REDIS_URL environment variable is required');
-    const created = createClient({ url: process.env.REDIS_URL });
+    const created = createClient({ url: getConfig().REDIS_URL });
     created.on('error', (err) => logger.error({ err }, 'Redis counters client error'));
     client = created;
     void created

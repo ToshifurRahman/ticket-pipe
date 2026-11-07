@@ -6,19 +6,22 @@ import {
   SQSClient,
 } from '@aws-sdk/client-sqs';
 
-if (!process.env.SQS_QUEUE_NAME) throw new Error('SQS_QUEUE_NAME is required');
-if (!process.env.SQS_ENDPOINT) throw new Error('SQS_ENDPOINT is required');
+import { exitWithConfigError, startupConfig } from '../src/lib/config.js';
 
-const queueName = process.env.SQS_QUEUE_NAME;
-const dlqName = process.env.SQS_DLQ_NAME ?? `${queueName}-dlq`;
+const config = startupConfig();
+if (!config.SQS_ENDPOINT) exitWithConfigError('SQS_ENDPOINT: required by this script');
+
+const queueName = config.SQS_QUEUE_NAME;
+const dlqName = config.SQS_DLQ_NAME;
+const credentials = {
+  accessKeyId: config.AWS_ACCESS_KEY_ID,
+  secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
+};
 
 const client = new SQSClient({
-  endpoint: process.env.SQS_ENDPOINT,
-  region: process.env.AWS_REGION ?? 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? 'test',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? 'test',
-  },
+  endpoint: config.SQS_ENDPOINT,
+  region: config.AWS_REGION,
+  credentials,
 });
 
 // Create DLQ first
@@ -59,14 +62,11 @@ console.log(`setup complete: main queue ${mainResult.QueueUrl}, DLQ ${dlqResult.
 
 // SNS topic for ops email alerts (story 5.7). Only against a local endpoint: in AWS the topic
 // and its email subscription are created by hand (story 7.8), never by this script.
-if (process.env.SNS_ENDPOINT) {
+if (config.SNS_ENDPOINT) {
   const sns = new SNSClient({
-    endpoint: process.env.SNS_ENDPOINT,
-    region: process.env.AWS_REGION ?? 'us-east-1',
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? 'test',
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? 'test',
-    },
+    endpoint: config.SNS_ENDPOINT,
+    region: config.AWS_REGION,
+    credentials,
   });
   const topic = await sns.send(new CreateTopicCommand({ Name: 'ticket-needs-attention' }));
   if (!topic.TopicArn) throw new Error('Failed to create SNS topic');

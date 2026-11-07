@@ -1,3 +1,4 @@
+import { startupConfig } from './lib/config.js';
 import { pool } from './lib/db.js';
 import { assertLlmModeAllowed } from './lib/llm-client.js';
 import { logger } from './lib/logger.js';
@@ -21,11 +22,11 @@ export interface MainOptions {
  * because in-flight work may never finish; a second signal does the same.
  */
 export async function main(options: MainOptions = {}): Promise<void> {
+  const { PORT: port } = startupConfig();
   assertLlmModeAllowed();
   assertMailConfigured();
   assertOpsTokenConfigured();
 
-  const port = Number(process.env.PORT ?? 3000);
   await initSocket();
   const server = startServer(port);
   logger.info({ port }, 'Server started');

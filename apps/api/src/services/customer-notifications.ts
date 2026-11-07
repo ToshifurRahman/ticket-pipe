@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'crypto';
 import { z } from 'zod';
 
 import { maskEmail } from '../domain/mask-email.js';
+import { getConfig } from '../lib/config.js';
 import { hit } from '../lib/counters.js';
 import { logger } from '../lib/logger.js';
 import { getMailer, isMailEnabled, type MailMessage } from '../lib/mailer.js';
@@ -34,7 +35,6 @@ const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 const OPT_IN_LIMIT_PER_HOUR = 5;
 const HOUR_S = 60 * 60;
 const DAY_S = 24 * 60 * 60;
-const DEFAULT_DAILY_CAP = 250;
 let retryDelaysMs = [1000, 4000, 15000];
 
 /** Tests only. */
@@ -54,7 +54,7 @@ export class NotificationError extends Error {
 const EmailSchema = z.string().trim().toLowerCase().max(254).pipe(z.email());
 
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
-const siteUrl = () => (process.env.PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
+const siteUrl = () => (getConfig().PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
 const ticketUrl = (ref: string) => `${siteUrl()}/t/${ref}`;
 
 export interface NotificationView {
@@ -74,9 +74,7 @@ export async function getNotificationView(ticketId: string): Promise<Notificatio
 }
 
 async function underDailyCap(): Promise<boolean> {
-  const configured = Number(process.env.MAIL_DAILY_CAP);
-  const cap =
-    process.env.MAIL_DAILY_CAP && Number.isFinite(configured) ? configured : DEFAULT_DAILY_CAP;
+  const cap = getConfig().MAIL_DAILY_CAP;
   const day = new Date().toISOString().slice(0, 10);
   return (await hit(`notify:sent:${day}`, DAY_S)) <= cap;
 }
