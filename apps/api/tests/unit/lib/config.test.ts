@@ -7,6 +7,7 @@ import {
   loadConfig,
   nodeEnv,
   parseEnv,
+  scriptConfig,
   startupConfig,
 } from '../../../src/lib/config.js';
 
@@ -259,6 +260,77 @@ describe('collectIssues and nodeEnv', () => {
       expect(nodeEnv()).toBe('staging');
     } finally {
       process.env.NODE_ENV = before;
+    }
+  });
+});
+
+describe('scriptConfig', () => {
+  const exiting = () => {
+    const exit = vi.spyOn(process, 'exit').mockImplementation((code) => {
+      throw new Error(`exit ${code}`);
+    });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    return { exit, error };
+  };
+
+  it('returns its own variables when the rest of the environment is empty', () => {
+    const config = scriptConfig(['DATABASE_URL'], {}, { DATABASE_URL: 'postgres://x' });
+    expect(config).toEqual({ DATABASE_URL: 'postgres://x' });
+  });
+
+  it('applies defaults and derived values to the variables it was asked for', () => {
+    const config = scriptConfig(
+      ['SQS_QUEUE_NAME', 'SQS_DLQ_NAME', 'AWS_ACCESS_KEY_ID', 'AWS_REGION'],
+      {},
+      { SQS_QUEUE_NAME: 'q', SQS_ENDPOINT: 'http://x' }
+    );
+    expect(config).toEqual({
+      SQS_QUEUE_NAME: 'q',
+      SQS_DLQ_NAME: 'q-dlq',
+      AWS_ACCESS_KEY_ID: 'test',
+      AWS_REGION: 'us-east-1',
+    });
+  });
+
+  it('exits naming only its own missing variables', () => {
+    const { exit, error } = exiting();
+    try {
+      expect(() => scriptConfig(['DATABASE_URL'], {}, {})).toThrow('exit 1');
+      const printed = error.mock.calls.join('');
+      expect(printed).toContain('DATABASE_URL: required');
+      expect(printed).not.toContain('REDIS_URL');
+    } finally {
+      exit.mockRestore();
+      error.mockRestore();
+    }
+  });
+
+  it('names an extra variable the script requires, together with the schema issues', () => {
+    const { exit, error } = exiting();
+    try {
+      expect(() =>
+        scriptConfig(['SQS_QUEUE_NAME', 'SQS_ENDPOINT'], { required: ['SQS_ENDPOINT'] }, {})
+      ).toThrow('exit 1');
+      const printed = error.mock.calls.join('');
+      expect(printed).toContain('SQS_ENDPOINT: required by this script');
+      expect(printed).toContain('SQS_QUEUE_NAME: required');
+    } finally {
+      exit.mockRestore();
+      error.mockRestore();
+    }
+  });
+
+  it('exits on an invalid variable it uses, not on one it does not', () => {
+    const { exit, error } = exiting();
+    try {
+      expect(() => scriptConfig(['PORT'], {}, { PORT: 'x' })).toThrow('exit 1');
+      expect(error.mock.calls.join('')).toContain('PORT: must be a number');
+      expect(scriptConfig(['DATABASE_URL'], {}, { DATABASE_URL: 'd', PORT: 'x' })).toEqual({
+        DATABASE_URL: 'd',
+      });
+    } finally {
+      exit.mockRestore();
+      error.mockRestore();
     }
   });
 });

@@ -129,13 +129,16 @@ const checked = RULES.reduce(
   fields as z.ZodType<Fields>
 );
 
-const envSchema = checked.transform((env) => ({
+// Values filled in from other values. Also applied to the few variables a script asks for.
+const derive = (env: Fields) => ({
   ...env,
   LLM_MODE: env.LLM_MODE === 'fake' ? ('fake' as const) : ('real' as const),
   AWS_ACCESS_KEY_ID: env.AWS_ACCESS_KEY_ID ?? 'test',
   AWS_SECRET_ACCESS_KEY: env.AWS_SECRET_ACCESS_KEY ?? 'test',
   SQS_DLQ_NAME: env.SQS_DLQ_NAME ?? `${env.SQS_QUEUE_NAME}-dlq`,
-}));
+});
+
+const envSchema = checked.transform(derive);
 
 export type Config = Readonly<z.output<typeof envSchema>>;
 export type RawEnv = Record<string, string | undefined>;
@@ -209,10 +212,56 @@ export function startupConfig(): Config {
   }
 }
 
-/** Fails like startupConfig() for a requirement that only one process has. */
-export function exitWithConfigError(message: string): never {
-  console.error(`Invalid environment:\n  - ${message}`);
-  return process.exit(1);
+/**
+ * Startup check for a script that needs only some variables (migrate needs DATABASE_URL, not the
+ * LLM or queue settings). The whole environment is judged by the one schema, but only the issues
+ * of the named variables count, and only those variables are returned. `required` names variables
+ * that are optional in the schema but that this script cannot run without.
+ */
+export function scriptConfig<K extends keyof Config>(
+  keys: readonly K[],
+  options: { required?: readonly (keyof Config)[] } = {},
+  env: RawEnv = process.env
+): Pick<Config, K> {
+  try {
+    return pickConfig(keys, options, env);
+  } catch (err) {
+    if (!(err instanceof ConfigError)) throw err;
+    console.error(err.message);
+    return process.exit(1);
+  }
+}
+
+/**
+ * Like scriptConfig() but throws a ConfigError instead of exiting. For lazy builders (the
+ * database pool) that a script reaches without the rest of the environment being set.
+ */
+export function pickConfig<K extends keyof Config>(
+  keys: readonly K[],
+  options: { required?: readonly (keyof Config)[] } = {},
+  env: RawEnv = process.env
+): Pick<Config, K> {
+  const clean = normalize(env);
+  const result = parseEnv(env);
+  const issues = result.success
+    ? []
+    : result.issues.filter((issue) => (keys as readonly string[]).includes(issue.variable));
+  for (const variable of options.required ?? []) {
+    if (clean[variable] === undefined) {
+      issues.push({ variable, message: 'required by this script' });
+    }
+  }
+  if (issues.length > 0) throw new ConfigError(issues);
+  if (result.success) return pick(result.data, keys);
+  // The rest of the environment is invalid, but the variables asked for are not: read them alone.
+  const own = Object.fromEntries(
+    Object.entries(fields.shape).map(([key, type]) => [key, type.safeParse(clean[key]).data])
+  ) as Fields;
+  return pick(derive(own), keys);
+}
+
+function pick<K extends keyof Config>(config: Config, keys: readonly K[]): Pick<Config, K> {
+  return Object.fromEntries(keys.map((key) => [key, config[key]])) as Pick<Config, K>;
 }
 
 /**

@@ -6,10 +6,20 @@ import {
   SQSClient,
 } from '@aws-sdk/client-sqs';
 
-import { exitWithConfigError, startupConfig } from '../src/lib/config.js';
+import { scriptConfig } from '../src/lib/config.js';
 
-const config = startupConfig();
-if (!config.SQS_ENDPOINT) exitWithConfigError('SQS_ENDPOINT: required by this script');
+const config = scriptConfig(
+  [
+    'SQS_QUEUE_NAME',
+    'SQS_DLQ_NAME',
+    'SQS_ENDPOINT',
+    'SNS_ENDPOINT',
+    'AWS_REGION',
+    'AWS_ACCESS_KEY_ID',
+    'AWS_SECRET_ACCESS_KEY',
+  ],
+  { required: ['SQS_ENDPOINT'] }
+);
 
 const queueName = config.SQS_QUEUE_NAME;
 const dlqName = config.SQS_DLQ_NAME;

@@ -30,14 +30,42 @@ function start(script: string, env: Record<string, string>) {
   return { status: result.status, stderr: result.stderr, seconds: (Date.now() - started) / 1000 };
 }
 
-const ENTRIES = [
-  'src/index.ts',
-  'src/main.ts',
-  'src/worker.ts',
-  'scripts/migrate.ts',
-  'scripts/purge.ts',
-  'scripts/setup-infra.ts',
+// The processes that run the whole application keep the full schema.
+const ENTRIES = ['src/index.ts', 'src/main.ts', 'src/worker.ts'];
+
+// Each script names only the variables it uses.
+const SCRIPTS: Array<[string, string[], Record<string, string>]> = [
+  ['scripts/migrate.ts', ['DATABASE_URL'], { DATABASE_URL: 'postgres://u:p@127.0.0.1:1/db' }],
+  ['scripts/purge.ts', ['DATABASE_URL'], { DATABASE_URL: 'postgres://u:p@127.0.0.1:1/db' }],
+  [
+    'scripts/setup-infra.ts',
+    ['SQS_QUEUE_NAME', 'SQS_ENDPOINT'],
+    { SQS_QUEUE_NAME: 'tickets', SQS_ENDPOINT: 'http://127.0.0.1:1' },
+  ],
 ];
+
+describe.each(SCRIPTS)('%s', (script, needs, own) => {
+  it('names exactly its own missing variables and no others', () => {
+    const { status, stderr } = start(script, {});
+    expect(status).toBe(1);
+    expect(stderr).toContain('Invalid environment:');
+    for (const key of needs) expect(stderr).toContain(key);
+    for (const key of ['REDIS_URL', 'GOOGLE_API_KEY', 'PORTKEY_API_KEY']) {
+      expect(stderr).not.toContain(key);
+    }
+    expect(stderr).not.toMatch(/\n\s+at /);
+  });
+
+  it('gets past the configuration with only its own variables set', () => {
+    const { stderr } = start(script, own);
+    expect(stderr).not.toContain('Invalid environment');
+  });
+
+  it('ignores an invalid variable it does not use', () => {
+    const { stderr } = start(script, { ...own, WORKER_CONCURRENCY: 'many' });
+    expect(stderr).not.toContain('WORKER_CONCURRENCY');
+  });
+});
 
 describe.each(ENTRIES)('%s', (script) => {
   it('exits at once and names every missing variable when started with no environment', () => {
@@ -77,12 +105,12 @@ describe('rules at startup', () => {
 
   it('setup-infra names SQS_ENDPOINT, which only that script needs', () => {
     const { status, stderr } = start('scripts/setup-infra.ts', {
-      ...VALID,
-      SQS_ENDPOINT: '',
+      SQS_QUEUE_NAME: 'tickets',
       AWS_ACCESS_KEY_ID: 'a',
       AWS_SECRET_ACCESS_KEY: 'b',
     });
     expect(status).toBe(1);
     expect(stderr).toContain('SQS_ENDPOINT');
+    expect(stderr).not.toContain('REDIS_URL');
   });
 });

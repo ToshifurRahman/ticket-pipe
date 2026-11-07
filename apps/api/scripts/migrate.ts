@@ -3,11 +3,11 @@ import { join } from 'node:path';
 
 import pg from 'pg';
 
-import { startupConfig } from '../src/lib/config.js';
+import { scriptConfig } from '../src/lib/config.js';
 
 const { Client } = pg;
 
-const client = new Client({ connectionString: startupConfig().DATABASE_URL });
+const client = new Client({ connectionString: scriptConfig(['DATABASE_URL']).DATABASE_URL });
 await client.connect();
 
 try {
