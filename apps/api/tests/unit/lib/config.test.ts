@@ -54,6 +54,12 @@ describe('parseEnv', () => {
     });
   });
 
+  it('accepts PORT=0 (an ephemeral port) and rejects a negative port', () => {
+    const zero = parseEnv({ ...MINIMAL, PORT: '0' });
+    expect(zero.success && zero.data.PORT).toBe(0);
+    expect(messages({ ...MINIMAL, PORT: '-1' }).some((m) => m.startsWith('PORT:'))).toBe(true);
+  });
+
   it('treats empty strings as unset', () => {
     expect(parseEnv({ ...MINIMAL, PORT: '', LLM_MODE: '' }).success).toBe(false);
     const result = parseEnv({ ...MINIMAL, PORT: '', MAIL_DRIVER: '' });

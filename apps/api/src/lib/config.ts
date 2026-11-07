@@ -22,7 +22,7 @@ const gateway = () =>
   z.enum(GATEWAYS, { error: `must be one of ${GATEWAYS.join(', ')}` }).optional();
 
 const fields = z.object({
-  PORT: integer(1, 65535).default(3000),
+  PORT: integer(0, 65535).default(3000),
   DATABASE_URL: required(),
   REDIS_URL: required(),
   SQS_ENDPOINT: optional(),
@@ -187,17 +187,20 @@ export function loadConfig(env: RawEnv = process.env): Config {
 }
 
 export const ENV_KEYS = Object.keys(fields.shape);
-const snapshot = (env: RawEnv) => ENV_KEYS.map((key) => env[key] ?? '').join('\u0000');
+const snapshot = (env: RawEnv) => ENV_KEYS.map((key) => env[key]);
 
-let cache: { key: string; config: Config } | undefined;
+let cache: { values: (string | undefined)[]; config: Config } | undefined;
 
 /**
  * The validated configuration. process.env is parsed once and the result reused until one of
- * the schema's variables changes, which only tests do.
+ * the schema's variables changes, which only tests do. The check walks the values and builds
+ * no string, since this runs on every LLM call and ops-token check.
  */
 export function getConfig(): Config {
-  const key = snapshot(process.env);
-  if (cache?.key !== key) cache = { key, config: loadConfig() };
+  const values = snapshot(process.env);
+  if (!cache || cache.values.some((value, index) => value !== values[index])) {
+    cache = { values, config: loadConfig() };
+  }
   return cache.config;
 }
 
