@@ -33,7 +33,7 @@ COPY --from=web /app/apps/web/dist apps/web/dist
 WORKDIR /app/apps/api
 USER bun
 EXPOSE 3000
-# The Bun image has no curl. Story 7.10 moves this to /health/live.
+# The Bun image has no curl.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD ["bun", "-e", "const r = await fetch('http://localhost:' + (process.env.PORT ?? 3000) + '/health'); process.exit(r.ok ? 0 : 1)"]
+  CMD ["bun", "-e", "const r = await fetch('http://localhost:' + (process.env.PORT ?? 3000) + '/health/live'); process.exit(r.ok ? 0 : 1)"]
 CMD ["bun", "src/main.ts"]

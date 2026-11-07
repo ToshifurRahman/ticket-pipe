@@ -38,7 +38,7 @@ async function waitForHealth(url: string): Promise<void> {
     if (proc.exitCode !== null)
       throw new Error(`Bun server exited early (${proc.exitCode}):\n${output}`);
     try {
-      if ((await fetch(`${url}/health`)).ok) return;
+      if ((await fetch(`${url}/health/ready`)).ok) return;
     } catch {
       // not listening yet
     }
@@ -89,7 +89,7 @@ describe('Bun server', () => {
     const res = await fetch(`${base}/api/nope`, { headers: { accept: 'text/html' } });
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: 'Not found' });
-    expect((await fetch(`${base}/health`)).headers.get('x-request-id')).toBeTruthy();
+    expect((await fetch(`${base}/health/live`)).headers.get('x-request-id')).toBeTruthy();
   });
 
   it('delivers a worker-style Redis emit to a client in the ticket room', async () => {

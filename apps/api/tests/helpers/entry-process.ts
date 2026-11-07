@@ -154,7 +154,7 @@ async function poll<T>(
 
 export async function waitForHealth(entry: EntryProcess): Promise<void> {
   await poll(entry, 'health', async () =>
-    (await fetch(`${entry.base}/health`)).ok ? true : undefined
+    (await fetch(`${entry.base}/health/ready`)).ok ? true : undefined
   );
 }
 

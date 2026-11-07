@@ -66,6 +66,8 @@ describe('public routes', () => {
     ['get', `/api/tickets/${ID}/events`],
     ['post', '/api/tickets'],
     ['get', '/health'],
+    ['get', '/health/live'],
+    ['get', '/health/ready'],
     ['get', '/api/ops/session'],
   ])('%s %s is open', async (method, path) => {
     const res = await callRoute(method, path);

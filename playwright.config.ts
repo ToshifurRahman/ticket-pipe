@@ -14,7 +14,7 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: 'bun --filter @ticket-pipe/web build && bun --env-file=.env e2e/stack.ts',
-    url: `http://localhost:${PORT}/health`,
+    url: `http://localhost:${PORT}/health/ready`,
     // Locally, a stack left running from an earlier run is reused.
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

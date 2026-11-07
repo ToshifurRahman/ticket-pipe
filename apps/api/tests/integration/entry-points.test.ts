@@ -52,7 +52,7 @@ describe('src/worker.ts (worker only)', () => {
     await waitForLog(worker, 'Worker started');
     await waitForStatus(api, id, 'completed');
 
-    await expect(fetch(`${worker.base}/health`)).rejects.toThrow();
+    await expect(fetch(`${worker.base}/health/live`)).rejects.toThrow();
 
     expect(await worker.terminate()).toBe(0);
     expect(worker.output()).toContain('Shutdown complete');

@@ -497,8 +497,8 @@ ClickUp `z8py7adu7f`, `backlog`. No comments.
 
 | ID         | Severity | Location                                         | Evidence                                                                                 | Fix or accepted-risk reason                                                   | Status |
 | ---------- | -------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------ |
-| PA-7.10-01 | Medium   | `apps/api/src/routes/health.ts`; four test files | Only `/health` exists, and tests and the logger name it                                  | Add the two routes; keep `/health` as an alias of ready until references move | Open   |
-| PA-7.10-02 | Medium   | `middleware/request-logger.ts:16`                | Only the exact path `/health` is quiet; `/health/live` every 5 minutes would log at info | Match the `/health` prefix                                                    | Open   |
+| PA-7.10-01 | Medium   | `apps/api/src/routes/health.ts`; four test files | Only `/health` exists, and tests and the logger name it                                  | Add the two routes; keep `/health` as an alias of ready until references move | Fixed  |
+| PA-7.10-02 | Medium   | `middleware/request-logger.ts:16`                | Only the exact path `/health` is quiet; `/health/live` every 5 minutes would log at info | Match the `/health` prefix                                                    | Fixed  |
 | PA-7.10-03 | Low      | Story text                                       | Keep-awake only helps if the worker shares the process (PA-7.1-02)                       | Note the dependency in the plan                                               | Open   |
 
 ## 7.11 Rename Repo, README & Render Service to Brand
