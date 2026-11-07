@@ -1,5 +1,7 @@
 import nodemailer from 'nodemailer';
 
+import { collectIssues, getConfig } from './config.js';
+
 // The only module that sends mail (tests/mailer.guard.test.ts). Three drivers behind one
 // interface: `brevo` (HTTPS API, production: Render free blocks SMTP ports), `smtp` (Mailpit
 // locally and in e2e) and `memory` (vitest). MAIL_DRIVER picks one; unset means mail is off.
@@ -16,14 +18,11 @@ export interface Mailer {
 }
 
 export type MailDriver = 'brevo' | 'smtp' | 'memory';
-const DRIVERS: readonly MailDriver[] = ['brevo', 'smtp', 'memory'];
 
 export function getMailDriver(): MailDriver | null {
-  const value = process.env.MAIL_DRIVER;
+  const value = getConfig().MAIL_DRIVER;
   if (!value) return null;
-  if (!DRIVERS.includes(value as MailDriver))
-    throw new Error(`MAIL_DRIVER must be one of ${DRIVERS.join(', ')}`);
-  return value as MailDriver;
+  return value;
 }
 
 export const isMailEnabled = () => getMailDriver() !== null;
@@ -32,9 +31,9 @@ export const isMailEnabled = () => getMailDriver() !== null;
 export const sentMail: MailMessage[] = [];
 
 function sender(): { email: string; name: string } {
-  const email = process.env.MAIL_FROM;
+  const email = getConfig().MAIL_FROM;
   if (!email) throw new Error('MAIL_FROM environment variable is required');
-  return { email, name: process.env.MAIL_FROM_NAME ?? 'Relay' };
+  return { email, name: getConfig().MAIL_FROM_NAME };
 }
 
 const BREVO_URL = 'https://api.brevo.com/v3/smtp/email';
@@ -43,7 +42,7 @@ const BREVO_TIMEOUT_MS = 10_000;
 export function createBrevoMailer(fetchImpl: typeof fetch = fetch): Mailer {
   return {
     async send({ to, subject, text, html }) {
-      const apiKey = process.env.BREVO_API_KEY;
+      const apiKey = getConfig().BREVO_API_KEY;
       if (!apiKey) throw new Error('BREVO_API_KEY environment variable is required');
       const from = sender();
       const response = await fetchImpl(BREVO_URL, {
@@ -69,7 +68,7 @@ export function createBrevoMailer(fetchImpl: typeof fetch = fetch): Mailer {
 }
 
 function createSmtpMailer(): Mailer {
-  const transport = nodemailer.createTransport(process.env.SMTP_URL ?? 'smtp://localhost:1025');
+  const transport = nodemailer.createTransport(getConfig().SMTP_URL);
   return {
     async send({ to, subject, text, html }) {
       const from = sender();
@@ -112,14 +111,7 @@ export function getMailer(): Mailer | null {
 
 /** Startup check. In production only the Brevo driver is allowed, and it must be fully set up. */
 export function assertMailConfigured(): void {
-  const driver = getMailDriver();
-  if (process.env.NODE_ENV === 'production' && driver !== null && driver !== 'brevo') {
-    throw new Error('MAIL_DRIVER must be brevo (or unset) in production');
-  }
-  if (driver === null) return;
-  if (!process.env.PUBLIC_SITE_URL)
-    throw new Error('PUBLIC_SITE_URL is required when MAIL_DRIVER is set');
-  sender();
-  if (driver === 'brevo' && !process.env.BREVO_API_KEY)
-    throw new Error('BREVO_API_KEY is required for the brevo driver');
+  const [message] = collectIssues(['MAIL_DRIVER', 'PUBLIC_SITE_URL', 'BREVO_API_KEY']);
+  if (message) throw new Error(message);
+  if (getMailDriver() !== null) sender();
 }

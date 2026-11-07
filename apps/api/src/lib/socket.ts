@@ -6,12 +6,11 @@ import { createClient } from 'redis';
 import { Server } from 'socket.io';
 
 import { isUuid } from '../domain/ids.js';
+import { getConfig } from './config.js';
 import { closeCounters } from './counters.js';
 import { logger } from './logger.js';
 import { closeOpsSessionStore, lookupSession, sessionIdFromCookieHeader } from './ops-session.js';
 import { OPS_ROOM } from './rooms.js';
-
-if (!process.env.REDIS_URL) throw new Error('REDIS_URL environment variable is required');
 
 // Only what shutdown() needs. The two createClient() call sites below infer
 // incompatible node-redis generics, so tracking them structurally keeps this list
@@ -47,7 +46,7 @@ let openClients: ClosableClient[] = [];
 // instead, so the Node-based test runner can exercise the adapter, rooms and emitter
 // without Bun. (The engine is imported lazily because it only loads under Bun.)
 export async function init(httpServer?: HttpServer): Promise<Server> {
-  const pubClient = createClient({ url: process.env.REDIS_URL });
+  const pubClient = createClient({ url: getConfig().REDIS_URL });
   const subClient = pubClient.duplicate();
   openClients.push(pubClient, subClient);
   pubClient.on('error', (err) => logger.error({ err }, 'Redis pub client error'));
@@ -156,7 +155,7 @@ export function getEmitter(): Emitter {
     // growth: node-redis would otherwise buffer every undelivered publish forever.
     // Failing fast is the right trade here — a notification nobody can receive is
     // meant to be dropped, and dropping it must never slow ticket processing down.
-    const client = createClient({ url: process.env.REDIS_URL, disableOfflineQueue: true });
+    const client = createClient({ url: getConfig().REDIS_URL, disableOfflineQueue: true });
     openClients.push(client);
     client.on('error', (err) => logger.error({ err }, 'Redis emitter client error'));
     emitterReady = client

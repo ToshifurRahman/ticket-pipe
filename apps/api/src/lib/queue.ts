@@ -7,6 +7,8 @@ import {
   SQSClient,
 } from '@aws-sdk/client-sqs';
 
+import { getConfig } from './config.js';
+
 export interface QueueMessage {
   ticketId: string;
   referenceNumber: string;
@@ -112,25 +114,30 @@ export class QueueService {
   }
 }
 
-if (!process.env.SQS_QUEUE_NAME) throw new Error('SQS_QUEUE_NAME environment variable is required');
-
-const queueService = new QueueService(
-  new SQSClient({
-    endpoint: process.env.SQS_ENDPOINT,
-    region: process.env.AWS_REGION ?? 'us-east-1',
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID ?? 'test',
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? 'test',
-    },
-  }),
-  process.env.SQS_QUEUE_NAME
-);
+let queueService: QueueService | undefined;
+function service(): QueueService {
+  if (!queueService) {
+    const config = getConfig();
+    queueService = new QueueService(
+      new SQSClient({
+        endpoint: config.SQS_ENDPOINT,
+        region: config.AWS_REGION,
+        credentials: {
+          accessKeyId: config.AWS_ACCESS_KEY_ID,
+          secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
+        },
+      }),
+      config.SQS_QUEUE_NAME
+    );
+  }
+  return queueService;
+}
 
 export const enqueueTicket = (ticketId: string, referenceNumber: string): Promise<void> =>
-  queueService.enqueue(ticketId, referenceNumber);
+  service().enqueue(ticketId, referenceNumber);
 
 export const receiveMessages = (options?: ReceiveMessagesOptions): Promise<QueueMessage[]> =>
-  queueService.receive(options);
+  service().receive(options);
 
 export const deleteMessage = (receiptHandle: string): Promise<void> =>
-  queueService.delete(receiptHandle);
+  service().delete(receiptHandle);

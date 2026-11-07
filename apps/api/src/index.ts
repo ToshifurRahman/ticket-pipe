@@ -1,3 +1,4 @@
+import { startupConfig } from './lib/config.js';
 import { pool } from './lib/db.js';
 import { assertLlmModeAllowed } from './lib/llm-client.js';
 import { logger } from './lib/logger.js';
@@ -11,10 +12,10 @@ export { app } from './app.js';
 export { logger };
 
 if (import.meta.main) {
+  const { PORT: port } = startupConfig();
   assertLlmModeAllowed();
   assertMailConfigured();
   assertOpsTokenConfigured();
-  const port = Number(process.env.PORT ?? 3000);
   initSocket()
     .then(() => {
       const server = startServer(port);
