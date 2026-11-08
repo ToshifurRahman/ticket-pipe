@@ -112,6 +112,7 @@ async function checkApp() {
     body: JSON.stringify({
       subject: 'Image smoke test',
       description: 'Checking that the production image processes a ticket end to end.',
+      turnstileToken: 'XXXX.DUMMY.TOKEN.XXXX',
     }),
   });
   if (res.status !== 201) fail(`POST /api/tickets returned ${res.status}: ${await res.text()}`);

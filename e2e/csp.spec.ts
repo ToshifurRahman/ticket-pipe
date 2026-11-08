@@ -9,6 +9,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { E2E_OPS_TOKEN } from './helpers/ops-session';
+import { TURNSTILE_DUMMY_TOKEN } from './helpers/turnstile';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -82,6 +83,7 @@ test('no CSP violation on the landing page, a signed-in /ops and a real ticket t
     data: {
       subject: 'CSP spec ticket',
       description: 'This ticket gives the CSP spec a real thread page with a live socket.',
+      turnstileToken: TURNSTILE_DUMMY_TOKEN,
     },
   });
   expect(created.status()).toBe(201);

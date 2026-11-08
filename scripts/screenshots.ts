@@ -115,7 +115,7 @@ async function seed() {
     const res = await fetch(`${BASE}/api/tickets`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(ticket),
+      body: JSON.stringify({ ...ticket, turnstileToken: 'XXXX.DUMMY.TOKEN.XXXX' }),
     });
     created.push(((await res.json()) as { ticketId: string }).ticketId);
   }

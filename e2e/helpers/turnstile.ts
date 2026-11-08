@@ -1,11 +1,14 @@
 import type { Page } from '@playwright/test';
 
 // Cloudflare's script is replaced by a stub that passes at once, so the run is offline and
-// deterministic. The real widget (test site key) is checked by hand in dev.
+// deterministic. The token is Cloudflare's documented dummy, which the test secret accepts
+// through the real siteverify call the API now makes.
+export const TURNSTILE_DUMMY_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX';
+
 const TURNSTILE_STUB = `
   window.turnstile = {
-    render(el, opts) { this.cb = opts.callback; setTimeout(() => this.cb('e2e-token')); return 'w1'; },
-    reset() { setTimeout(() => this.cb && this.cb('e2e-token')); },
+    render(el, opts) { this.cb = opts.callback; setTimeout(() => this.cb('${TURNSTILE_DUMMY_TOKEN}')); return 'w1'; },
+    reset() { setTimeout(() => this.cb && this.cb('${TURNSTILE_DUMMY_TOKEN}')); },
     remove() {},
   };
 `;

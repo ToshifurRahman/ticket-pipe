@@ -5,7 +5,7 @@ import { removeTicket } from './helpers/cleanup-ticket';
 import { asClient } from './helpers/client-ip';
 import { linkIn, uniqueAddress, waitForMail } from './helpers/mailpit';
 import { E2E_OPS_TOKEN, opsCookie } from './helpers/ops-session';
-import { stubTurnstile } from './helpers/turnstile';
+import { stubTurnstile, TURNSTILE_DUMMY_TOKEN } from './helpers/turnstile';
 
 // Story 6.8: every page and its key states must have no axe violations at
 // WCAG 2.1 AA, with no horizontal scroll at 360px, and a sensible keyboard order. Contrast is
@@ -29,7 +29,9 @@ async function seedTicket(
   description: string,
   status: string
 ) {
-  const res = await api.post('/api/tickets', { data: { subject, description } });
+  const res = await api.post('/api/tickets', {
+    data: { subject, description, turnstileToken: TURNSTILE_DUMMY_TOKEN },
+  });
   expect(res.status()).toBe(201);
   const { ticketId, referenceNumber } = (await res.json()) as {
     ticketId: string;
@@ -78,6 +80,7 @@ async function optedInTicket(page: Page) {
     data: {
       subject: 'Accessibility check, email',
       description: 'The totals on my invoice do not add up. [fake:invalid-triage]',
+      turnstileToken: TURNSTILE_DUMMY_TOKEN,
     },
   });
   const { ticketId, referenceNumber } = (await res.json()) as {
@@ -89,7 +92,7 @@ async function optedInTicket(page: Page) {
   expect(
     (
       await page.request.post(`/api/tickets/${ticketId}/notification`, {
-        data: { email: address },
+        data: { email: address, turnstileToken: TURNSTILE_DUMMY_TOKEN },
         headers: asClient(),
       })
     ).status()
