@@ -186,15 +186,15 @@ test('allowed hosts run and frames load; another host is blocked in both directi
     page.frameLocator('iframe[src="https://example.com/evil-frame"]').locator('body')
   ).not.toHaveText('evil frame');
 
-  // 7. A React inline style attribute still applies.
+  // 7. A style attribute that CSP governs still applies. An element built with innerHTML
+  // forces the browser to parse a style attribute (React sets style through the CSSOM, which
+  // CSP does not govern), and margin-top: 37px is distinguishable from the 0px default.
   const applied = await page.evaluate(() => {
-    const element = [...document.querySelectorAll<HTMLElement>('[style]')].find(
-      (el) => (el.getAttribute('style') ?? '').trim().length > 0
-    );
-    if (!element) return null;
-    const property = (element.getAttribute('style') ?? '').split(':')[0].trim();
-    return { property, value: getComputedStyle(element).getPropertyValue(property) };
+    const host = document.createElement('div');
+    host.innerHTML = '<span id="csp-style-probe" style="margin-top: 37px">probe</span>';
+    document.body.appendChild(host);
+    const probe = document.getElementById('csp-style-probe');
+    return probe ? getComputedStyle(probe).marginTop : null;
   });
-  expect(applied).not.toBeNull();
-  expect(applied?.value).toBeTruthy();
+  expect(applied).toBe('37px');
 });
