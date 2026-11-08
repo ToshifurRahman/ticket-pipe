@@ -86,8 +86,14 @@ test('no CSP violation on the landing page, a signed-in /ops and a real ticket t
   });
   expect(created.status()).toBe(201);
   const { referenceNumber } = (await created.json()) as { referenceNumber: string };
+  const socketConnected = page.waitForEvent('websocket', {
+    predicate: (ws) => ws.url().includes('/socket.io/'),
+    timeout: 20_000,
+  });
   await page.goto(`/t/${referenceNumber}`);
   await expect(page.getByRole('heading', { name: 'CSP spec ticket' })).toBeVisible();
+  const socket = await socketConnected;
+  expect(socket.isClosed()).toBe(false);
   await expectNoViolations(page, 'thread');
 });
 

@@ -67,6 +67,13 @@ describe('Node transport origin gate', () => {
       });
       expect(handshake.status).toBe(200);
       expect(handshake.headers.get('access-control-allow-origin')).toBe(base);
+
+      // A refused Origin must not be reflected by the cors callback either.
+      const foreignHandshake = await fetch(`${base}/socket.io/?EIO=4&transport=polling`, {
+        headers: { origin: 'https://evil.test' },
+      });
+      expect(foreignHandshake.status).toBe(403);
+      expect(foreignHandshake.headers.get('access-control-allow-origin')).toBeNull();
     } finally {
       await new Promise<void>((resolve) => {
         void io.close(() => resolve());

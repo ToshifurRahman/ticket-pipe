@@ -35,8 +35,10 @@ export function isOriginAllowed(
   }
 
   // A production image with no PUBLIC_SITE_URL still serves its own pages: the browser then
-  // sends an Origin whose host equals the request's Host header.
-  if (!siteUrl && requestHost !== undefined && parsed.host === requestHost) return true;
+  // sends an Origin whose host equals the request's Host header. URL parsing lower-cases the
+  // Origin, so the raw Host is lower-cased too.
+  if (!siteUrl && requestHost !== undefined && parsed.host === requestHost.toLowerCase())
+    return true;
 
   return false;
 }

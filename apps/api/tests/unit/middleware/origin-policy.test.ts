@@ -52,6 +52,12 @@ describe('isOriginAllowed', () => {
     expect(isOriginAllowed('https://relay.test:8443', 'relay.test:8443')).toBe(true);
   });
 
+  it('matches the request Host case-insensitively when PUBLIC_SITE_URL is unset', () => {
+    config({ NODE_ENV: 'production' });
+    expect(isOriginAllowed('https://relay.test', 'RELAY.TEST')).toBe(true);
+    expect(isOriginAllowed('https://relay.test', 'Relay.Test:8443')).toBe(false);
+  });
+
   it('rejects a host-equal Origin when PUBLIC_SITE_URL names another origin', () => {
     config({ PUBLIC_SITE_URL: 'https://relay.test', NODE_ENV: 'production' });
     expect(isOriginAllowed('https://other.test', 'other.test')).toBe(false);

@@ -38,14 +38,6 @@ let emitterReady: Promise<void> = Promise.resolve();
 // Every Redis client this module opens, registered so shutdown() can close it.
 let openClients: ClosableClient[] = [];
 
-// Both the adapter (here) and the emitter (worker.ts, a separate process) rely on
-// the default `socket.io` Redis key prefix to agree with each other. Don't pass a
-// custom `key` to either side — it's a cross-process contract that isn't type-checked.
-//
-// Production passes nothing: Socket.io is bound to the Bun-native engine, which server.ts
-// wires into Bun.serve. Passing a Node `http.Server` attaches the standard transport
-// instead, so the Node-based test runner can exercise the adapter, rooms and emitter
-// without Bun. (The engine is imported lazily because it only loads under Bun.)
 // The Node transport used by tests: allowRequest is the gate, and the same decision feeds the
 // cors option so a browser's cross-site handshake is refused at both layers. Exported so a
 // unit test can start a plain Node Server and see the refusal without Redis or the app.
@@ -80,6 +72,14 @@ export function bunEngineOptions() {
   };
 }
 
+// Both the adapter (here) and the emitter (worker.ts, a separate process) rely on
+// the default `socket.io` Redis key prefix to agree with each other. Don't pass a
+// custom `key` to either side — it's a cross-process contract that isn't type-checked.
+//
+// Production passes nothing: Socket.io is bound to the Bun-native engine, which server.ts
+// wires into Bun.serve. Passing a Node `http.Server` attaches the standard transport
+// instead, so the Node-based test runner can exercise the adapter, rooms and emitter
+// without Bun. (The engine is imported lazily because it only loads under Bun.)
 export async function init(httpServer?: HttpServer): Promise<Server> {
   const pubClient = createClient({ url: getConfig().REDIS_URL });
   const subClient = pubClient.duplicate();

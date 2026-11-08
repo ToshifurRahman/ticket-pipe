@@ -10,9 +10,10 @@ export const CSP_DIRECTIVES = {
     'https://static.cloudflareinsights.com',
   ],
   scriptSrcAttr: ["'none'"],
-  // The two hashes are the inline <style> elements the ops console renders (the browser log
-  // shows style-src-elem violations from the feed-status chunk); a hash keeps style-src free
-  // of 'unsafe-inline'.
+  // /ops renders sonner's toast stylesheet as an inline <style>: sonner/dist/index.mjs
+  // __insertCSS() creates a style element and inserts that CSS, whose sha256 is the StEaX
+  // hash below; Chrome also reports the element while it is empty (47DEQ... is sha256 of "").
+  // Hashing them keeps style-src free of 'unsafe-inline'.
   styleSrc: [
     "'self'",
     "'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='",
