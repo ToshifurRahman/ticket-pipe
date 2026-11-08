@@ -25,6 +25,20 @@ import type { CreateTicketResponse } from '../types';
 
 const FIELDS = ['subject', 'description'] as const;
 
+// Shown when the API refuses without an explanation (403 bot check, 429 limit, 503 outage).
+const REFUSAL_FALLBACK: Record<number, string> = {
+  403: "We couldn't verify your request. Please try again.",
+  429: "You've sent several tickets recently. Please try again in about an hour.",
+  503: "We can't accept new requests right now. Please try again shortly.",
+};
+
+function refusalMessage(error: unknown, status: number): string | null {
+  const fallback = REFUSAL_FALLBACK[status];
+  if (!fallback) return null;
+  const serverError = (error as { body?: { error?: unknown } }).body?.error;
+  return typeof serverError === 'string' && serverError.trim() ? serverError : fallback;
+}
+
 type TicketFormProps = {
   onCreated: (ticket: CreateTicketResponse, subject: string) => void;
 };
@@ -56,15 +70,17 @@ export function TicketForm({ onCreated }: TicketFormProps) {
       });
       onCreated(ticket, subject);
     } catch (error) {
+      const status = error instanceof ApiError ? error.status : 0;
       const fieldErrors =
         error instanceof ApiError && error.status === 400 ? error.fieldErrors : null;
       const known = FIELDS.filter((f) => typeof fieldErrors?.[f] === 'string');
+      const refusal = known.length === 0 ? refusalMessage(error, status) : null;
       if (known.length > 0) {
         known.forEach((f, i) =>
           form.setError(f, { message: fieldErrors![f] }, { shouldFocus: i === 0 })
         );
       } else {
-        setSubmitError("We couldn't send your ticket. Please try again.");
+        setSubmitError(refusal ?? "We couldn't send your ticket. Please try again.");
       }
     } finally {
       // A Turnstile token is single-use, so every attempt needs a fresh one.
