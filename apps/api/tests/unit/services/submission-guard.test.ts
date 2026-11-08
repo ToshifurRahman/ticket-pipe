@@ -89,7 +89,7 @@ describe('checkDailyCap', () => {
     );
   });
 
-  it('never counts down to zero or below', async () => {
+  it('refuses the first submission when TICKET_DAILY_CAP is 0', async () => {
     process.env.TICKET_DAILY_CAP = '0';
     counters.hitWithin.mockResolvedValue(1);
     expect((await refusal(checkDailyCap(NOW))).status).toBe(429);

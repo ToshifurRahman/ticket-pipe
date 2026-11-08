@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { logger } from '../../../src/lib/logger.js';
 import {
   TURNSTILE_TIMEOUT_MS,
   TURNSTILE_VERIFY_URL,
@@ -17,6 +18,8 @@ function stubFetch(answer: Answer | ((init: RequestInit) => Answer)) {
     (input: string | URL | Request, init: RequestInit = {}): Promise<Response> => {
       const url =
         typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      // Only siteverify is answered here; every other URL goes to the real fetch.
+      if (url !== TURNSTILE_VERIFY_URL) return realFetch(input, init);
       calls.push({ url, init });
       const result = typeof answer === 'function' ? answer(init) : answer;
       return result instanceof Error ? Promise.reject(result) : Promise.resolve(result);
@@ -98,6 +101,30 @@ describe('verifyTurnstile', () => {
   it('treats an empty failure list as an outage', async () => {
     stubFetch(json({ success: false, 'error-codes': [] }));
     expect(await verifyTurnstile('token-1', 'local')).toBe('unavailable');
+  });
+
+  it('treats success:false with no error-codes as an outage', async () => {
+    stubFetch(json({ success: false }));
+    expect(await verifyTurnstile('token-1', 'local')).toBe('unavailable');
+  });
+
+  it('treats a null JSON body as an outage', async () => {
+    stubFetch(json(null));
+    expect(await verifyTurnstile('token-1', 'local')).toBe('unavailable');
+  });
+
+  it('logs a failure without the token or the secret', async () => {
+    const spy = vi.spyOn(logger, 'error');
+    try {
+      stubFetch(json({ success: false, 'error-codes': ['invalid-input-secret'] }));
+      expect(await verifyTurnstile('secret-token-value', '203.0.113.7')).toBe('unavailable');
+      const logged = JSON.stringify(spy.mock.calls);
+      expect(spy).toHaveBeenCalled();
+      expect(logged).not.toContain('secret-token-value');
+      expect(logged).not.toContain('1x0000000000000000000000000000000AA');
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('treats a non-200 status as an outage', async () => {

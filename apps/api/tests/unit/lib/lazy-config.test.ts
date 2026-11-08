@@ -49,6 +49,7 @@ const MODULES = [
   '../../../src/lib/counters.js',
   '../../../src/lib/llm-client.js',
   '../../../src/lib/ops-session.js',
+  '../../../src/lib/turnstile.js',
   '../../../src/services/ops-alerts.js',
   '../../../src/services/customer-notifications.js',
 ];
@@ -92,6 +93,14 @@ describe('db pool', () => {
     expect('nope' in pool).toBe(false);
     pool.on('error', () => undefined);
     expect(mocks.pools).toHaveLength(1);
+  });
+});
+
+describe('turnstile verifier', () => {
+  it('does not read the environment when it is imported', async () => {
+    mocks.getConfig.mockClear();
+    await import('../../../src/lib/turnstile.js');
+    expect(mocks.getConfig).not.toHaveBeenCalled();
   });
 });
 
