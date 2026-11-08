@@ -1,7 +1,7 @@
 import type { Server as Engine } from '@socket.io/bun-engine';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Emitter } from '@socket.io/redis-emitter';
-import type { Server as HttpServer } from 'http';
+import type { IncomingMessage, Server as HttpServer } from 'http';
 import { createClient } from 'redis';
 import { Server } from 'socket.io';
 
@@ -46,6 +46,40 @@ let openClients: ClosableClient[] = [];
 // wires into Bun.serve. Passing a Node `http.Server` attaches the standard transport
 // instead, so the Node-based test runner can exercise the adapter, rooms and emitter
 // without Bun. (The engine is imported lazily because it only loads under Bun.)
+// The Node transport used by tests: allowRequest is the gate, and the same decision feeds the
+// cors option so a browser's cross-site handshake is refused at both layers. Exported so a
+// unit test can start a plain Node Server and see the refusal without Redis or the app.
+export function nodeTransportOptions() {
+  return {
+    cors: {
+      origin: (
+        origin: string | undefined,
+        callback: (err: Error | null, allow?: boolean) => void
+      ) => callback(null, isOriginAllowed(origin, undefined)),
+      methods: ['GET', 'POST'],
+    },
+    allowRequest: (
+      req: IncomingMessage,
+      callback: (err: string | null, success: boolean) => void
+    ) => {
+      callback(null, isOriginAllowed(req.headers.origin, req.headers.host));
+    },
+  };
+}
+
+// The engine's cors option takes no function (see node_modules/@socket.io/bun-engine), so
+// allowRequest carries the decision. The HTTP route in app.ts already refuses a foreign
+// Origin before the engine sees it; this is the second gate.
+export function bunEngineOptions() {
+  return {
+    path: '/socket.io/',
+    allowRequest: (req: Request): Promise<void> =>
+      isOriginAllowed(req.headers.get('origin') ?? undefined, req.headers.get('host') ?? undefined)
+        ? Promise.resolve()
+        : Promise.reject(new Error('Origin not allowed')),
+  };
+}
+
 export async function init(httpServer?: HttpServer): Promise<Server> {
   const pubClient = createClient({ url: getConfig().REDIS_URL });
   const subClient = pubClient.duplicate();
@@ -55,32 +89,10 @@ export async function init(httpServer?: HttpServer): Promise<Server> {
   await Promise.all([pubClient.connect(), subClient.connect()]);
 
   if (httpServer) {
-    // The Node transport used by tests: allowRequest is the gate, and the same decision feeds
-    // the cors option so a browser's cross-site handshake is refused at both layers.
-    io = new Server(httpServer, {
-      cors: {
-        origin: (origin, callback) => callback(null, isOriginAllowed(origin, undefined)),
-        methods: ['GET', 'POST'],
-      },
-      allowRequest: (req, callback) => {
-        callback(null, isOriginAllowed(req.headers.origin, req.headers.host));
-      },
-    });
+    io = new Server(httpServer, nodeTransportOptions());
   } else {
     const { Server: BunEngine } = await import('@socket.io/bun-engine');
-    // The engine's cors option takes no function (see node_modules/@socket.io/bun-engine), so
-    // allowRequest carries the decision. The HTTP route in app.ts already refuses a foreign
-    // Origin before the engine sees it; this is the second gate.
-    engine = new BunEngine({
-      path: '/socket.io/',
-      allowRequest: (req) =>
-        isOriginAllowed(
-          req.headers.get('origin') ?? undefined,
-          req.headers.get('host') ?? undefined
-        )
-          ? Promise.resolve()
-          : Promise.reject(new Error('Origin not allowed')),
-    });
+    engine = new BunEngine(bunEngineOptions());
     io = new Server();
     io.bind(engine);
   }
