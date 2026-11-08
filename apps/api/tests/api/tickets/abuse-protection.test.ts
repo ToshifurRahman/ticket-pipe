@@ -11,8 +11,15 @@ vi.mock('../../../src/lib/queue.js', async (importOriginal) => ({
   enqueueTicket: vi.fn(() => Promise.resolve('message-id')),
 }));
 
+// hitWithin delegates to the real counter unless a test says otherwise, so a Redis outage can be
+// driven at the route without touching the shared connection.
+vi.mock('../../../src/lib/counters.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../../src/lib/counters.js')>();
+  return { ...real, hitWithin: vi.fn(real.hitWithin) };
+});
+
 import { app } from '../../../src/app.js';
-import { closeCounters } from '../../../src/lib/counters.js';
+import { closeCounters, hitWithin } from '../../../src/lib/counters.js';
 import { pool } from '../../../src/lib/db.js';
 import { sentMail } from '../../../src/lib/mailer.js';
 import { enqueueTicket } from '../../../src/lib/queue.js';
@@ -26,6 +33,15 @@ process.env.MAIL_DRIVER = 'memory';
 process.env.MAIL_FROM = 'relay@example.test';
 process.env.PUBLIC_SITE_URL = 'https://relay.test';
 process.env.MAIL_DAILY_CAP = '1000000';
+
+// The one network call this file would otherwise make is the setup file's stub; keep the real
+// fetch so a test's own stub can pass non-siteverify URLs through.
+const realFetch = globalThis.fetch;
+
+// A UTC day no other suite can use. With only Date faked, the day key is isolated from every
+// other file's POST while real timers keep Redis and Postgres working.
+const ISOLATED_DAY = new Date('2099-06-15T12:00:00.000Z');
+const ISOLATED_DAY_KEY = `tickets:day:${ISOLATED_DAY.toISOString().slice(0, 10)}`;
 
 const created: string[] = [];
 const createdSubjects: string[] = [];
@@ -53,6 +69,24 @@ const validBody = (name = subject()) => ({
   turnstileToken: TOKEN,
 });
 
+function urlOf(input: string | URL | Request): string {
+  if (typeof input === 'string') return input;
+  if (input instanceof URL) return input.toString();
+  return input.url;
+}
+
+/** Siteverify answers with `body`; every other URL goes to the real fetch. */
+function stubSiteVerify(body: () => Response | Promise<Response>): void {
+  vi.stubGlobal('fetch', (input: string | URL | Request, init?: RequestInit) =>
+    urlOf(input) === SITEVERIFY_URL ? body() : realFetch(input, init)
+  );
+}
+
+function isolateDay(): void {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(ISOLATED_DAY);
+}
+
 async function rowsFor(name: string): Promise<number> {
   const { rows } = await pool.query<{ count: string }>(
     'SELECT count(*)::text AS count FROM tickets WHERE subject = $1',
@@ -76,17 +110,22 @@ beforeEach(async () => {
     await redis.connect();
   }
   vi.mocked(enqueueTicket).mockClear();
+  vi.mocked(hitWithin).mockClear();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
   process.env.TICKET_IP_HOURLY_LIMIT = '100000';
   process.env.TICKET_DAILY_CAP = '100000';
+  if (redis?.isOpen) await redis.del(ISOLATED_DAY_KEY);
 });
 
 afterAll(async () => {
   await purgeTicketEvents(created);
   await pool.query('DELETE FROM tickets WHERE id = ANY($1::uuid[])', [created]);
   await pool.query('DELETE FROM tickets WHERE subject = ANY($1::text[])', [createdSubjects]);
+  await redis?.del(ISOLATED_DAY_KEY);
   await redis?.quit();
   await pool.end();
   await closeCounters();
@@ -112,7 +151,34 @@ describe('POST /api/tickets with a missing or invalid token', () => {
     expect(res.status).toBe(403);
   });
 
+  it('answers 403 for a token siteverify refuses, and does no work', async () => {
+    isolateDay();
+    await redis.del(dayKey());
+    const before = await redis.get(dayKey());
+    const enqueued = vi.mocked(enqueueTicket).mock.calls.length;
+    stubSiteVerify(
+      () =>
+        new Response(
+          JSON.stringify({ success: false, 'error-codes': ['invalid-input-response'] }),
+          {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          }
+        )
+    );
+
+    const name = subject();
+    const res = await post({ ...validBody(name) }, freshIp());
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: "We couldn't verify your request. Please try again." });
+    expect(await rowsFor(name)).toBe(0);
+    expect(await aiRowsFor(name)).toBe(0);
+    expect(vi.mocked(enqueueTicket).mock.calls.length).toBe(enqueued);
+    expect(await redis.get(dayKey())).toBe(before);
+  });
+
   it('does not move the daily counter when it refuses for the token', async () => {
+    isolateDay();
     await redis.del(dayKey());
     await post(
       { subject: subject(), description: 'A description long enough to pass the minimum.' },
@@ -121,9 +187,10 @@ describe('POST /api/tickets with a missing or invalid token', () => {
     expect(await redis.get(dayKey())).toBeNull();
   });
 
-  it('does not refuse an over-long token with 400 or 403 on the valid-token path', async () => {
+  it('rejects a token over 4096 characters with 400 before any limit is counted', async () => {
     const res = await post({ ...validBody(), turnstileToken: 'x'.repeat(4097) }, freshIp());
     expect(res.status).toBe(400);
+    expect(res.body).toEqual({ errors: { turnstileToken: expect.any(String) as string } });
   });
 });
 
@@ -185,6 +252,7 @@ describe('per-IP limit', () => {
 
 describe('daily cap', () => {
   it('refuses past the cap, enqueues nothing and costs no AI call', async () => {
+    isolateDay();
     process.env.TICKET_DAILY_CAP = '2';
     await redis.del(dayKey());
 
@@ -217,7 +285,8 @@ describe('daily cap', () => {
     expect(await redis.get(dayKey())).toBe('3');
   });
 
-  it('explains the refusal when the cap is zero', async () => {
+  it('refuses the first submission when TICKET_DAILY_CAP is 0', async () => {
+    isolateDay();
     process.env.TICKET_DAILY_CAP = '0';
     await redis.del(dayKey());
     const res = await post(validBody(), freshIp());
@@ -228,19 +297,59 @@ describe('daily cap', () => {
 describe('dependency failures', () => {
   it('answers 503 and creates nothing when siteverify fails', async () => {
     const name = subject();
-    vi.stubGlobal('fetch', (input: string | URL | Request): Promise<Response> => {
-      const url =
-        typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-      if (url === SITEVERIFY_URL) return Promise.resolve(new Response('boom', { status: 500 }));
-      return Promise.reject(new Error(`unexpected fetch ${url}`));
-    });
+    stubSiteVerify(() => new Response('boom', { status: 500 }));
     const res = await post(validBody(name), freshIp());
     expect(res.status).toBe(503);
     expect(res.body).toEqual({
       error: "We can't accept new requests right now. Please try again shortly.",
     });
     expect(await rowsFor(name)).toBe(0);
-    vi.unstubAllGlobals();
+  });
+
+  it('answers 503 when the siteverify body is not JSON', async () => {
+    const name = subject();
+    stubSiteVerify(() => new Response('<html>nope</html>', { status: 200 }));
+    const res = await post(validBody(name), freshIp());
+    expect(res.status).toBe(503);
+    expect(await rowsFor(name)).toBe(0);
+  });
+
+  it('answers 503 within the timeout when siteverify never answers', async () => {
+    const name = subject();
+    vi.stubGlobal(
+      'fetch',
+      (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+        if (urlOf(input) !== SITEVERIFY_URL) return realFetch(input, init);
+        return new Promise<Response>((_, reject) => {
+          init?.signal?.addEventListener('abort', () =>
+            reject(new DOMException('The operation was aborted.', 'TimeoutError'))
+          );
+        });
+      }
+    );
+    const started = Date.now();
+    const res = await post(validBody(name), freshIp());
+    expect(res.status).toBe(503);
+    expect(await rowsFor(name)).toBe(0);
+    expect(Date.now() - started).toBeLessThan(8000);
+  }, 20000);
+
+  it('answers 503 within the counter timeout when Redis is unreachable', async () => {
+    const name = subject();
+    vi.mocked(hitWithin).mockImplementationOnce(
+      () =>
+        new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Counter did not answer within 2000ms')), 50);
+        })
+    );
+    const started = Date.now();
+    const res = await post(validBody(name), freshIp());
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({
+      error: "We can't accept new requests right now. Please try again shortly.",
+    });
+    expect(await rowsFor(name)).toBe(0);
+    expect(Date.now() - started).toBeLessThan(5000);
   });
 });
 
@@ -281,11 +390,42 @@ describe('POST /api/tickets/:id/notification', () => {
     expect(sentMail).toEqual([]);
   });
 
+  it('refuses a token siteverify rejects with 403 and sends nothing', async () => {
+    const t = await ticket();
+    stubSiteVerify(
+      () =>
+        new Response(
+          JSON.stringify({ success: false, 'error-codes': ['invalid-input-response'] }),
+          {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          }
+        )
+    );
+    const res = await optIn(t.id, { email: 'someone@example.test', turnstileToken: TOKEN });
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: "We couldn't verify your request. Please try again." });
+    expect(await notificationRows(t.id)).toBe(0);
+    expect(sentMail).toEqual([]);
+  });
+
   it('validates the body before the token', async () => {
     const t = await ticket();
     const res = await optIn(t.id, { email: `${'a'.repeat(300)}@example.test` });
     expect(res.status).toBe(400);
     expect(await notificationRows(t.id)).toBe(0);
+  });
+
+  it('answers 503 and sends nothing when siteverify is unavailable', async () => {
+    const t = await ticket();
+    stubSiteVerify(() => new Response('boom', { status: 500 }));
+    const res = await optIn(t.id, { email: 'someone@example.test', turnstileToken: TOKEN });
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({
+      error: "We can't accept new requests right now. Please try again shortly.",
+    });
+    expect(await notificationRows(t.id)).toBe(0);
+    expect(sentMail).toEqual([]);
   });
 
   it('accepts a verified token', async () => {
