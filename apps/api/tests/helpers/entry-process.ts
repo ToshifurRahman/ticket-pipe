@@ -171,6 +171,8 @@ export async function createTicket(entry: EntryProcess): Promise<string> {
     body: JSON.stringify({
       subject: 'Entry point check',
       description: 'This ticket checks which process picks the work up and how it stops.',
+      // The spawned process has no fetch stub: this is Cloudflare's always-pass dummy token.
+      turnstileToken: 'XXXX.DUMMY.TOKEN.XXXX',
     }),
   });
   if (res.status !== 201) throw new Error(`ticket not created (${res.status})`);

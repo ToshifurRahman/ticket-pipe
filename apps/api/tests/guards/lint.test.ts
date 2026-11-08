@@ -91,6 +91,7 @@ it('keeps only infrastructure clients in lib/', () => {
       'rooms.ts',
       'sns.ts',
       'socket.ts',
+      'turnstile.ts',
     ].sort()
   );
 });

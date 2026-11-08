@@ -32,6 +32,32 @@ export async function hit(key: string, windowSeconds: number): Promise<number> {
   return count;
 }
 
+// The request path cannot wait on a dependency that may never answer (story 7.5).
+export const COUNTER_TIMEOUT_MS = 2000;
+
+/**
+ * Like `hit`, but rejects when Redis does not answer within `timeoutMs`. The lazy client queues
+ * commands while it is disconnected, so a plain `hit` can hang forever during an outage.
+ */
+export async function hitWithin(
+  key: string,
+  windowSeconds: number,
+  timeoutMs = COUNTER_TIMEOUT_MS
+): Promise<number> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`Counter "${key}" did not answer within ${timeoutMs}ms`)),
+      timeoutMs
+    );
+  });
+  try {
+    return await Promise.race([hit(key, windowSeconds), timedOut]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function closeCounters(): Promise<void> {
   const current = client;
   client = null;

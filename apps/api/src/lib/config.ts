@@ -7,6 +7,9 @@ import { z } from 'zod';
 // Importing this module, or any module that uses it, never throws.
 
 export const MIN_PRODUCTION_OPS_TOKEN_LENGTH = 32;
+// Cloudflare's published always-pass secret. Used outside production so dev and tests keep
+// working without a key; production is refused without a real one (TURNSTILE_SECRET_KEY rule).
+export const TURNSTILE_TEST_SECRET = '1x0000000000000000000000000000000AA';
 const MAIL_DRIVERS = ['brevo', 'smtp', 'memory'] as const;
 const GATEWAYS = ['google', 'groq'] as const;
 
@@ -59,6 +62,8 @@ const fields = z.object({
   PUBLIC_SITE_URL: optional(),
   NODE_ENV: optional(),
   TURNSTILE_SECRET_KEY: optional(),
+  TICKET_IP_HOURLY_LIMIT: integer(1).default(15),
+  TICKET_DAILY_CAP: integer(0).default(100),
 });
 
 type Fields = z.output<typeof fields>;
@@ -104,6 +109,12 @@ const RULES: Array<[string, string | ((env: Fields) => string), (env: Fields) =>
       env.NODE_ENV === 'production' &&
       (env.OPS_TOKEN?.length ?? 0) < MIN_PRODUCTION_OPS_TOKEN_LENGTH,
   ],
+  // Story 7.5: production traffic must never be let through unverified.
+  [
+    'TURNSTILE_SECRET_KEY',
+    'required when NODE_ENV=production',
+    (env) => env.NODE_ENV === 'production' && !env.TURNSTILE_SECRET_KEY,
+  ],
   // PA-7.3-02: real AWS needs real keys. Only a local endpoint (LocalStack) may use 'test'.
   [
     'AWS_ACCESS_KEY_ID',
@@ -136,6 +147,7 @@ const derive = (env: Fields) => ({
   AWS_ACCESS_KEY_ID: env.AWS_ACCESS_KEY_ID ?? 'test',
   AWS_SECRET_ACCESS_KEY: env.AWS_SECRET_ACCESS_KEY ?? 'test',
   SQS_DLQ_NAME: env.SQS_DLQ_NAME ?? `${env.SQS_QUEUE_NAME}-dlq`,
+  TURNSTILE_SECRET_KEY: env.TURNSTILE_SECRET_KEY ?? TURNSTILE_TEST_SECRET,
 });
 
 const envSchema = checked.transform(derive);

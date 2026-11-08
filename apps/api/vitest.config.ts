@@ -24,6 +24,9 @@ const env = {
   OPS_TOKEN: 'test-ops-token',
   GOOGLE_API_KEY: 'test-google-key',
   SQS_QUEUE_NAME: 'ticket-processing-test',
+  // Abuse protection defaults are small; suites that are not about it must never be throttled.
+  TICKET_IP_HOURLY_LIMIT: '100000',
+  TICKET_DAILY_CAP: '100000',
 };
 
 // `unit` needs no Docker: every infra URL points at a closed port, so a test that reaches for
@@ -58,6 +61,7 @@ export default defineConfig({
         test: {
           name: 'integration',
           include: ['tests/{integration,api}/**/*.test.ts'],
+          setupFiles: ['tests/setup/siteverify.ts'],
           env,
         },
       },

@@ -20,6 +20,7 @@ import type {
 import opsRequest from '../../helpers/ops-session.js';
 import { purgeTicketEvents } from '../../helpers/purge-ticket-events.js';
 import request from '../../helpers/request.js';
+import { TOKEN } from '../../helpers/siteverify.js';
 
 process.env.MAIL_DRIVER = 'memory';
 process.env.MAIL_FROM = 'relay@example.test';
@@ -48,7 +49,10 @@ async function ticket() {
   return t;
 }
 const optIn = (id: string, body: unknown) =>
-  request(app).post(`/api/tickets/${id}/notification`).set('x-forwarded-for', freshIp()).send(body);
+  request(app)
+    .post(`/api/tickets/${id}/notification`)
+    .set('x-forwarded-for', freshIp())
+    .send({ turnstileToken: TOKEN, ...(body as object) });
 
 const GOOD_SUBJECT = 'A valid subject line';
 const GOOD_DESCRIPTION = 'A valid description that is long enough to pass the minimum.';
