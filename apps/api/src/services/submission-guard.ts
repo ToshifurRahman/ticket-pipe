@@ -27,8 +27,8 @@ export class SubmissionRefused extends Error {
   }
 }
 
-const HOUR_MS = 3600;
-const DAILY_WINDOW_SECONDS = 86400 + HOUR_MS;
+const HOUR_SECONDS = 3600;
+const DAILY_WINDOW_SECONDS = 86400 + HOUR_SECONDS;
 const SECONDS_PER_DAY = 86400;
 
 // The hour is part of the key because `hit` sets the expiry in a second command: a key left
@@ -52,9 +52,9 @@ async function count(key: string, windowSeconds: number): Promise<number> {
 
 /** Counts this address in the current UTC hour and refuses once it is past the limit. */
 export async function checkIpLimit(ip: string, now: Date = new Date()): Promise<void> {
-  const countInHour = await count(hourKey(ip, now), HOUR_MS);
+  const countInHour = await count(hourKey(ip, now), HOUR_SECONDS);
   if (countInHour > getConfig().TICKET_IP_HOURLY_LIMIT) {
-    throw new SubmissionRefused(429, REFUSAL_MESSAGES.ipLimit, HOUR_MS);
+    throw new SubmissionRefused(429, REFUSAL_MESSAGES.ipLimit, HOUR_SECONDS);
   }
 }
 
@@ -65,7 +65,7 @@ export async function checkDailyCap(now: Date = new Date()): Promise<void> {
     throw new SubmissionRefused(
       429,
       REFUSAL_MESSAGES.dailyCap,
-      Math.min(SECONDS_PER_DAY + HOUR_MS, secondsUntilUtcMidnight(now))
+      Math.min(SECONDS_PER_DAY + HOUR_SECONDS, secondsUntilUtcMidnight(now))
     );
   }
 }
