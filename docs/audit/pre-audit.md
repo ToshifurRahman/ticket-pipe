@@ -264,9 +264,9 @@ ClickUp `z8py7adu7a`, `backlog`. Comment from 6.7: the CSP must allow the analyt
 
 ### Missing
 
-- Security headers and a CSP. There is no `secure-headers` or `cors` use in `apps/api/src`.
-- CORS policy for HTTP (same-origin by default, so possibly nothing to add).
-- A test that pins the headers.
+- Nothing from this story: security headers and the CSP are in
+  `apps/api/src/middleware/security-headers.ts`, the origin policy is in
+  `apps/api/src/middleware/origin-policy.ts`, and tests pin both.
 
 ### Stale assumptions
 
@@ -291,12 +291,12 @@ ClickUp `z8py7adu7a`, `backlog`. Comment from 6.7: the CSP must allow the analyt
 
 | ID        | Severity | Location                                         | Evidence                                                                                                                                                                | Fix or accepted-risk reason                                                                                              | Status |
 | --------- | -------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------ |
-| PA-7.4-01 | High     | Story text; `turnstile.tsx:3`; `analytics.tsx:3` | CSP allow-list omits `frame-src` for `challenges.cloudflare.com`; sockets need `connect-src` `'self'` and `wss:`; React inline `style` attributes need `style-src-attr` | Write the CSP from a real browser run with Turnstile and analytics on; add a test; check `/ops` and the landing demo too | Open   |
-| PA-7.4-02 | Medium   | Story text                                       | `helmet` and `trust proxy` do not exist in Hono                                                                                                                         | Use `hono/secure-headers`; `clientIp()` already covers the proxy                                                         | Open   |
-| PA-7.4-03 | Medium   | `apps/api/src/lib/socket.ts:58,61`               | `cors: { origin: '*' }` on both the Server and the BunEngine. The ops cookie is `SameSite=Strict`, so the exposure is limited to public data                            | Limit to the site origin (`PUBLIC_SITE_URL`), keeping localhost for dev                                                  | Open   |
-| PA-7.4-04 | Medium   | Story text; `apps/web/src/app/main.tsx:3-5`      | Story mentions the Inter font; the fonts are self-hosted from `/assets`                                                                                                 | `font-src 'self'`; drop the font hosts from the plan                                                                     | Open   |
-| PA-7.4-05 | Medium   | `apps/api/src/app.ts:21-27`                      | The limit covers `/api/*` only and is already tested for tickets                                                                                                        | Verify with a test per public POST route; no new code expected                                                           | Open   |
-| PA-7.4-06 | Low      | Comment from 6.7; `analytics.tsx` header         | Path is `apps/web/src/app/analytics.tsx`; the token needs the build arg from PA-7.2-01                                                                                  | Update the comment path when the plan is written                                                                         | Open   |
+| PA-7.4-01 | High     | Story text; `turnstile.tsx:3`; `analytics.tsx:3` | CSP allow-list omits `frame-src` for `challenges.cloudflare.com`; sockets need `connect-src` `'self'` and `wss:`; React inline `style` attributes need `style-src-attr` | Write the CSP from a real browser run with Turnstile and analytics on; add a test; check `/ops` and the landing demo too | Fixed  |
+| PA-7.4-02 | Medium   | Story text                                       | `helmet` and `trust proxy` do not exist in Hono                                                                                                                         | Use `hono/secure-headers`; `clientIp()` already covers the proxy                                                         | Fixed  |
+| PA-7.4-03 | Medium   | `apps/api/src/lib/socket.ts:58,61`               | `cors: { origin: '*' }` on both the Server and the BunEngine. The ops cookie is `SameSite=Strict`, so the exposure is limited to public data                            | Limit to the site origin (`PUBLIC_SITE_URL`), keeping localhost for dev                                                  | Fixed  |
+| PA-7.4-04 | Medium   | Story text; `apps/web/src/app/main.tsx:3-5`      | Story mentions the Inter font; the fonts are self-hosted from `/assets`                                                                                                 | `font-src 'self'`; drop the font hosts from the plan                                                                     | Fixed  |
+| PA-7.4-05 | Medium   | `apps/api/src/app.ts:21-27`                      | The limit covers `/api/*` only and is already tested for tickets                                                                                                        | Verify with a test per public POST route; no new code expected                                                           | Fixed  |
+| PA-7.4-06 | Low      | Comment from 6.7; `analytics.tsx` header         | Path is `apps/web/src/app/analytics.tsx`; the token needs the build arg from PA-7.2-01                                                                                  | Update the comment path when the plan is written                                                                         | Fixed  |
 | PA-7.4-07 | Low      | `middleware/client-ip.ts`                        | Returns `'local'` when no header is present; correct behind Render's proxy, wrong for a direct connection                                                               | Verify on the deployed service in 7.12.1                                                                                 | Open   |
 
 ## 7.5 Abuse Protection

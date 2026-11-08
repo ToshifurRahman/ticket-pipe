@@ -84,6 +84,51 @@ afterAll(async () => {
   await shutdownSocket();
 }, 20_000);
 
+function connectWith(extraHeaders: Record<string, string>): Promise<Socket> {
+  const client = ioClient(base, {
+    transports: ['websocket'],
+    reconnection: false,
+    extraHeaders,
+  });
+  clients.push(client);
+  return new Promise((resolve, reject) => {
+    client.once('connect', () => resolve(client));
+    client.once('connect_error', reject);
+  });
+}
+
+describe('Bun server origin gate', () => {
+  it('a websocket still connects with the security headers middleware mounted', async () => {
+    const health = await fetch(`${base}/health/live`);
+    expect(health.headers.get('content-security-policy')).toContain("default-src 'self'");
+    expect(health.headers.get('x-content-type-options')).toBe('nosniff');
+
+    const client = await connect();
+    expect(client.connected).toBe(true);
+    client.disconnect();
+  });
+
+  it('a foreign Origin gets 403 on polling and is refused the websocket upgrade', async () => {
+    const polling = await fetch(`${base}/socket.io/?EIO=4&transport=polling`, {
+      headers: { origin: 'https://evil.test' },
+    });
+    expect(polling.status).toBe(403);
+    expect(await polling.json()).toEqual({ error: 'Origin not allowed' });
+
+    const refused = await connectWith({ Origin: 'https://evil.test' }).then(
+      () => 'connected',
+      () => 'refused'
+    );
+    expect(refused).toBe('refused');
+  });
+
+  it("the site's own origin keeps connecting over the websocket transport", async () => {
+    const client = await connectWith({ Origin: base });
+    expect(client.connected).toBe(true);
+    client.disconnect();
+  });
+});
+
 describe('Bun server', () => {
   it('serves the HTTP API', async () => {
     const res = await fetch(`${base}/api/nope`, { headers: { accept: 'text/html' } });

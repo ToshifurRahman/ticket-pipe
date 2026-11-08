@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
+import { cors } from 'hono/cors';
+import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,7 +9,9 @@ import { fileURLToPath } from 'url';
 import { TicketNotFoundError } from './domain/errors.js';
 import { logger } from './lib/logger.js';
 import { getEngine } from './lib/socket.js';
+import { isOriginAllowed } from './middleware/origin-policy.js';
 import { type AppEnv, requestLogger } from './middleware/request-logger.js';
+import { securityHeaders } from './middleware/security-headers.js';
 import { mountWebApp } from './middleware/web-app.js';
 import { healthRouter } from './routes/health.js';
 import { notificationsRouter } from './routes/notifications.js';
@@ -19,7 +23,28 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const app = new Hono<AppEnv>();
 
+// First, so every response (page, asset, JSON, 404, 403, 413, 500) carries the headers.
+app.use('*', securityHeaders);
 app.use('*', requestLogger);
+
+// A cross-site request is refused before any handler or body work. CORS alone would only hide
+// the response; the server would still act on a cross-site POST.
+const rejectForeignOrigin = createMiddleware<AppEnv>(async (c, next) => {
+  if (!isOriginAllowed(c.req.header('origin'), c.req.header('host'))) {
+    return c.json({ error: 'Origin not allowed' }, 403);
+  }
+  await next();
+});
+
+app.use('/api/*', rejectForeignOrigin);
+// The site's own origin keeps working; any other Origin is refused before the issue is parsed.
+app.use(
+  '/api/*',
+  cors({
+    origin: (origin, c) => (isOriginAllowed(origin, c.req.header('host')) ? origin : undefined),
+    allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  })
+);
 // Same ceiling the old express.json() enforced.
 app.use(
   '/api/*',
@@ -32,6 +57,10 @@ app.use(
 // Socket.IO's Bun engine owns this path; Bun.serve passes its server as `c.env`, which the
 // engine needs to upgrade websockets (see server.ts).
 app.all('/socket.io/', (c) => {
+  // Browsers do not apply CORS to a websocket handshake, so this gate is what stops one.
+  if (!isOriginAllowed(c.req.header('origin'), c.req.header('host'))) {
+    return c.json({ error: 'Origin not allowed' }, 403);
+  }
   const engine = getEngine();
   if (!engine) return c.text('Not Found', 404);
   return engine.handleRequest(c.req.raw, c.env as never);

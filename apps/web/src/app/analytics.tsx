@@ -5,7 +5,8 @@ const BEACON_SRC = 'https://static.cloudflareinsights.com/beacon.min.js';
 
 // Cloudflare Web Analytics: cookieless. Loaded only in a production build that has a token, so
 // dev, tests and the e2e build never talk to Cloudflare. It follows SPA route changes itself.
-// The CSP in story 7.4 must allow the script and its reporting endpoint.
+// The CSP lives in apps/api/src/middleware/security-headers.ts; it allows this script's host
+// and its reporting endpoint.
 export function Analytics() {
   useEffect(() => {
     const token = import.meta.env.VITE_CF_ANALYTICS_TOKEN;

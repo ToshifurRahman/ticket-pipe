@@ -1,11 +1,12 @@
 import type { Server as Engine } from '@socket.io/bun-engine';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Emitter } from '@socket.io/redis-emitter';
-import type { Server as HttpServer } from 'http';
+import type { IncomingMessage, Server as HttpServer } from 'http';
 import { createClient } from 'redis';
 import { Server } from 'socket.io';
 
 import { isUuid } from '../domain/ids.js';
+import { isOriginAllowed } from '../middleware/origin-policy.js';
 import { getConfig } from './config.js';
 import { closeCounters } from './counters.js';
 import { logger } from './logger.js';
@@ -37,6 +38,40 @@ let emitterReady: Promise<void> = Promise.resolve();
 // Every Redis client this module opens, registered so shutdown() can close it.
 let openClients: ClosableClient[] = [];
 
+// The Node transport used by tests: allowRequest is the gate, and the same decision feeds the
+// cors option so a browser's cross-site handshake is refused at both layers. Exported so a
+// unit test can start a plain Node Server and see the refusal without Redis or the app.
+export function nodeTransportOptions() {
+  return {
+    cors: {
+      origin: (
+        origin: string | undefined,
+        callback: (err: Error | null, allow?: boolean) => void
+      ) => callback(null, isOriginAllowed(origin, undefined)),
+      methods: ['GET', 'POST'],
+    },
+    allowRequest: (
+      req: IncomingMessage,
+      callback: (err: string | null, success: boolean) => void
+    ) => {
+      callback(null, isOriginAllowed(req.headers.origin, req.headers.host));
+    },
+  };
+}
+
+// The engine's cors option takes no function (see node_modules/@socket.io/bun-engine), so
+// allowRequest carries the decision. The HTTP route in app.ts already refuses a foreign
+// Origin before the engine sees it; this is the second gate.
+export function bunEngineOptions() {
+  return {
+    path: '/socket.io/',
+    allowRequest: (req: Request): Promise<void> =>
+      isOriginAllowed(req.headers.get('origin') ?? undefined, req.headers.get('host') ?? undefined)
+        ? Promise.resolve()
+        : Promise.reject(new Error('Origin not allowed')),
+  };
+}
+
 // Both the adapter (here) and the emitter (worker.ts, a separate process) rely on
 // the default `socket.io` Redis key prefix to agree with each other. Don't pass a
 // custom `key` to either side — it's a cross-process contract that isn't type-checked.
@@ -54,10 +89,10 @@ export async function init(httpServer?: HttpServer): Promise<Server> {
   await Promise.all([pubClient.connect(), subClient.connect()]);
 
   if (httpServer) {
-    io = new Server(httpServer, { cors: { origin: '*' } });
+    io = new Server(httpServer, nodeTransportOptions());
   } else {
     const { Server: BunEngine } = await import('@socket.io/bun-engine');
-    engine = new BunEngine({ path: '/socket.io/', cors: { origin: '*' } });
+    engine = new BunEngine(bunEngineOptions());
     io = new Server();
     io.bind(engine);
   }
