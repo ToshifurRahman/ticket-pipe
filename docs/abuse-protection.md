@@ -48,6 +48,11 @@ Both Redis (counters) and Cloudflare are bounded: `hitWithin` rejects after
 friendly 503, and nothing is created. The lazy Redis client queues commands while disconnected, so
 the timeout — not the client — is what stops a hung request.
 
+Known limit: `hitWithin` does not cancel the queued `INCR`. A request refused with 503 during a
+Redis outage can still be counted once Redis returns, inflating that hour's per-IP key (and the
+day key) even though no ticket was created. The refusal itself is correct; only the count is
+inflated, and the timeouts bound how long the request waits. No code change was made for it.
+
 ## What a ticket can cost
 
 The counter counts tickets at submit. One ticket's worst case, derived from the code:
@@ -60,6 +65,13 @@ The counter counts tickets at submit. One ticket's worst case, derived from the 
 So one ticket is at most **2 stages × 3 attempts × 2 provider calls = 12 LLM calls**. With the
 defaults, one UTC day is at most `TICKET_DAILY_CAP` × 12 = **1200 LLM calls**. The audit's figure
 of 12 matches the code. A capped or refused submission enqueues nothing, so it adds no LLM call.
+
+That 12 assumes every `*.failed` event write succeeds: recording a failed attempt is what makes
+the third attempt the last. If that write itself throws, the failure is not counted and the
+message is redelivered, and `MAX_RECEIVES = 6` is then the bound. Receives 1–5 can each run one
+triage attempt and throw on the event write; receive 6 runs triage and, when it succeeds, draft.
+That is 7 stage attempts × 2 provider calls = **14 LLM calls** for one ticket, and 1400 for a day
+at the default cap. 12 is the normal ceiling; 14 is the ceiling when failure recording breaks.
 
 ## Tests
 

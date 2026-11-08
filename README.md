@@ -82,6 +82,8 @@ curl -X POST http://localhost:3000/api/tickets \
 curl http://localhost:3000/api/tickets/<ticketId>
 ```
 
+`POST /api/tickets` also verifies a Cloudflare Turnstile token. Add `"turnstileToken": "XXXX.DUMMY.TOKEN.XXXX"` (Cloudflare's always-pass test token, accepted by the test secret in `.env.example`) to the body, or the API answers 403.
+
 For the web UI, run `bun run build` once and open http://localhost:3000, or run `bun --filter @ticket-pipe/web dev` for the Vite dev server on :5173. Staff sign in at `/ops` with `OPS_TOKEN` (`dev-ops-token` locally).
 
 ## Tests and checks
