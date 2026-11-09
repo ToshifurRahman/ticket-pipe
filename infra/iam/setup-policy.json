@@ -1,0 +1,14 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CreateAndConfigureQueues",
+      "Effect": "Allow",
+      "Action": ["sqs:CreateQueue", "sqs:GetQueueAttributes", "sqs:SetQueueAttributes"],
+      "Resource": [
+        "arn:aws:sqs:<region>:<account-id>:<main-queue>",
+        "arn:aws:sqs:<region>:<account-id>:<dlq>"
+      ]
+    }
+  ]
+}
