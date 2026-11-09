@@ -39,8 +39,8 @@ const SCRIPTS: Array<[string, string[], Record<string, string>]> = [
   ['scripts/purge.ts', ['DATABASE_URL'], { DATABASE_URL: 'postgres://u:p@127.0.0.1:1/db' }],
   [
     'scripts/setup-infra.ts',
-    ['SQS_QUEUE_NAME', 'SQS_ENDPOINT'],
-    { SQS_QUEUE_NAME: 'tickets', SQS_ENDPOINT: 'http://127.0.0.1:1' },
+    ['SQS_QUEUE_NAME', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'],
+    { SQS_QUEUE_NAME: 'tickets', AWS_ACCESS_KEY_ID: 'test', AWS_SECRET_ACCESS_KEY: 'test' },
   ],
 ];
 
@@ -103,14 +103,22 @@ describe('rules at startup', () => {
     expect(stderr).toContain('AWS_SECRET_ACCESS_KEY: required unless SQS_ENDPOINT is set');
   });
 
-  it('setup-infra names SQS_ENDPOINT, which only that script needs', () => {
-    const { status, stderr } = start('scripts/setup-infra.ts', {
+  it('setup-infra asks for real AWS keys when SQS_ENDPOINT is unset', () => {
+    const { status, stderr } = start('scripts/setup-infra.ts', { SQS_QUEUE_NAME: 'tickets' });
+    expect(status).toBe(1);
+    expect(stderr).toContain('AWS_ACCESS_KEY_ID');
+    expect(stderr).toContain('AWS_SECRET_ACCESS_KEY');
+    expect(stderr).not.toContain('REDIS_URL');
+  });
+
+  it('setup-infra refuses the local placeholder against real AWS, before any network call', () => {
+    const { status, stderr, seconds } = start('scripts/setup-infra.ts', {
       SQS_QUEUE_NAME: 'tickets',
-      AWS_ACCESS_KEY_ID: 'a',
-      AWS_SECRET_ACCESS_KEY: 'b',
+      AWS_ACCESS_KEY_ID: 'test',
+      AWS_SECRET_ACCESS_KEY: 'test',
     });
     expect(status).toBe(1);
-    expect(stderr).toContain('SQS_ENDPOINT');
-    expect(stderr).not.toContain('REDIS_URL');
+    expect(stderr).toContain('real credential');
+    expect(seconds).toBeLessThan(15);
   });
 });
