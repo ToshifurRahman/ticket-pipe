@@ -11,6 +11,7 @@ import {
   checkDailyCap,
   checkIpLimit,
   checkTurnstile,
+  releaseDailySlot,
   SubmissionRefused,
 } from '../services/submission-guard.js';
 import {
@@ -97,8 +98,16 @@ export const create = factory.createHandlers(
       // nothing, so it costs no LLM call.
       await checkIpLimit(ip);
       await checkTurnstile(turnstileToken, ip);
-      await checkDailyCap();
-      const ticket = await createTicket(subject, description);
+      // One `now` for the count and a release, so a request crossing midnight cannot release
+      // the next UTC day's key.
+      const now = new Date();
+      await checkDailyCap(now);
+      // A failed insert gives its daily slot back. A release that fails or times out is logged
+      // inside the guard and never replaces this error or delays the response beyond its bound.
+      const ticket = await createTicket(subject, description).catch(async (err: unknown) => {
+        await releaseDailySlot(now);
+        throw err;
+      });
       return c.json(
         {
           ticketId: ticket.id,

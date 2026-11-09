@@ -11,16 +11,29 @@ vi.mock('../../../src/lib/queue.js', async (importOriginal) => ({
   enqueueTicket: vi.fn(() => Promise.resolve('message-id')),
 }));
 
-// hitWithin delegates to the real counter unless a test says otherwise, so a Redis outage can be
-// driven at the route without touching the shared connection.
+// hitWithin and release delegate to the real counters unless a test says otherwise, so a Redis
+// outage can be driven at the route without touching the shared connection.
 vi.mock('../../../src/lib/counters.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../../../src/lib/counters.js')>();
-  return { ...real, hitWithin: vi.fn(real.hitWithin) };
+  return { ...real, hitWithin: vi.fn(real.hitWithin), release: vi.fn(real.release) };
+});
+
+// The insert delegates to Postgres unless a test makes it reject, so the handler's release path
+// runs against the real day key.
+vi.mock('../../../src/repositories/tickets.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../../src/repositories/tickets.js')>();
+  return { ...real, insertTicket: vi.fn(real.insertTicket) };
 });
 
 import { app } from '../../../src/app.js';
-import { closeCounters, hitWithin } from '../../../src/lib/counters.js';
+import {
+  closeCounters,
+  COUNTER_TIMEOUT_MS,
+  hitWithin,
+  release,
+} from '../../../src/lib/counters.js';
 import { pool } from '../../../src/lib/db.js';
+import { logger } from '../../../src/lib/logger.js';
 import { sentMail } from '../../../src/lib/mailer.js';
 import { enqueueTicket } from '../../../src/lib/queue.js';
 import { shutdown as shutdownSocket } from '../../../src/lib/socket.js';
@@ -111,6 +124,8 @@ beforeEach(async () => {
   }
   vi.mocked(enqueueTicket).mockClear();
   vi.mocked(hitWithin).mockClear();
+  vi.mocked(insertTicket).mockClear();
+  vi.mocked(release).mockClear();
 });
 
 afterEach(async () => {
@@ -188,9 +203,16 @@ describe('POST /api/tickets with a missing or invalid token', () => {
   });
 
   it('rejects a token over 4096 characters with 400 before any limit is counted', async () => {
-    const res = await post({ ...validBody(), turnstileToken: 'x'.repeat(4097) }, freshIp());
+    isolateDay();
+    await redis.del(ISOLATED_DAY_KEY);
+    const ip = freshIp();
+    await redis.del(hourKey(ip));
+
+    const res = await post({ ...validBody(), turnstileToken: 'x'.repeat(4097) }, ip);
     expect(res.status).toBe(400);
     expect(res.body).toEqual({ errors: { turnstileToken: expect.any(String) as string } });
+    expect(await redis.get(hourKey(ip))).toBeNull();
+    expect(await redis.get(ISOLATED_DAY_KEY)).toBeNull();
   });
 });
 
@@ -294,6 +316,73 @@ describe('daily cap', () => {
   });
 });
 
+describe('failed insert', () => {
+  it('returns the daily slot and keeps the original error', async () => {
+    isolateDay();
+    await redis.del(ISOLATED_DAY_KEY);
+    vi.mocked(insertTicket).mockRejectedValueOnce(new Error('insert failed'));
+
+    const name = subject();
+    const res = await post(validBody(name), freshIp());
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ error: 'Internal server error' });
+    expect(await redis.get(ISOLATED_DAY_KEY)).toBeNull();
+    expect(await rowsFor(name)).toBe(0);
+    expect(release).toHaveBeenCalledWith(ISOLATED_DAY_KEY);
+  });
+
+  it('restores a day count that already had a value', async () => {
+    isolateDay();
+    await redis.set(ISOLATED_DAY_KEY, '5');
+    vi.mocked(insertTicket).mockRejectedValueOnce(new Error('insert failed'));
+
+    const res = await post(validBody(), freshIp());
+    expect(res.status).toBe(500);
+    expect(await redis.get(ISOLATED_DAY_KEY)).toBe('5');
+  });
+
+  it('leaves the count at one after a successful create', async () => {
+    isolateDay();
+    await redis.del(ISOLATED_DAY_KEY);
+
+    const res = await post(validBody(), freshIp());
+    expect(res.status).toBe(201);
+    created.push(res.body.ticketId);
+    expect(await redis.get(ISOLATED_DAY_KEY)).toBe('1');
+    expect(release).not.toHaveBeenCalled();
+  });
+
+  it('does not release the slot when the daily cap itself refuses', async () => {
+    isolateDay();
+    process.env.TICKET_DAILY_CAP = '1';
+    await redis.set(ISOLATED_DAY_KEY, '1');
+
+    const res = await post(validBody(), freshIp());
+    expect(res.status).toBe(429);
+    expect(await redis.get(ISOLATED_DAY_KEY)).toBe('2');
+    expect(release).not.toHaveBeenCalled();
+  });
+
+  it('keeps the original error and logs when the release fails', async () => {
+    isolateDay();
+    await redis.del(ISOLATED_DAY_KEY);
+    vi.mocked(insertTicket).mockRejectedValueOnce(new Error('insert failed'));
+    vi.mocked(release).mockRejectedValueOnce(new Error('release failed'));
+    const spy = vi.spyOn(logger, 'error');
+    try {
+      const res = await post(validBody(), freshIp());
+      expect(res.status).toBe(500);
+      expect(res.body).toEqual({ error: 'Internal server error' });
+      const releaseLog = spy.mock.calls.find(
+        ([, message]) => message === 'Ticket submission daily counter release failed'
+      );
+      expect(releaseLog?.[0]).toHaveProperty('err');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});
+
 describe('dependency failures', () => {
   it('answers 503 and creates nothing when siteverify fails', async () => {
     const name = subject();
@@ -337,9 +426,12 @@ describe('dependency failures', () => {
   it('answers 503 within the counter timeout when Redis is unreachable', async () => {
     const name = subject();
     vi.mocked(hitWithin).mockImplementationOnce(
-      () =>
+      (_key, _window, timeoutMs = COUNTER_TIMEOUT_MS) =>
         new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Counter did not answer within 2000ms')), 50);
+          setTimeout(
+            () => reject(new Error(`Counter did not answer within ${timeoutMs}ms`)),
+            timeoutMs
+          );
         })
     );
     const started = Date.now();
@@ -349,8 +441,8 @@ describe('dependency failures', () => {
       error: "We can't accept new requests right now. Please try again shortly.",
     });
     expect(await rowsFor(name)).toBe(0);
-    expect(Date.now() - started).toBeLessThan(5000);
-  });
+    expect(Date.now() - started).toBeLessThan(COUNTER_TIMEOUT_MS + 1000);
+  }, 20000);
 });
 
 describe('POST /api/tickets/:id/notification', () => {

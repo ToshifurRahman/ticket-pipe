@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const counters = vi.hoisted(() => ({ hitWithin: vi.fn() }));
+const counters = vi.hoisted(() => ({ hitWithin: vi.fn(), release: vi.fn() }));
 const turnstile = vi.hoisted(() => ({ verifyTurnstile: vi.fn() }));
 
-vi.mock('../../../src/lib/counters.js', () => ({ hitWithin: counters.hitWithin }));
+vi.mock('../../../src/lib/counters.js', () => ({
+  hitWithin: counters.hitWithin,
+  release: counters.release,
+}));
 vi.mock('../../../src/lib/turnstile.js', () => ({
   verifyTurnstile: turnstile.verifyTurnstile,
 }));
@@ -12,6 +15,7 @@ import {
   checkDailyCap,
   checkIpLimit,
   checkTurnstile,
+  releaseDailySlot,
   SubmissionRefused,
 } from '../../../src/services/submission-guard.js';
 
@@ -22,6 +26,7 @@ const env = { ...process.env };
 
 beforeEach(() => {
   counters.hitWithin.mockReset();
+  counters.release.mockReset();
   turnstile.verifyTurnstile.mockReset();
   process.env.TICKET_IP_HOURLY_LIMIT = '15';
   process.env.TICKET_DAILY_CAP = '100';
@@ -99,6 +104,19 @@ describe('checkDailyCap', () => {
   it('turns a counter failure into a 503', async () => {
     counters.hitWithin.mockRejectedValue(new Error('Redis is down'));
     expect((await refusal(checkDailyCap(NOW))).status).toBe(503);
+  });
+});
+
+describe('releaseDailySlot', () => {
+  it('releases the same UTC-day key that the cap counted', async () => {
+    counters.release.mockResolvedValue(undefined);
+    await expect(releaseDailySlot(NOW)).resolves.toBeUndefined();
+    expect(counters.release).toHaveBeenCalledWith('tickets:day:2026-11-08');
+  });
+
+  it('swallows a failed release so the original error can surface', async () => {
+    counters.release.mockRejectedValue(new Error('did not answer'));
+    await expect(releaseDailySlot(NOW)).resolves.toBeUndefined();
   });
 });
 

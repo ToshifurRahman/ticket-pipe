@@ -1,5 +1,5 @@
 import { getConfig } from '../lib/config.js';
-import { hitWithin } from '../lib/counters.js';
+import { hitWithin, release } from '../lib/counters.js';
 import { logger } from '../lib/logger.js';
 import { verifyTurnstile } from '../lib/turnstile.js';
 
@@ -67,6 +67,19 @@ export async function checkDailyCap(now: Date = new Date()): Promise<void> {
       REFUSAL_MESSAGES.dailyCap,
       Math.min(SECONDS_PER_DAY + HOUR_SECONDS, secondsUntilUtcMidnight(now))
     );
+  }
+}
+
+/**
+ * Gives back the daily slot counted for a submission whose insert then failed. It takes the
+ * same `now` as `checkDailyCap`, so a request that crosses midnight releases the day it counted.
+ * A release failure is logged and swallowed: the caller still surfaces the original error.
+ */
+export async function releaseDailySlot(now: Date = new Date()): Promise<void> {
+  try {
+    await release(dayKey(now));
+  } catch (err) {
+    logger.error({ err }, 'Ticket submission daily counter release failed');
   }
 }
 
