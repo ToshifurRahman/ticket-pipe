@@ -1,3 +1,4 @@
+import pg from 'pg';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { AIService } from '../../../src/lib/ai-service.js';
@@ -827,7 +828,9 @@ describe('processMessage — permanent failure (story 5.2)', () => {
     mockTriage.mockResolvedValueOnce(TRIAGE_RESULT);
     mockDraft.mockResolvedValueOnce(DRAFT_RESULT);
     await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
-    const spy = vi.spyOn(pool, 'query');
+    // `pool` is a Proxy over the real pool, so a spy on it never intercepts. Spy on the real
+    // method: the worker's first query is the event read, whose failure must propagate.
+    const spy = vi.spyOn(pg.Pool.prototype, 'query');
     spy.mockRejectedValueOnce(new Error('db blip'));
 
     await expect(processMessage(ticket.id, 'fake-receipt', 2, mockAi())).rejects.toThrow('db blip');
@@ -842,7 +845,7 @@ describe('processMessage — permanent failure (story 5.2)', () => {
     createdIds.push(ticket.id);
     await pool.query("UPDATE tickets SET status = 'processing' WHERE id = $1", [ticket.id]);
     const realQuery = pool.query.bind(pool);
-    const spy = vi.spyOn(pool, 'query');
+    const spy = vi.spyOn(pg.Pool.prototype, 'query');
     // Only the pipeline's first read fails; the failure handler's own queries go through.
     spy.mockRejectedValueOnce(new Error('db blip'));
     spy.mockImplementation((...args: unknown[]) =>
