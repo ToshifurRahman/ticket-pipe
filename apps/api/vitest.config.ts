@@ -21,6 +21,9 @@ const env = {
   NODE_ENV: 'test',
   PORTKEY_API_KEY: 'test-portkey-key',
   ...parseEnvFile(path.resolve(import.meta.dirname, '../../.env')),
+  // Cloudflare's published always-pass secret, after the .env spread: a developer's own key
+  // cannot change what the tests verify against, and spawned entry points inherit it.
+  TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
   OPS_TOKEN: 'test-ops-token',
   GOOGLE_API_KEY: 'test-google-key',
   SQS_QUEUE_NAME: 'ticket-processing-test',
