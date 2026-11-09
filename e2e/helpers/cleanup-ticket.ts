@@ -83,6 +83,9 @@ async function deleteRows(ticketId: string): Promise<void> {
   await client.connect();
   try {
     await client.query('BEGIN');
+    // A background notification can still record an event after the ticket reaches a terminal
+    // status. Lock the ticket first so no event can arrive between the delete below and here.
+    await client.query('SELECT id FROM tickets WHERE id = $1 FOR UPDATE', [ticketId]);
     // ticket_events is append-only (migration 008); this transaction-local flag allows cleanup.
     await client.query("SELECT set_config('app.allow_event_purge', 'on', true)");
     await client.query('DELETE FROM ticket_events WHERE ticket_id = $1', [ticketId]);
