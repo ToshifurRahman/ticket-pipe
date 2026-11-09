@@ -1,6 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { CHECK_NAMES, runSmoke, type SmokeChecks } from '../../../scripts/smoke-infra.js';
+import {
+  CHECK_NAMES,
+  defaultChecks,
+  postgresConnectionConfig,
+  redisCheck,
+  runSmoke,
+  type SmokeChecks,
+  smokeMessageBody,
+} from '../../../scripts/smoke-infra.js';
 
 const URL_WITH_SECRET = 'postgresql://user:fake-secret-value@db.example:5432/db';
 const KEY = 'fake-secret-value';
@@ -62,5 +70,74 @@ describe('smoke-infra output', () => {
 
     expect(await runSmoke(checks, print)).toBe(1);
     expect(lines).toContain('aws-identity WRONG');
+  });
+});
+
+describe('smoke-infra redis failure', () => {
+  it('prints only redis WRONG when the connection fails, with no raw error text', async () => {
+    const { lines, print } = capture();
+    const checks = ok();
+    checks.redis = () => redisCheck({ REDIS_URL: 'redis://127.0.0.1:1' });
+
+    const code = await runSmoke(checks, print);
+
+    expect(code).toBe(1);
+    expect(lines).toContain('redis WRONG');
+    const output = lines.join('\n');
+    expect(output).not.toContain('127.0.0.1');
+    expect(output).not.toContain('ECONNREFUSED');
+    expect(output).not.toContain('error');
+  });
+});
+
+describe('smoke-infra postgres TLS', () => {
+  const base = 'postgresql://user:fake-secret-value@db.example:5432/db';
+
+  it.each(['disable', 'prefer', 'allow', 'no-verify'])('reports sslmode=%s as WRONG', (mode) => {
+    expect(() => postgresConnectionConfig(`${base}?sslmode=${mode}`)).toThrow();
+  });
+
+  it('reports ssl=0 as WRONG', () => {
+    expect(() => postgresConnectionConfig(`${base}?ssl=0`)).toThrow();
+  });
+
+  it.each(['require', 'verify-ca', 'verify-full'])(
+    'accepts sslmode=%s and strips it so pg prints no security warning',
+    (mode) => {
+      const config = postgresConnectionConfig(`${base}?sslmode=${mode}`);
+      expect(config.connectionString).not.toContain('sslmode');
+      expect(config.ssl).toEqual({ rejectUnauthorized: true });
+    }
+  );
+
+  it('accepts a URL with no ssl parameters and still forces TLS', () => {
+    const config = postgresConnectionConfig(base);
+    expect(config.connectionString).toBe(base);
+    expect(config.ssl).toEqual({ rejectUnauthorized: true });
+  });
+});
+
+describe('smoke-infra configuration and message shape', () => {
+  it('prints only WRONG for a bad environment, with no raw error or value', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const { lines, print } = capture();
+      const code = await runSmoke(defaultChecks({ PORT: 'fake-secret-value' }), print);
+
+      expect(code).toBe(1);
+      expect(lines).toEqual(CHECK_NAMES.map((name) => `${name} WRONG`));
+      expect(error).not.toHaveBeenCalled();
+      expect(lines.join('\n')).not.toContain('fake-secret-value');
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  it('sends the smoke id inside the app queue JSON envelope', () => {
+    const body = smokeMessageBody('smoke-12345678');
+    expect(JSON.parse(body)).toEqual({
+      ticketId: 'smoke-12345678',
+      referenceNumber: 'SMOKE-smoke-12',
+    });
   });
 });

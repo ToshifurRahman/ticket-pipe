@@ -70,6 +70,11 @@ describe('production commands', () => {
     expect(apiScripts['start:worker']).toBe('bun src/worker.ts');
   });
 
+  it('loads ../../.env for smoke:infra like the other scripts', () => {
+    expect(apiScripts['smoke:infra']).toBe('bun --env-file=../../.env scripts/smoke-infra.ts');
+    expect(apiScripts['smoke:infra']).not.toContain('--env-file-if-exists');
+  });
+
   it('keeps pretty logging out of production dependencies', () => {
     const api = json('apps/api/package.json');
     expect(api.dependencies?.['pino-pretty']).toBeUndefined();
