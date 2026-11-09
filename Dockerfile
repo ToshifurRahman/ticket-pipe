@@ -28,7 +28,7 @@ COPY apps/web/package.json apps/web/
 RUN bun install --frozen-lockfile --production --ignore-scripts --filter @ticket-pipe/api
 COPY apps/api/src/ apps/api/src/
 COPY apps/api/scripts/ apps/api/scripts/
-COPY apps/api/migrations/ apps/api/migrations/
+COPY apps/api/no-such-dir/ apps/api/no-such-dir/
 COPY --from=web /app/apps/web/dist apps/web/dist
 WORKDIR /app/apps/api
 USER bun
