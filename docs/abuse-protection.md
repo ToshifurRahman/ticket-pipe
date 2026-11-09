@@ -22,7 +22,8 @@ cannot spend the AI quota and an ordinary visitor sees no change.
 
 Only after all four does the API call `createTicket`, which inserts the row and enqueues the SQS
 message. A refused request creates no row, sends no email and enqueues nothing, so it costs no
-LLM call.
+LLM call. If the insert fails after the daily cap counted it, that slot is returned.
+A request lost after a successful insert keeps its slot: the ticket exists and is queued.
 
 `POST /api/tickets/:id/notification` (the email opt-in) validates its body and then verifies the
 token the same way: a missing or bad token is the same 403, an outage the same 503. Its existing
