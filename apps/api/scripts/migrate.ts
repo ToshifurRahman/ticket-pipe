@@ -10,8 +10,8 @@ const { Client } = pg;
 export type MigrateConfig = Pick<Config, 'DATABASE_URL' | 'DATABASE_DIRECT_URL'>;
 
 /**
- * Neon's pooled endpoint cannot run DDL, so a direct URL is preferred when one is configured.
- * An empty value counts as unset.
+ * Neon recommends the direct endpoint for migrations; the pooled endpoint lacks the
+ * session-level features migration tools rely on. An empty value counts as unset.
  */
 export function migrationConnectionString(env?: RawEnv): string {
   const direct = scriptConfig(['DATABASE_DIRECT_URL'], {}, env).DATABASE_DIRECT_URL;

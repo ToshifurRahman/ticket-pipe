@@ -15,8 +15,9 @@ Neon gives two connection strings for a database:
 - **Direct**: migrations and other DDL, set as `DATABASE_DIRECT_URL`.
 
 Both need TLS (`sslmode=require` or stronger). `apps/api/scripts/migrate.ts` uses
-`DATABASE_DIRECT_URL` when it is set and falls back to `DATABASE_URL`, so run migrations
-before starting the app:
+`DATABASE_DIRECT_URL` when it is set and falls back to `DATABASE_URL`, because Neon recommends
+the direct endpoint for migrations and the pooled endpoint lacks the session-level features
+migration tools rely on. Run migrations before starting the app:
 
 ```bash
 bun --filter @ticket-pipe/api migrate

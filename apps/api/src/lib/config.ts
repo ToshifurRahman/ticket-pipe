@@ -27,7 +27,8 @@ const gateway = () =>
 const fields = z.object({
   PORT: integer(0, 65535).default(3000),
   DATABASE_URL: required(),
-  // Neon's pooled endpoint cannot run migrations; migrate.ts prefers this direct one.
+  // Neon recommends the direct endpoint for migrations; the pooled endpoint lacks the
+  // session-level features migration tools rely on.
   DATABASE_DIRECT_URL: optional(),
   REDIS_URL: required(),
   SQS_ENDPOINT: optional(),
