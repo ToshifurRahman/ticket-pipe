@@ -9,9 +9,8 @@ import { logger } from './logger.js';
 interface CounterRedis {
   readonly isReady: boolean;
   incr(key: string): Promise<number>;
-  decr(key: string): Promise<number>;
   expire(key: string, seconds: number): Promise<unknown>;
-  del(key: string): Promise<unknown>;
+  eval(script: string, options: { keys: string[] }): Promise<unknown>;
   quit(): Promise<unknown>;
   destroy(): void;
 }
@@ -66,14 +65,19 @@ export async function hitWithin(
   return within(key, timeoutMs, hit(key, windowSeconds));
 }
 
+// One script, not DECR then DEL: a concurrent INCR between two commands could be deleted by the
+// DEL, losing an accepted ticket's slot and letting the daily cap be exceeded.
+const RELEASE_SCRIPT =
+  "local v = redis.call('DECR', KEYS[1]); if v < 1 then redis.call('DEL', KEYS[1]) end; return v";
+
 async function releaseNow(key: string): Promise<void> {
-  // A key left at zero or below would linger forever: `hit` only sets a TTL on the first hit.
-  if ((await redis().decr(key)) < 1) await redis().del(key);
+  await redis().eval(RELEASE_SCRIPT, { keys: [key] });
 }
 
 /**
- * Takes one off `key`, bounded like `hitWithin`. Deletes the key when the count falls below one,
- * so a released slot leaves neither a zero count nor a key without a TTL.
+ * Takes one off `key` in one atomic script, bounded like `hitWithin`. The script deletes the key
+ * when the count falls below one, so a released slot leaves neither a zero count nor a key
+ * without a TTL. The key travels in `keys`, never in the script text.
  */
 export async function release(key: string, timeoutMs = COUNTER_TIMEOUT_MS): Promise<void> {
   await within(key, timeoutMs, releaseNow(key));

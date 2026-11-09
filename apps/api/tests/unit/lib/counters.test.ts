@@ -5,6 +5,7 @@ const redis = vi.hoisted(() => ({
   expire: vi.fn(),
   decr: vi.fn(),
   del: vi.fn(),
+  eval: vi.fn<(script: string, options: { keys: string[] }) => Promise<unknown>>(),
   connect: vi.fn(() => Promise.resolve()),
   quit: vi.fn(() => Promise.resolve()),
   destroy: vi.fn(),
@@ -17,6 +18,7 @@ vi.mock('redis', () => ({
     expire: redis.expire,
     decr: redis.decr,
     del: redis.del,
+    eval: redis.eval,
     connect: redis.connect,
     quit: redis.quit,
     destroy: redis.destroy,
@@ -38,6 +40,7 @@ beforeEach(() => {
   redis.expire.mockReset();
   redis.decr.mockReset();
   redis.del.mockReset();
+  redis.eval.mockReset();
   redis.quit.mockReset();
   redis.destroy.mockReset();
   redis.isReady = true;
@@ -74,27 +77,27 @@ describe('hitWithin', () => {
 });
 
 describe('release', () => {
-  it('takes one off the key and keeps it while the count stays at one or more', async () => {
+  it('issues one eval with the key in keys and no separate decr or del', async () => {
     expect(release).toBeTypeOf('function');
     if (!release) return;
-    redis.decr.mockResolvedValue(3);
-    await release('k');
-    expect(redis.decr).toHaveBeenCalledWith('k');
-    expect(redis.del).not.toHaveBeenCalled();
-  });
+    const key = 'tickets:day:2099-06-15';
+    redis.eval.mockResolvedValue(4);
+    await release(key);
 
-  it.each([0, -1])('deletes the key when the count falls to %i', async (left) => {
-    expect(release).toBeTypeOf('function');
-    if (!release) return;
-    redis.decr.mockResolvedValue(left);
-    await release('k');
-    expect(redis.del).toHaveBeenCalledWith('k');
+    expect(redis.eval).toHaveBeenCalledTimes(1);
+    const [script, options] = redis.eval.mock.calls[0];
+    expect(options).toEqual({ keys: [key] });
+    expect(script).toContain('DECR');
+    expect(script).toContain('DEL');
+    expect(script).not.toContain(key);
+    expect(redis.decr).not.toHaveBeenCalled();
+    expect(redis.del).not.toHaveBeenCalled();
   });
 
   it('rejects within the timeout when a release never answers', async () => {
     expect(release).toBeTypeOf('function');
     if (!release) return;
-    redis.decr.mockReturnValue(new Promise(() => {}));
+    redis.eval.mockReturnValue(new Promise(() => {}));
     const started = Date.now();
     await expect(release('k', 30)).rejects.toThrow(/did not answer/);
     expect(Date.now() - started).toBeLessThan(1000);
