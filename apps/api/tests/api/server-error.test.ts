@@ -16,6 +16,7 @@ vi.mock('../../src/services/tickets.js', () => ({
 import { app } from '../../src/app.js';
 import { createTicket } from '../../src/services/tickets.js';
 import request from '../helpers/request.js';
+import { TOKEN } from '../helpers/siteverify.js';
 
 afterEach(() => {
   vi.mocked(createTicket).mockReset();
@@ -34,6 +35,7 @@ describe('a forced 500 from the real app', () => {
     const res = await request(app).post('/api/tickets').send({
       subject: 'A valid subject',
       description: 'A valid description that is long enough.',
+      turnstileToken: TOKEN,
     });
 
     expect(res.status).toBe(500);

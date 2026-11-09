@@ -26,6 +26,7 @@ import type {
 import opsRequest from '../../helpers/ops-session.js';
 import { purgeTicketEvents } from '../../helpers/purge-ticket-events.js';
 import request from '../../helpers/request.js';
+import { TOKEN } from '../../helpers/siteverify.js';
 
 process.env.MAIL_DRIVER = 'memory';
 process.env.MAIL_FROM = 'relay@example.test';
@@ -39,7 +40,7 @@ const optIn = (id: string, email: string, forwardedFor = ip()) =>
   request(app)
     .post(`/api/tickets/${id}/notification`)
     .set('x-forwarded-for', forwardedFor)
-    .send({ email });
+    .send({ email, turnstileToken: TOKEN });
 const tokenFrom = (message: { text: string }) => /\/confirm\/([\w-]+)/.exec(message.text)![1];
 const mailTo = (email: string) => sentMail.filter((m) => m.to === email);
 

@@ -151,7 +151,7 @@ describe('parseEnv', () => {
 
   describe('OPS_TOKEN rule', () => {
     it('needs 32 characters in production only', () => {
-      const prod = { ...REAL, NODE_ENV: 'production' };
+      const prod = { ...REAL, NODE_ENV: 'production', TURNSTILE_SECRET_KEY: 'secret' };
       const expected = 'OPS_TOKEN: OPS_TOKEN must be set to at least 32 characters in production';
       expect(messages(prod)).toContain(expected);
       expect(messages({ ...prod, OPS_TOKEN: 'short' })).toContain(expected);

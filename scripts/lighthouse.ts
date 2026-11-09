@@ -53,6 +53,7 @@ try {
     body: JSON.stringify({
       subject: 'Lighthouse check',
       description: 'The totals on my invoice do not add up.',
+      turnstileToken: 'XXXX.DUMMY.TOKEN.XXXX',
     }),
   });
   if (created.status !== 201) throw new Error(`could not create a ticket: ${created.status}`);

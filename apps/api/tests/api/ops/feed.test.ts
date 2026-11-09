@@ -20,6 +20,7 @@ import { app } from '../../../src/app.js';
 import { pool } from '../../../src/lib/db.js';
 import type { CreatedTicketBody } from '../../helpers/api-types.js';
 import { purgeTicketEvents } from '../../helpers/purge-ticket-events.js';
+import { TOKEN } from '../../helpers/siteverify.js';
 
 const createdIds: string[] = [];
 
@@ -38,9 +39,11 @@ afterAll(async () => {
 
 describe('POST /api/tickets — ops feed', () => {
   it('publishes ticket.submitted to the ops room with status information only', async () => {
-    const res = await request(app)
-      .post<CreatedTicketBody>('/api/tickets')
-      .send({ subject: 'Private subject', description: 'Private description of the problem' });
+    const res = await request(app).post<CreatedTicketBody>('/api/tickets').send({
+      subject: 'Private subject',
+      description: 'Private description of the problem',
+      turnstileToken: TOKEN,
+    });
     expect(res.status).toBe(201);
     createdIds.push(res.body.ticketId);
 

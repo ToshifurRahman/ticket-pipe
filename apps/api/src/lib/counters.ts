@@ -7,9 +7,12 @@ import { logger } from './logger.js';
 // Its own lazily opened connection, like ops-session.ts: the Socket.IO clients are pub/sub only.
 
 interface CounterRedis {
+  readonly isReady: boolean;
   incr(key: string): Promise<number>;
   expire(key: string, seconds: number): Promise<unknown>;
+  eval(script: string, options: { keys: string[] }): Promise<unknown>;
   quit(): Promise<unknown>;
+  destroy(): void;
 }
 let client: CounterRedis | null = null;
 
@@ -32,8 +35,62 @@ export async function hit(key: string, windowSeconds: number): Promise<number> {
   return count;
 }
 
+// The request path cannot wait on a dependency that may never answer (story 7.5).
+export const COUNTER_TIMEOUT_MS = 2000;
+
+async function within<T>(key: string, timeoutMs: number, work: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`Counter "${key}" did not answer within ${timeoutMs}ms`)),
+      timeoutMs
+    );
+  });
+  try {
+    return await Promise.race([work, timedOut]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Like `hit`, but rejects when Redis does not answer within `timeoutMs`. The lazy client queues
+ * commands while it is disconnected, so a plain `hit` can hang forever during an outage.
+ */
+export async function hitWithin(
+  key: string,
+  windowSeconds: number,
+  timeoutMs = COUNTER_TIMEOUT_MS
+): Promise<number> {
+  return within(key, timeoutMs, hit(key, windowSeconds));
+}
+
+// One script, not DECR then DEL: a concurrent INCR between two commands could be deleted by the
+// DEL, losing an accepted ticket's slot and letting the daily cap be exceeded.
+const RELEASE_SCRIPT =
+  "local v = redis.call('DECR', KEYS[1]); if v < 1 then redis.call('DEL', KEYS[1]) end; return v";
+
+async function releaseNow(key: string): Promise<void> {
+  await redis().eval(RELEASE_SCRIPT, { keys: [key] });
+}
+
+/**
+ * Takes one off `key` in one atomic script, bounded like `hitWithin`. The script deletes the key
+ * when the count falls below one, so a released slot leaves neither a zero count nor a key
+ * without a TTL. The key travels in `keys`, never in the script text.
+ */
+export async function release(key: string, timeoutMs = COUNTER_TIMEOUT_MS): Promise<void> {
+  await within(key, timeoutMs, releaseNow(key));
+}
+
 export async function closeCounters(): Promise<void> {
   const current = client;
   client = null;
-  if (current) await Promise.allSettled([current.quit()]);
+  if (!current) return;
+  // `quit()` waits for pending commands and a client that is not ready can queue them forever.
+  if (!current.isReady) {
+    current.destroy();
+    return;
+  }
+  await Promise.allSettled([current.quit()]);
 }

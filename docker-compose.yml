@@ -96,6 +96,8 @@ services:
       GOOGLE_API_KEY: image-smoke-placeholder
       PRIMARY_GATEWAY: google
       PRIMARY_MODEL: placeholder
+      # Cloudflare's always-pass test secret: this profile never sees real traffic.
+      TURNSTILE_SECRET_KEY: 1x0000000000000000000000000000000AA
     ports:
       - '3200:8080'
     depends_on:

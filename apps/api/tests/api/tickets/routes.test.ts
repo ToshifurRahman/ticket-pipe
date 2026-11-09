@@ -7,6 +7,7 @@ import { insertProcessingResult } from '../../../src/repositories/processing.js'
 import { updateTicketStatus } from '../../../src/repositories/tickets.js';
 import type { CreatedTicketBody, PublicTicketBody } from '../../helpers/api-types.js';
 import request from '../../helpers/request.js';
+import { TOKEN } from '../../helpers/siteverify.js';
 
 afterAll(async () => {
   await pool.end();
@@ -24,9 +25,11 @@ describe('GET /api/tickets/:id', () => {
   });
 
   it('returns 200 with events as an array', async () => {
-    const post = await request(app)
-      .post<CreatedTicketBody>('/api/tickets')
-      .send({ subject: 'Events test', description: 'Checking events field' });
+    const post = await request(app).post<CreatedTicketBody>('/api/tickets').send({
+      subject: 'Events test',
+      description: 'Checking events field',
+      turnstileToken: TOKEN,
+    });
     const { ticketId } = post.body;
 
     const res = await request(app).get<PublicTicketBody>(`/api/tickets/${ticketId}`);
@@ -36,9 +39,11 @@ describe('GET /api/tickets/:id', () => {
   });
 
   it('returns all expected top-level fields for a queued ticket', async () => {
-    const post = await request(app)
-      .post<CreatedTicketBody>('/api/tickets')
-      .send({ subject: 'Shape test', description: 'Checking response shape' });
+    const post = await request(app).post<CreatedTicketBody>('/api/tickets').send({
+      subject: 'Shape test',
+      description: 'Checking response shape',
+      turnstileToken: TOKEN,
+    });
     const { ticketId, referenceNumber } = post.body;
 
     const res = await request(app).get<PublicTicketBody>(`/api/tickets/${ticketId}`);
@@ -60,9 +65,11 @@ describe('GET /api/tickets/:id', () => {
   });
 
   it('derives phase status from events instead of top-level ticket status', async () => {
-    const post = await request(app)
-      .post<CreatedTicketBody>('/api/tickets')
-      .send({ subject: 'Event-based phases', description: 'Status and events mismatch test' });
+    const post = await request(app).post<CreatedTicketBody>('/api/tickets').send({
+      subject: 'Event-based phases',
+      description: 'Status and events mismatch test',
+      turnstileToken: TOKEN,
+    });
     const { ticketId } = post.body;
 
     await updateTicketStatus(ticketId, 'failed');
@@ -81,6 +88,7 @@ describe('GET /api/tickets/:id', () => {
     const post = await request(app).post<CreatedTicketBody>('/api/tickets').send({
       subject: 'Triage failure output alignment',
       description: 'Failure should not expose phase outputs',
+      turnstileToken: TOKEN,
     });
     const { ticketId } = post.body;
 
@@ -112,6 +120,7 @@ describe('GET /api/tickets/:id', () => {
     const post = await request(app).post<CreatedTicketBody>('/api/tickets').send({
       subject: 'Draft failure output alignment',
       description: 'Failed draft must not include output',
+      turnstileToken: TOKEN,
     });
     const { ticketId } = post.body;
 
@@ -151,9 +160,11 @@ describe('GET /api/tickets/:id', () => {
 
 describe('GET /api/tickets/ref/:referenceNumber', () => {
   it('returns 200 with full ticket shape for a known reference number', async () => {
-    const post = await request(app)
-      .post<CreatedTicketBody>('/api/tickets')
-      .send({ subject: 'Ref lookup test', description: 'Testing reference lookup' });
+    const post = await request(app).post<CreatedTicketBody>('/api/tickets').send({
+      subject: 'Ref lookup test',
+      description: 'Testing reference lookup',
+      turnstileToken: TOKEN,
+    });
     const { referenceNumber, ticketId } = post.body;
 
     const res = await request(app).get<PublicTicketBody>(`/api/tickets/ref/${referenceNumber}`);
@@ -177,6 +188,7 @@ describe('GET /api/tickets/ref/:referenceNumber', () => {
     const post = await request(app).post<CreatedTicketBody>('/api/tickets').send({
       subject: 'Ref event transitions',
       description: 'Testing phase resolver in getByRef',
+      turnstileToken: TOKEN,
     });
     const { referenceNumber, ticketId } = post.body;
 
@@ -228,6 +240,7 @@ describe('POST /api/tickets', () => {
     const res = await request(app).post<CreatedTicketBody>('/api/tickets').send({
       subject: 'Cannot log in',
       description: 'Getting a 401 error since yesterday.',
+      turnstileToken: TOKEN,
     });
 
     expect(res.status).toBe(201);
@@ -320,14 +333,14 @@ describe('POST /api/tickets — length limits', () => {
   it('accepts values exactly at the minimum lengths', async () => {
     const res = await request(app)
       .post<CreatedTicketBody>('/api/tickets')
-      .send({ subject: 'abc', description: 'x'.repeat(20) });
+      .send({ subject: 'abc', description: 'x'.repeat(20), turnstileToken: TOKEN });
     expect(res.status).toBe(201);
   });
 
   it('accepts values exactly at the maximum lengths', async () => {
     const res = await request(app)
       .post<CreatedTicketBody>('/api/tickets')
-      .send({ subject: 'a'.repeat(120), description: 'x'.repeat(5000) });
+      .send({ subject: 'a'.repeat(120), description: 'x'.repeat(5000), turnstileToken: TOKEN });
     expect(res.status).toBe(201);
   });
 });

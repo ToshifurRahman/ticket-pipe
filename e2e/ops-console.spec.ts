@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import { removeTicket } from './helpers/cleanup-ticket';
 import { E2E_OPS_TOKEN, opsCookie } from './helpers/ops-session';
 import { stripFakeMarkers } from './helpers/strip-fake-marker';
+import { TURNSTILE_DUMMY_TOKEN } from './helpers/turnstile';
 
 // The ops console against the real API, worker, queue and socket, with the fake LLM. The
 // ticket is seeded over the API; the page is never reloaded once the operator has signed in.
@@ -21,6 +22,7 @@ test('an operator signs in, finds a ticket that needs attention and replays it l
     data: {
       subject: 'Ops console replay check',
       description: 'The totals on my invoice do not add up. [fake:invalid-draft]',
+      turnstileToken: TURNSTILE_DUMMY_TOKEN,
     },
   });
   expect(res.status()).toBe(201);

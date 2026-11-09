@@ -13,9 +13,20 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const ERROR_COPY: Record<number, string> = {
   400: 'Enter a valid email address.',
+  403: "We couldn't verify your request. Please try again.",
   409: 'An email address is already set for this ticket.',
-  429: 'Too many requests. Please try again later.',
+  429: "You've sent several tickets recently. Please try again in about an hour.",
+  503: "We can't accept new requests right now. Please try again shortly.",
 };
+
+// A refusal carries the server's explanation when it has one; otherwise the copy above.
+function errorMessage(err: unknown, status: number): string {
+  const serverError = (err as { body?: { error?: unknown } }).body?.error;
+  if ((status === 403 || status === 429 || status === 503) && typeof serverError === 'string') {
+    if (serverError.trim()) return serverError;
+  }
+  return ERROR_COPY[status] ?? "We couldn't send the confirmation email. Please try again.";
+}
 
 /** "Email me when it's ready". Hidden when email is off or the ticket already has its reply. */
 export function NotifyCard({ ticketId }: { ticketId: string }) {
@@ -71,7 +82,7 @@ export function NotifyCard({ ticketId }: { ticketId: string }) {
       await mutation.mutateAsync({ email: value, turnstileToken: token });
     } catch (err) {
       const status = err instanceof ApiError ? err.status : 0;
-      setError(ERROR_COPY[status] ?? "We couldn't send the confirmation email. Please try again.");
+      setError(errorMessage(err, status));
       // A 409 means someone already set an address; show the real state instead of the form.
       if (status === 409)
         void queryClient.invalidateQueries({ queryKey: notificationQueryKey(ticketId) });

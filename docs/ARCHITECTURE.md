@@ -44,6 +44,7 @@ Entry points sit next to them: `main.ts` runs the API and worker together, `inde
 | `api/`         | HTTP tests, one folder per feature (needs the compose stack)  |
 | `helpers/`     | Shared test code                                              |
 | `fixtures/`    | Shared test data                                              |
+| `setup/`       | Vitest setup files (globals installed and restored per test)  |
 
 ### `apps/web`
 

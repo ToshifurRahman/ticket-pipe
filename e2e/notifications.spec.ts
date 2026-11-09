@@ -5,7 +5,7 @@ import { asClient } from './helpers/client-ip';
 import { linkIn, mailCount, uniqueAddress, waitForMail } from './helpers/mailpit';
 import { opsCookie } from './helpers/ops-session';
 import { stripFakeMarkers } from './helpers/strip-fake-marker';
-import { stubTurnstile } from './helpers/turnstile';
+import { stubTurnstile, TURNSTILE_DUMMY_TOKEN } from './helpers/turnstile';
 
 // Customer email against the real stack, with Mailpit catching what the SMTP driver sends.
 
@@ -19,7 +19,9 @@ async function createTicket(
   subject: string,
   description: string
 ) {
-  const res = await request.post('/api/tickets', { data: { subject, description } });
+  const res = await request.post('/api/tickets', {
+    data: { subject, description, turnstileToken: TURNSTILE_DUMMY_TOKEN },
+  });
   expect(res.status()).toBe(201);
   const ticket = (await res.json()) as { ticketId: string; referenceNumber: string };
   created.push(ticket.ticketId);
@@ -49,7 +51,7 @@ test('confirming through the emailed link leads to a "reply is ready" email', as
   expect(
     (
       await request.post(`/api/tickets/${ticketId}/notification`, {
-        data: { email: address },
+        data: { email: address, turnstileToken: TURNSTILE_DUMMY_TOKEN },
         headers: asClient(),
       })
     ).status()

@@ -29,6 +29,11 @@ export default defineConfig({
       SMTP_URL: 'smtp://localhost:1025',
       MAIL_FROM: 'relay@example.test',
       PUBLIC_SITE_URL: `http://localhost:${PORT}`,
+      // The real siteverify is exercised, so the API needs Cloudflare's always-pass test secret.
+      TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA',
+      // Abuse protection: the e2e suites are not about the limits, so they must never trip them.
+      TICKET_IP_HOURLY_LIMIT: '100000',
+      TICKET_DAILY_CAP: '100000',
     },
   },
 });

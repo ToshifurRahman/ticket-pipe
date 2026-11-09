@@ -4,8 +4,16 @@ import { z } from 'zod';
 
 import { decodeEventCursor } from '../domain/event-cursor.js';
 import { logger } from '../lib/logger.js';
+import { clientIp } from '../middleware/client-ip.js';
 import type { TicketEvent } from '../repositories/events.js';
 import { getTicketById, getTicketByReferenceNumber } from '../repositories/tickets.js';
+import {
+  checkDailyCap,
+  checkIpLimit,
+  checkTurnstile,
+  releaseDailySlot,
+  SubmissionRefused,
+} from '../services/submission-guard.js';
 import {
   buildFullTicketView,
   EVENTS_DEFAULT_LIMIT,
@@ -40,6 +48,8 @@ const TicketSchema = z.object({
     .min(1, 'Description is required')
     .min(DESCRIPTION_MIN, `Description needs at least ${DESCRIPTION_MIN} characters.`)
     .max(DESCRIPTION_MAX, `Description can be at most ${DESCRIPTION_MAX} characters.`),
+  // Optional in the schema so a missing token is a friendly 403, not a 400.
+  turnstileToken: z.string().max(4096).optional(),
 });
 
 const EVENTS_MAX_LIMIT = 200;
@@ -80,9 +90,24 @@ export const create = factory.createHandlers(
     return c.json({ errors }, 400);
   }),
   async (c) => {
-    const { subject, description } = c.req.valid('json');
+    const { subject, description, turnstileToken } = c.req.valid('json');
+    const ip = clientIp(c);
     try {
-      const ticket = await createTicket(subject, description);
+      // Order matters: the body was validated above, then the address is counted, then the
+      // token is checked, then the daily cap. A refused request creates nothing and enqueues
+      // nothing, so it costs no LLM call.
+      await checkIpLimit(ip);
+      await checkTurnstile(turnstileToken, ip);
+      // One `now` for the count and a release, so a request crossing midnight cannot release
+      // the next UTC day's key.
+      const now = new Date();
+      await checkDailyCap(now);
+      // A failed insert gives its daily slot back. A release that fails or times out is logged
+      // inside the guard and never replaces this error or delays the response beyond its bound.
+      const ticket = await createTicket(subject, description).catch(async (err: unknown) => {
+        await releaseDailySlot(now);
+        throw err;
+      });
       return c.json(
         {
           ticketId: ticket.id,
@@ -93,6 +118,12 @@ export const create = factory.createHandlers(
         201
       );
     } catch (err) {
+      if (err instanceof SubmissionRefused) {
+        if (err.retryAfterSeconds !== undefined) {
+          c.header('Retry-After', String(err.retryAfterSeconds));
+        }
+        return c.json({ error: err.message }, err.status);
+      }
       logger.error({ err, context: 'createTicket' }, 'Ticket creation failed');
       throw err;
     }

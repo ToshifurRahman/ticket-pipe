@@ -11,7 +11,7 @@ import type {
 export type CreateTicketInput = {
   subject: string;
   description: string;
-  /** Cloudflare Turnstile token. The API ignores it until server-side verification (7.5). */
+  /** Cloudflare Turnstile token, verified server-side before the ticket is created (7.5). */
   turnstileToken: string;
 };
 

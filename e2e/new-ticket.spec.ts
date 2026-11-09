@@ -56,7 +56,9 @@ test('a customer submits a ticket with the keyboard and finds it again after a r
     referenceNumber: string;
   };
   created.push(ticketId);
-  expect(response.request().postDataJSON()).toMatchObject({ turnstileToken: 'e2e-token' });
+  expect(response.request().postDataJSON()).toMatchObject({
+    turnstileToken: 'XXXX.DUMMY.TOKEN.XXXX',
+  });
 
   await expect(page.getByRole('heading', { name: "We're on it" })).toBeFocused();
   await expect(page.getByTestId('ticket-reference')).toHaveText(referenceNumber);

@@ -345,3 +345,35 @@ describe('NewTicketPage: recent tickets', () => {
     expect(JSON.parse(localStorage.getItem('recent-tickets')!)).toHaveLength(1);
   });
 });
+
+describe('NewTicketPage: abuse guard messages', () => {
+  it.each([
+    [403, "We couldn't verify your request. Please try again.", 'Server refused.'],
+    [429, "You've sent several tickets recently. Please try again in about an hour.", 'Slow down.'],
+    [503, "We can't accept new requests right now. Please try again shortly.", 'Try soon.'],
+  ])('shows the API message for %s and resets the widget', async (status, _fallback, message) => {
+    const user = userEvent.setup();
+    server.use(http.post('/api/tickets', () => HttpResponse.json({ error: message }, { status })));
+    renderPage();
+    await fillValid(user);
+    await user.click(screen.getByRole('button', { name: /Submit ticket/ }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(turnstile.resets).toBe(1);
+  });
+
+  it.each([
+    [403, "We couldn't verify your request. Please try again."],
+    [429, "You've sent several tickets recently. Please try again in about an hour."],
+    [503, "We can't accept new requests right now. Please try again shortly."],
+  ])('falls back to friendly copy for %s when the API sends none', async (status, fallback) => {
+    const user = userEvent.setup();
+    server.use(http.post('/api/tickets', () => HttpResponse.json({}, { status })));
+    renderPage();
+    await fillValid(user);
+    await user.click(screen.getByRole('button', { name: /Submit ticket/ }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(fallback);
+    expect(turnstile.resets).toBe(1);
+  });
+});
