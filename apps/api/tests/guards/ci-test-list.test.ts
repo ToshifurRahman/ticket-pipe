@@ -104,6 +104,20 @@ describe('the CI test split', () => {
     );
   });
 
+  it('fails when a serial path appears only in an inline comment', () => {
+    expect(
+      validateTestList({
+        ...consistent,
+        workflow:
+          'run: bun test:unit --exclude tests/guards/format.test.ts\n' +
+          'run: bun test:integration --exclude tests/integration/repositories/ai-interactions.test.ts\n' +
+          'run: vitest run tests/guards/format.test.ts --no-file-parallelism # tests/integration/repositories/ai-interactions.test.ts',
+      })
+    ).toContain(
+      'the workflow does not run serial file: tests/integration/repositories/ai-interactions.test.ts'
+    );
+  });
+
   it('matches the workflow, the script and the files in this repository', () => {
     expect(
       validateTestList({

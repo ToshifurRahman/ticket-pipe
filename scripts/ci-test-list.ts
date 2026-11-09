@@ -31,9 +31,13 @@ export interface TestListInput {
 
 const sortedUnique = (files: readonly string[]) => [...new Set(files)].sort().join('\n');
 
-// Comments are not commands: a path or an exclude that only appears in one proves nothing.
+// Comments are not commands: a path or an exclude that only appears in a comment proves nothing.
+// A `#` starts a comment at the start of the line or after whitespace; one inside a word is kept.
 const commandLines = (workflow: string) =>
-  workflow.split('\n').filter((line) => !line.trimStart().startsWith('#'));
+  workflow
+    .split('\n')
+    .filter((line) => !line.trimStart().startsWith('#'))
+    .map((line) => line.replace(/(^|\s)#.*$/, ''));
 
 const excludesOn = (line: string) =>
   [...line.matchAll(/--exclude[= ]+(\S+)/g)].map((match) => match[1].replace(/^['"]|['"]$/g, ''));
