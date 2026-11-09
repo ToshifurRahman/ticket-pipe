@@ -92,3 +92,5 @@ if (import.meta.main) {
     `ok: ${SERIAL_TESTS.length} files run serially and are excluded from the parallel steps`
   );
 }
+
+export const proofTypeError: number = 'text';
