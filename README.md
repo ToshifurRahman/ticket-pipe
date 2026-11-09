@@ -1,3 +1,5 @@
+[![CI](https://github.com/ToshifurRahman/ticket-pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/ToshifurRahman/ticket-pipe/actions/workflows/ci.yml)
+
 # Ticket-Pipeline
 
 A support-ticket pipeline. A customer submits a ticket, a background worker triages it with an LLM and drafts a reply, and the customer watches it happen live. Staff get an ops console with live updates, alerts and replay for failures.
