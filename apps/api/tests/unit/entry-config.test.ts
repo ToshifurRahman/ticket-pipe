@@ -56,9 +56,14 @@ describe.each(SCRIPTS)('%s', (script, needs, own) => {
     expect(stderr).not.toMatch(/\n\s+at /);
   });
 
-  it('gets past the configuration with only its own variables set', () => {
+  it('gets past the configuration and stops only on its own next rule', () => {
     const { stderr } = start(script, own);
-    expect(stderr).not.toContain('Invalid environment');
+    if (script === 'scripts/setup-infra.ts') {
+      // Its own variables are complete; the next rule refuses the local placeholder.
+      expect(stderr).toContain('real credential');
+    } else {
+      expect(stderr).not.toContain('Invalid environment');
+    }
   });
 
   it('ignores an invalid variable it does not use', () => {
