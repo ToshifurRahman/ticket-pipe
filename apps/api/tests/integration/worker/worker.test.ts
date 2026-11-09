@@ -833,8 +833,13 @@ describe('processMessage — permanent failure (story 5.2)', () => {
     const spy = vi.spyOn(pg.Pool.prototype, 'query');
     spy.mockRejectedValueOnce(new Error('db blip'));
 
-    await expect(processMessage(ticket.id, 'fake-receipt', 2, mockAi())).rejects.toThrow('db blip');
-    spy.mockRestore();
+    try {
+      await expect(processMessage(ticket.id, 'fake-receipt', 2, mockAi())).rejects.toThrow(
+        'db blip'
+      );
+    } finally {
+      spy.mockRestore();
+    }
 
     expect((await getTicketById(ticket.id)).status).toBe('processing');
     expect(deleteMessage).not.toHaveBeenCalled();
@@ -852,8 +857,11 @@ describe('processMessage — permanent failure (story 5.2)', () => {
       (realQuery as (...a: unknown[]) => unknown)(...args)
     );
 
-    await processMessage(ticket.id, 'fake-receipt', 6, mockAi());
-    spy.mockRestore();
+    try {
+      await processMessage(ticket.id, 'fake-receipt', 6, mockAi());
+    } finally {
+      spy.mockRestore();
+    }
 
     const updated = await getTicketById(ticket.id);
     expect(updated.status).toBe('failed');
