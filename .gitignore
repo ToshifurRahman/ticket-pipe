@@ -29,3 +29,6 @@ playwright-report/
 .impeccable/build/
 .impeccable/questions/
 .ds-receipts/
+
+# Herdsman route folders (contracts, reports, reviews)
+.herdsman/
