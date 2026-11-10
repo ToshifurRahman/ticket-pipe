@@ -1,5 +1,12 @@
 import { z } from 'zod';
 
+import {
+  isValidDlqName,
+  isValidQueueName,
+  SQS_NAME_MAX_LENGTH,
+  SQS_QUEUE_NAME_MAX_LENGTH,
+} from '../../scripts/queue-names.js';
+
 // The one place that reads process.env (tests/guards/env-access.test.ts). One schema describes
 // every variable the API, the worker and the scripts use. Entry points call startupConfig()
 // first, so a missing or invalid variable stops the process at once with a message that names
@@ -83,6 +90,16 @@ const RULES: Array<[string, string | ((env: Fields) => string), (env: Fields) =>
     'LLM_MODE',
     'LLM_MODE=fake is not allowed when NODE_ENV=production',
     (env) => env.LLM_MODE === 'fake' && env.NODE_ENV === 'production',
+  ],
+  [
+    'SQS_QUEUE_NAME',
+    `SQS_QUEUE_NAME must use only letters, digits, "_" and "-", and be at most ${SQS_QUEUE_NAME_MAX_LENGTH} characters so the -dlq and -smoke names stay within ${SQS_NAME_MAX_LENGTH}`,
+    (env) => !!env.SQS_QUEUE_NAME && !isValidQueueName(env.SQS_QUEUE_NAME),
+  ],
+  [
+    'SQS_DLQ_NAME',
+    `SQS_DLQ_NAME must use only letters, digits, "_" and "-" and be at most ${SQS_NAME_MAX_LENGTH} characters`,
+    (env) => env.SQS_DLQ_NAME !== undefined && !isValidDlqName(env.SQS_DLQ_NAME),
   ],
   ['GOOGLE_API_KEY', 'required when LLM_MODE is real', (env) => isReal(env) && !env.GOOGLE_API_KEY],
   [
