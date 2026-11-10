@@ -39,8 +39,8 @@ const SCRIPTS: Array<[string, string[], Record<string, string>]> = [
   ['scripts/purge.ts', ['DATABASE_URL'], { DATABASE_URL: 'postgres://u:p@127.0.0.1:1/db' }],
   [
     'scripts/setup-infra.ts',
-    ['SQS_QUEUE_NAME', 'SQS_ENDPOINT'],
-    { SQS_QUEUE_NAME: 'tickets', SQS_ENDPOINT: 'http://127.0.0.1:1' },
+    ['SQS_QUEUE_NAME', 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY'],
+    { SQS_QUEUE_NAME: 'tickets', AWS_ACCESS_KEY_ID: 'test', AWS_SECRET_ACCESS_KEY: 'test' },
   ],
 ];
 
@@ -56,9 +56,14 @@ describe.each(SCRIPTS)('%s', (script, needs, own) => {
     expect(stderr).not.toMatch(/\n\s+at /);
   });
 
-  it('gets past the configuration with only its own variables set', () => {
+  it('gets past the configuration and stops only on its own next rule', () => {
     const { stderr } = start(script, own);
-    expect(stderr).not.toContain('Invalid environment');
+    if (script === 'scripts/setup-infra.ts') {
+      // Its own variables are complete; the next rule refuses the local placeholder.
+      expect(stderr).toContain('real credential');
+    } else {
+      expect(stderr).not.toContain('Invalid environment');
+    }
   });
 
   it('ignores an invalid variable it does not use', () => {
@@ -103,14 +108,22 @@ describe('rules at startup', () => {
     expect(stderr).toContain('AWS_SECRET_ACCESS_KEY: required unless SQS_ENDPOINT is set');
   });
 
-  it('setup-infra names SQS_ENDPOINT, which only that script needs', () => {
-    const { status, stderr } = start('scripts/setup-infra.ts', {
+  it('setup-infra asks for real AWS keys when SQS_ENDPOINT is unset', () => {
+    const { status, stderr } = start('scripts/setup-infra.ts', { SQS_QUEUE_NAME: 'tickets' });
+    expect(status).toBe(1);
+    expect(stderr).toContain('AWS_ACCESS_KEY_ID');
+    expect(stderr).toContain('AWS_SECRET_ACCESS_KEY');
+    expect(stderr).not.toContain('REDIS_URL');
+  });
+
+  it('setup-infra refuses the local placeholder against real AWS, before any network call', () => {
+    const { status, stderr, seconds } = start('scripts/setup-infra.ts', {
       SQS_QUEUE_NAME: 'tickets',
-      AWS_ACCESS_KEY_ID: 'a',
-      AWS_SECRET_ACCESS_KEY: 'b',
+      AWS_ACCESS_KEY_ID: 'test',
+      AWS_SECRET_ACCESS_KEY: 'test',
     });
     expect(status).toBe(1);
-    expect(stderr).toContain('SQS_ENDPOINT');
-    expect(stderr).not.toContain('REDIS_URL');
+    expect(stderr).toContain('real credential');
+    expect(seconds).toBeLessThan(15);
   });
 });

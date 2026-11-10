@@ -11,6 +11,7 @@
     "worker": "bun --env-file=../../.env --watch src/worker.ts",
     "setup": "bun --env-file=../../.env scripts/setup-infra.ts",
     "migrate": "bun --env-file=../../.env scripts/migrate.ts",
+    "smoke:infra": "bun --env-file=../../.env scripts/smoke-infra.ts",
     "purge": "bun --env-file=../../.env scripts/purge.ts",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
@@ -19,6 +20,7 @@
   "dependencies": {
     "@aws-sdk/client-sns": "^3.1147.0",
     "@aws-sdk/client-sqs": "^3.758.0",
+    "@aws-sdk/client-sts": "3.1148.0",
     "@hono/zod-validator": "^0.9.1",
     "@socket.io/bun-engine": "^0.1.2",
     "@socket.io/redis-adapter": "^8.3.0",
