@@ -6,7 +6,7 @@ import {
   SQSClient,
   type SQSClientConfig,
 } from '@aws-sdk/client-sqs';
-import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
+import { GetCallerIdentityCommand, STSClient, type STSClientConfig } from '@aws-sdk/client-sts';
 import pg from 'pg';
 import { createClient } from 'redis';
 
@@ -103,12 +103,15 @@ const KEYS = [
 ] as const;
 
 type SmokeConfig = Pick<Config, (typeof KEYS)[number]>;
+type AwsConfig = Pick<Config, 'AWS_REGION' | 'AWS_ACCESS_KEY_ID' | 'AWS_SECRET_ACCESS_KEY'>;
+type SqsConfig = AwsConfig & Pick<Config, 'SQS_QUEUE_NAME' | 'SQS_ENDPOINT'>;
+type PgConfig = Pick<Config, 'DATABASE_URL'>;
 
 function hasEndpoint(endpoint: string | undefined): endpoint is string {
   return typeof endpoint === 'string' && endpoint.trim() !== '';
 }
 
-function sqsClientConfig(config: SmokeConfig): SQSClientConfig {
+function sqsClientConfig(config: SqsConfig): SQSClientConfig {
   return {
     ...(hasEndpoint(config.SQS_ENDPOINT) ? { endpoint: config.SQS_ENDPOINT } : {}),
     region: config.AWS_REGION,
@@ -116,67 +119,85 @@ function sqsClientConfig(config: SmokeConfig): SQSClientConfig {
       accessKeyId: config.AWS_ACCESS_KEY_ID,
       secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
     },
+    maxAttempts: 1,
     requestHandler: {
       requestTimeout: NETWORK_TIMEOUT_MS,
       connectionTimeout: CONNECT_TIMEOUT_MS,
+      throwOnRequestTimeout: true,
     },
   };
 }
 
-async function awsIdentity(config: SmokeConfig): Promise<boolean> {
+export async function awsIdentity(
+  config: AwsConfig,
+  overrides: Partial<STSClientConfig> = {}
+): Promise<boolean> {
   const sts = new STSClient({
     region: config.AWS_REGION,
     credentials: {
       accessKeyId: config.AWS_ACCESS_KEY_ID,
       secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
     },
+    maxAttempts: 1,
     requestHandler: {
       requestTimeout: NETWORK_TIMEOUT_MS,
       connectionTimeout: CONNECT_TIMEOUT_MS,
+      throwOnRequestTimeout: true,
     },
+    ...overrides,
   });
-  const identity = await sts.send(new GetCallerIdentityCommand({}));
-  // An account root (or root-derived) identity is the one credential that must never run the app.
-  return (
-    typeof identity.Arn === 'string' && identity.Arn.length > 0 && !identity.Arn.endsWith(':root')
-  );
+  try {
+    const identity = await sts.send(new GetCallerIdentityCommand({}));
+    // An account root (or root-derived) identity is the one credential that must never run the app.
+    return (
+      typeof identity.Arn === 'string' && identity.Arn.length > 0 && !identity.Arn.endsWith(':root')
+    );
+  } finally {
+    // A hung request must not keep its socket (and the process) alive.
+    sts.destroy();
+  }
 }
 
 export function smokeMessageBody(id: string): string {
   return JSON.stringify({ ticketId: id, referenceNumber: `SMOKE-${id.slice(0, 8)}` });
 }
 
-async function sqsRoundTrip(config: SmokeConfig): Promise<boolean> {
+export async function sqsRoundTrip(config: SqsConfig): Promise<boolean> {
   const client = new SQSClient(sqsClientConfig(config));
-  const { QueueUrl } = await client.send(
-    new GetQueueUrlCommand({ QueueName: smokeQueueName(config.SQS_QUEUE_NAME) })
-  );
-  if (!QueueUrl) return false;
-
-  const id = `smoke-${crypto.randomUUID()}`;
-  const body = smokeMessageBody(id);
-  // The app's JSON envelope, so a message left behind on failure is still parseable by
-  // queue.ts receive() instead of throwing on every poll until redrive removes it.
-  await client.send(new SendMessageCommand({ QueueUrl, MessageBody: body }));
-
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const result = await client.send(
-      new ReceiveMessageCommand({
-        QueueUrl,
-        MaxNumberOfMessages: 10,
-        WaitTimeSeconds: 2,
-      })
+  try {
+    const { QueueUrl } = await client.send(
+      new GetQueueUrlCommand({ QueueName: smokeQueueName(config.SQS_QUEUE_NAME) })
     );
-    for (const message of result.Messages ?? []) {
-      if (message.Body !== body) continue;
-      if (!message.ReceiptHandle) return false;
-      await client.send(
-        new DeleteMessageCommand({ QueueUrl, ReceiptHandle: message.ReceiptHandle })
+    if (!QueueUrl) return false;
+
+    const id = `smoke-${crypto.randomUUID()}`;
+    const body = smokeMessageBody(id);
+    // The app's JSON envelope, so a message left behind on failure is still parseable by
+    // queue.ts receive() instead of throwing on every poll until redrive removes it.
+    await client.send(new SendMessageCommand({ QueueUrl, MessageBody: body }));
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const result = await client.send(
+        new ReceiveMessageCommand({
+          QueueUrl,
+          MaxNumberOfMessages: 10,
+          WaitTimeSeconds: 2,
+        })
       );
-      return true;
+      for (const message of result.Messages ?? []) {
+        if (message.Body !== body) continue;
+        if (!message.ReceiptHandle) return false;
+        await client.send(
+          new DeleteMessageCommand({ QueueUrl, ReceiptHandle: message.ReceiptHandle })
+        );
+        return true;
+      }
     }
+    return false;
+  } finally {
+    // A hung request must not keep its socket (and the process) alive.
+    client.destroy();
   }
-  return false;
 }
 
 const TLS_MODES = new Set(['', 'require', 'verify-ca', 'verify-full']);
@@ -205,19 +226,53 @@ export function postgresConnectionConfig(connectionString: string): {
   return { connectionString: url.toString(), ssl: { rejectUnauthorized: true } };
 }
 
-async function postgres(config: SmokeConfig): Promise<boolean> {
-  const client = new Client({
+interface PgClientInternals {
+  connection?: { stream?: { destroy(): void } };
+}
+
+function destroyPgSocket(client: PostgresClientLike): void {
+  (client as unknown as PgClientInternals).connection?.stream?.destroy();
+}
+
+export interface PostgresClientLike {
+  on(event: 'error', listener: () => void): unknown;
+  connect(): Promise<unknown>;
+  query(sql: string): Promise<unknown>;
+  end(): Promise<void>;
+  connection?: { stream?: { destroy(): void } };
+}
+
+export interface PostgresCheckOptions {
+  createClient?: (config: pg.ClientConfig) => PostgresClientLike;
+  closeTimeoutMs?: number;
+}
+
+export async function postgresCheck(
+  config: PgConfig,
+  options: PostgresCheckOptions = {}
+): Promise<boolean> {
+  const createClient =
+    options.createClient ?? ((clientConfig: pg.ClientConfig) => new Client(clientConfig));
+  const client = createClient({
     ...postgresConnectionConfig(config.DATABASE_URL),
     connectionTimeoutMillis: CONNECT_TIMEOUT_MS,
     query_timeout: NETWORK_TIMEOUT_MS,
     statement_timeout: NETWORK_TIMEOUT_MS,
   });
+  // A late socket error after connect() would otherwise be an unhandled 'error' event and a raw
+  // stack trace on stderr, outside runSmoke's catch.
+  client.on('error', () => undefined);
   try {
     await client.connect();
     await client.query('SELECT 1');
     return true;
   } finally {
-    await client.end().catch(() => undefined);
+    const closed = await withDeadline(
+      client.end().catch(() => undefined),
+      options.closeTimeoutMs ?? CONNECT_TIMEOUT_MS
+    );
+    // A graceful end waits for the peer's close; destroy the socket when that never arrives.
+    if (closed === TIMED_OUT) destroyPgSocket(client);
   }
 }
 
@@ -277,7 +332,7 @@ export function defaultChecks(env?: RawEnv): SmokeChecks {
     awsIdentity: () => awsIdentity(config),
     awsNotLocal: () => !hasEndpoint(config.SQS_ENDPOINT),
     sqsRoundTrip: () => sqsRoundTrip(config),
-    postgres: () => postgres(config),
+    postgres: () => postgresCheck(config),
     redis: () => redisCheck(config),
     redisTls: () => redisTls(config),
   };
