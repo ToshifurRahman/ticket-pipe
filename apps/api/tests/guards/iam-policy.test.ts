@@ -91,4 +91,10 @@ describe('IAM policies', () => {
       true
     );
   });
+
+  it('both policies cover the dedicated smoke queue', () => {
+    for (const file of [RUNTIME_POLICY, SETUP_POLICY]) {
+      expect(values(load(file)).join('\n')).toContain('<smoke-queue>');
+    }
+  });
 });

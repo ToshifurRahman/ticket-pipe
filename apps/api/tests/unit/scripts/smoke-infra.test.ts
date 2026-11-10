@@ -140,4 +140,17 @@ describe('smoke-infra configuration and message shape', () => {
       referenceNumber: 'SMOKE-smoke-12',
     });
   });
+
+  it('stops waiting for a stalled check and still runs the remaining ones', async () => {
+    const { lines, print } = capture();
+    const checks = ok();
+    checks.postgres = () => new Promise<boolean>(() => undefined);
+
+    const code = await runSmoke(checks, print, { timeoutMs: 20 });
+
+    expect(code).toBe(1);
+    expect(lines).toContain('postgres WRONG');
+    expect(lines).toHaveLength(CHECK_NAMES.length);
+    expect(lines.at(-1)).toBe('redis-tls ok');
+  });
 });

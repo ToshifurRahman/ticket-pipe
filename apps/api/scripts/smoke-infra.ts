@@ -11,8 +11,29 @@ import pg from 'pg';
 import { createClient } from 'redis';
 
 import { type Config, pickConfig, type RawEnv } from '../src/lib/config.js';
+import { smokeQueueName } from './queue-names.js';
 
 const { Client } = pg;
+
+// Per-check ceiling: one stalled dependency must not hide the rest of the report.
+export const DEFAULT_CHECK_TIMEOUT_MS = 20_000;
+const NETWORK_TIMEOUT_MS = 8000;
+const CONNECT_TIMEOUT_MS = 5000;
+const PING_TIMEOUT_MS = 5000;
+
+const TIMED_OUT = Symbol('check timed out');
+
+async function withDeadline<T>(work: Promise<T>, timeoutMs: number): Promise<T | typeof TIMED_OUT> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
+    timer = setTimeout(() => resolve(TIMED_OUT), timeoutMs);
+  });
+  try {
+    return await Promise.race([work, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export const CHECK_NAMES = [
   'aws-identity',
@@ -49,13 +70,19 @@ const CHECKS: ReadonlyArray<[CheckName, keyof SmokeChecks]> = [
  */
 export async function runSmoke(
   checks: SmokeChecks,
-  print: (line: string) => void = console.log
+  print: (line: string) => void = console.log,
+  options: { timeoutMs?: number } = {}
 ): Promise<number> {
+  const timeoutMs = options.timeoutMs ?? DEFAULT_CHECK_TIMEOUT_MS;
   let allOk = true;
   for (const [name, key] of CHECKS) {
     let ok: boolean;
     try {
-      ok = await checks[key]();
+      const result = await withDeadline(
+        Promise.resolve().then(() => checks[key]()),
+        timeoutMs
+      );
+      ok = result !== TIMED_OUT && result === true;
     } catch {
       ok = false;
     }
@@ -89,6 +116,10 @@ function sqsClientConfig(config: SmokeConfig): SQSClientConfig {
       accessKeyId: config.AWS_ACCESS_KEY_ID,
       secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
     },
+    requestHandler: {
+      requestTimeout: NETWORK_TIMEOUT_MS,
+      connectionTimeout: CONNECT_TIMEOUT_MS,
+    },
   };
 }
 
@@ -98,6 +129,10 @@ async function awsIdentity(config: SmokeConfig): Promise<boolean> {
     credentials: {
       accessKeyId: config.AWS_ACCESS_KEY_ID,
       secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
+    },
+    requestHandler: {
+      requestTimeout: NETWORK_TIMEOUT_MS,
+      connectionTimeout: CONNECT_TIMEOUT_MS,
     },
   });
   const identity = await sts.send(new GetCallerIdentityCommand({}));
@@ -114,7 +149,7 @@ export function smokeMessageBody(id: string): string {
 async function sqsRoundTrip(config: SmokeConfig): Promise<boolean> {
   const client = new SQSClient(sqsClientConfig(config));
   const { QueueUrl } = await client.send(
-    new GetQueueUrlCommand({ QueueName: config.SQS_QUEUE_NAME })
+    new GetQueueUrlCommand({ QueueName: smokeQueueName(config.SQS_QUEUE_NAME) })
   );
   if (!QueueUrl) return false;
 
@@ -171,7 +206,12 @@ export function postgresConnectionConfig(connectionString: string): {
 }
 
 async function postgres(config: SmokeConfig): Promise<boolean> {
-  const client = new Client(postgresConnectionConfig(config.DATABASE_URL));
+  const client = new Client({
+    ...postgresConnectionConfig(config.DATABASE_URL),
+    connectionTimeoutMillis: CONNECT_TIMEOUT_MS,
+    query_timeout: NETWORK_TIMEOUT_MS,
+    statement_timeout: NETWORK_TIMEOUT_MS,
+  });
   try {
     await client.connect();
     await client.query('SELECT 1');
@@ -185,16 +225,25 @@ export async function redisCheck(config: Pick<SmokeConfig, 'REDIS_URL'>): Promis
   const client = createClient({
     url: config.REDIS_URL,
     // Without this, node-redis retries forever on an unreachable host and the check hangs.
-    socket: { reconnectStrategy: false },
+    socket: { reconnectStrategy: false, connectTimeout: CONNECT_TIMEOUT_MS },
   });
   // node-redis emits 'error' before connect() rejects; with no listener Node throws the raw
   // error text (including the URL) to stderr and crashes outside runSmoke's catch.
   client.on('error', () => undefined);
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     await client.connect();
-    return (await client.ping()) === 'PONG';
+    const timedOut = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('ping timed out')), PING_TIMEOUT_MS);
+    });
+    try {
+      return (await Promise.race([client.ping(), timedOut])) === 'PONG';
+    } finally {
+      clearTimeout(timer);
+    }
   } finally {
-    if (client.isOpen) await client.quit().catch(() => undefined);
+    // Destroy instead of quit: a stalled server would make quit() hang too.
+    client.destroy();
   }
 }
 

@@ -62,16 +62,16 @@ Two identities, no root keys:
 | `ticket-setup`   | `infra/iam/setup-policy.json`   | `setup-infra.ts`, run once, then delete |
 
 Create both policies with `aws iam create-policy`, substituting `<region>`, `<account-id>`,
-`<main-queue>`, `<dlq>` and `<topic>`. Then create access keys for each identity and store them
-in the platform's secret store, never in the repository.
+`<main-queue>`, `<dlq>`, `<smoke-queue>` and `<topic>`. Then create access keys for each
+identity and store them in the platform's secret store, never in the repository.
 
 The runtime policy has exactly the four SQS actions the code calls (`GetQueueUrl`,
-`SendMessage`, `ReceiveMessage`, `DeleteMessage`) on the main queue, and `sns:Publish` on the
-alert topic. It has no DLQ permission because the runtime never reads the DLQ: redrive is done
-by SQS itself, and replay reads the database. The setup policy creates and configures both
-queues and is not attached to anything that serves traffic. `apps/api/tests/guards/iam-policy.test.ts`
-fails if the runtime policy and the imported SDK commands drift apart, or if any action or
-resource contains a wildcard.
+`SendMessage`, `ReceiveMessage`, `DeleteMessage`) on the main queue and the dedicated smoke
+queue, and `sns:Publish` on the alert topic. It has no DLQ permission because the runtime never
+reads the DLQ: redrive is done by SQS itself, and replay reads the database. The setup policy
+creates and configures the three queues and is not attached to anything that serves traffic.
+`apps/api/tests/guards/iam-policy.test.ts` fails if the runtime policy and the imported SDK
+commands drift apart, or if any action or resource contains a wildcard.
 
 ## 4. Create the queues
 
@@ -81,9 +81,10 @@ Run once with `SQS_ENDPOINT` unset or empty and the setup identity's keys:
 SQS_ENDPOINT= SNS_ENDPOINT= bun --filter @ticket-pipe/api setup
 ```
 
-This creates the main queue, the DLQ and the redrive policy (`maxReceiveCount` 10). It is
-idempotent: re-running succeeds. The script refuses the local `test` placeholder credentials
-when no endpoint is set, so a local `.env` cannot accidentally target AWS.
+This creates the main queue, the DLQ with the redrive policy (`maxReceiveCount` 10), and the
+dedicated `<main-queue>-smoke` queue used by `smoke:infra`. It is idempotent: re-running
+succeeds. The script refuses the local `test` placeholder credentials when no endpoint is set,
+so a local `.env` cannot accidentally target AWS.
 
 ## 5. SNS topic and email subscription
 
@@ -135,8 +136,9 @@ It never prints a value, URL, host, ARN, account id, message id or error text.
 
 - `aws-identity`: STS `GetCallerIdentity` succeeds and the ARN is not an account root.
 - `aws-not-local`: `SQS_ENDPOINT` is unset or empty, so the app is pointed at real AWS.
-- `sqs-round-trip`: sends one unique smoke message to the main queue, receives that exact
-  message and deletes it.
+- `sqs-round-trip`: sends one unique smoke message to the dedicated `<main-queue>-smoke`
+  queue, receives that exact message and deletes it. The worker only polls the main queue, so
+  the probe never competes with real ticket work or delays it.
 - `postgres`: `SELECT 1` over a TLS connection. `sslmode=disable` and non-postgres URLs are WRONG.
 - `redis`: `PING` returns `PONG`.
 - `redis-tls`: the URL scheme is `rediss:`.

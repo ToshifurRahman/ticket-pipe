@@ -5,7 +5,10 @@
       "Sid": "QueueRoundTrip",
       "Effect": "Allow",
       "Action": ["sqs:GetQueueUrl", "sqs:SendMessage", "sqs:ReceiveMessage", "sqs:DeleteMessage"],
-      "Resource": "arn:aws:sqs:<region>:<account-id>:<main-queue>"
+      "Resource": [
+        "arn:aws:sqs:<region>:<account-id>:<main-queue>",
+        "arn:aws:sqs:<region>:<account-id>:<smoke-queue>"
+      ]
     },
     {
       "Sid": "OpsAlertPublish",

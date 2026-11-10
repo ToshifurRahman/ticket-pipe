@@ -8,6 +8,7 @@ import {
 } from '@aws-sdk/client-sqs';
 
 import { type Config, type RawEnv, scriptConfig } from '../src/lib/config.js';
+import { smokeQueueName } from './queue-names.js';
 
 // The local stack uses the placeholder credentials in lib/config.ts. Real AWS must never see
 // them: without an endpoint the SDK would sign production requests with "test".
@@ -92,6 +93,14 @@ async function setup(): Promise<void> {
   const mainResult = await client.send(new CreateQueueCommand({ QueueName: queueName }));
   if (!mainResult.QueueUrl) throw new Error('Failed to create main queue');
   console.log(`main queue created: ${mainResult.QueueUrl}`);
+
+  // A dedicated queue for smoke:infra: the worker polls only the main queue, so the probe can
+  // never be consumed and deleted as an unknown ticket.
+  const smokeResult = await client.send(
+    new CreateQueueCommand({ QueueName: smokeQueueName(queueName) })
+  );
+  if (!smokeResult.QueueUrl) throw new Error('Failed to create smoke queue');
+  console.log(`smoke queue created: ${smokeResult.QueueUrl}`);
 
   // Apply redrive policy
   await client.send(
