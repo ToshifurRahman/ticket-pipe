@@ -315,14 +315,12 @@ async function checkDeployCommand() {
     allowFailure: true,
   });
   await removeContainer(name);
-  // This command runs under `/bin/sh -c`, so the shell is PID 1 and does not forward SIGTERM to
-  // bun: Docker's stop escalates to SIGKILL and the exit is 137. That is the deploy command's own
-  // shape, not a fault, and it is how Render ends it on a deploy or a spin-down. The graceful
-  // SIGTERM path is the earlier step against the image's default CMD. What this step proves is the
-  // migration and the ready answer, both checked before this point.
-  if (!failure && exit.out !== '0' && exit.out !== '137') {
+  // `exec bun src/main.ts` replaces the shell with bun, so bun is PID 1 and receives Docker's
+  // SIGTERM directly: the server's drain runs and the container exits 0. A 137 here would mean
+  // the shell swallowed the signal again, which is what Render sends on every deploy.
+  if (!failure && exit.out !== '0') {
     failure = new Error(
-      `the deploy command container exited ${exit.out}, expected 0 or 137\n${out}\n${err}`
+      `the deploy command container exited ${exit.out}, expected 0 after a graceful stop\n${out}\n${err}`
     );
   }
   if (failure) throw failure;
