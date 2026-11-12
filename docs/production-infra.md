@@ -4,6 +4,10 @@ The steps a maintainer runs by hand to put the app on real AWS, Neon and Redis C
 local checks that prove the code is ready. Story 7.8; leftovers are tracked as PA-7.8-03 and in
 story 7.12.7.
 
+The app itself deploys to Render from the `render.yaml` blueprint; the deploy runbook is
+[deployment.md](deployment.md). Read it alongside this file: the infrastructure below is what that
+service depends on, and neither document replaces the other.
+
 Nothing in this file is a credential. Replace every `<placeholder>`. Never use root AWS keys:
 create the two IAM identities below and nothing else.
 

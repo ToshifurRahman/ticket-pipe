@@ -117,7 +117,9 @@ The repo is `apps/api`, `apps/web`, `e2e/`, `scripts/` and `docs/`. See [docs/AR
 
 ## Deployment
 
-The `Dockerfile` builds the web app and runs the API and the worker together on `oven/bun` (`src/main.ts`). To split them later, override the command: `docker run <image> bun src/index.ts` for the API or `bun src/worker.ts` for the worker. The target is Render's free tier.
+The target is Render's free tier, described by the [`render.yaml`](render.yaml) blueprint: one Docker web service, `healthCheckPath: /health/ready`, and `autoDeployTrigger: checksPass` so a deploy waits for CI. The start command runs the migration before the server. See [Deploying to Render](docs/deployment.md) for the variable list, the free-plan behavior and rollback.
+
+The `Dockerfile` builds the web app and runs the API and the worker together on `oven/bun` (`src/main.ts`). To split them later, override the command: `docker run <image> bun src/index.ts` for the API or `bun src/worker.ts` for the worker.
 
 The image is built the same way everywhere (pinned `oven/bun:1.3.14`, frozen lockfile, non-root `bun` user, no `.env`, tests or dev dependencies) and has a `HEALTHCHECK` on `/health/live`. The web app reads three public values at build time, so pass them as build args: `VITE_TURNSTILE_SITE_KEY` (required: the build fails without it), `VITE_CF_ANALYTICS_TOKEN` and `VITE_SITE_URL`.
 
