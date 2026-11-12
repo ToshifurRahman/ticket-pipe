@@ -142,8 +142,41 @@ describe('render.yaml deploy', () => {
     expect(command).toContain('&&');
   });
 
+  it('execs the server, so bun is PID 1 and Render sends SIGTERM straight to it', () => {
+    // Without exec the shell keeps PID 1 and does not forward the signal, so the server's drain
+    // (in-flight work, Redis, Postgres) never runs and every deploy waits for Render's SIGKILL.
+    expect(field('dockerCommand')).toContain('exec bun src/main.ts');
+  });
+
   it('deploys only after the CI checks pass', () => {
     expect(field('autoDeployTrigger')).toBe('checksPass');
+  });
+});
+
+describe('render.yaml fields', () => {
+  // Anything else (startCommand, preDeployCommand, envVarGroups, numInstances, ...) changes the
+  // service or belongs to another file's guarantee, so the guard names the whole allowed set.
+  const SERVICE_FIELDS = [
+    'type',
+    'name',
+    'runtime',
+    'plan',
+    'region',
+    'branch',
+    'dockerfilePath',
+    'healthCheckPath',
+    'autoDeployTrigger',
+    'dockerCommand',
+  ];
+
+  it('uses only the documented service fields', () => {
+    expect([...(web?.fields.keys() ?? [])].sort()).toEqual([...SERVICE_FIELDS].sort());
+  });
+
+  it('gives each env entry only a key and sync; generateValue or value would fail', () => {
+    for (const entry of web?.envVars ?? []) {
+      expect([...entry.fields.keys()].sort(), entry.key).toEqual(['sync']);
+    }
   });
 });
 

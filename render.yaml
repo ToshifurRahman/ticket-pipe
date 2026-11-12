@@ -13,7 +13,8 @@ services:
     autoDeployTrigger: checksPass
     # The free plan has no pre-deploy command, so the migration runs in the start command.
     # WORKDIR in the runtime stage is /app/apps/api; both paths are relative to it.
-    dockerCommand: /bin/sh -c "bun scripts/migrate.ts && bun src/main.ts"
+    # `exec` hands PID 1 to bun, so Render's SIGTERM reaches the server's drain on a deploy.
+    dockerCommand: /bin/sh -c "bun scripts/migrate.ts && exec bun src/main.ts"
     envVars:
       - key: PORT
         sync: false
