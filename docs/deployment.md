@@ -11,17 +11,17 @@ the values; the repository holds only names.
 
 `render.yaml` at the repository root declares one service:
 
-| Setting             | Value                                                    |
-| ------------------- | -------------------------------------------------------- |
-| `type`              | `web`                                                    |
-| `runtime`           | `docker` (builds `./Dockerfile`)                         |
-| `name`              | `relay`                                                  |
-| `plan`              | `free`, one instance, no `numInstances`                  |
-| `region`            | `singapore`                                              |
-| `branch`            | `main`                                                   |
-| `healthCheckPath`   | `/health/ready`                                          |
-| `autoDeployTrigger` | `checksPass`                                             |
-| `dockerCommand`     | `/bin/sh -c "bun scripts/migrate.ts && bun src/main.ts"` |
+| Setting             | Value                                                         |
+| ------------------- | ------------------------------------------------------------- |
+| `type`              | `web`                                                         |
+| `runtime`           | `docker` (builds `./Dockerfile`)                              |
+| `name`              | `relay`                                                       |
+| `plan`              | `free`, one instance, no `numInstances`                       |
+| `region`            | `singapore`                                                   |
+| `branch`            | `main`                                                        |
+| `healthCheckPath`   | `/health/ready`                                               |
+| `autoDeployTrigger` | `checksPass`                                                  |
+| `dockerCommand`     | `/bin/sh -c "bun scripts/migrate.ts && exec bun src/main.ts"` |
 
 The runtime stage sets `WORKDIR /app/apps/api`, so both script paths in `dockerCommand` are
 relative to it. The image already sets `ENV NODE_ENV=production`, so `NODE_ENV` is deliberately
@@ -37,6 +37,10 @@ Every variable the app reads in production is named in `render.yaml`. All entrie
 `sync: false` with no `value:` key, so the dashboard is the only place a value lives. The list is
 generated from the config schema (`ENV_KEYS` in `apps/api/src/lib/config.ts`) and the three web
 build args; `apps/api/tests/guards/render-blueprint.test.ts` fails when the two drift apart.
+
+`sync: false` is only prompted the first time the Blueprint creates the service. A variable added
+to `render.yaml` later is not prompted: set it by hand in the dashboard before the next deploy,
+or the process stops at startup with a message that names the missing variable.
 
 | Variable                  | Required | What it is                                                             | Value comes from                         |
 | ------------------------- | -------- | ---------------------------------------------------------------------- | ---------------------------------------- |
@@ -102,7 +106,7 @@ put a secret in one. The Turnstile secret is `TURNSTILE_SECRET_KEY`, not the sit
 The free plan has no pre-deploy command, so the migration is part of the start command:
 
 ```
-/bin/sh -c "bun scripts/migrate.ts && bun src/main.ts"
+/bin/sh -c "bun scripts/migrate.ts && exec bun src/main.ts"
 ```
 
 - `apps/api/scripts/migrate.ts` is idempotent. It creates `schema_migrations` if it is missing,
@@ -110,6 +114,10 @@ The free plan has no pre-deploy command, so the migration is part of the start c
   `DATABASE_DIRECT_URL` and falls back to `DATABASE_URL`.
 - The `&&` is the guard: a migration that exits non-zero stops the command, so the server never
   starts against a half-migrated schema and Render marks the deploy failed.
+- `exec` replaces the shell with the server, so bun becomes PID 1. Render sends SIGTERM to PID 1
+  on every deploy and waits for the process to exit; without `exec` the shell keeps the signal to
+  itself, the server's shutdown drain never runs, in-flight tickets are killed, and Render waits
+  out its full timeout before SIGKILL.
 - Every cold start re-runs the migration, because the free plan spins the service down. That is
   cheap: with nothing to apply the script prints `nothing to migrate` and exits.
 
@@ -136,8 +144,10 @@ check on that commit has passed.
   keeps the Render instance warm without spending Neon CU-hours. `/health/ready` queries
   Postgres and is what Render's own health check calls.
 - Render sends health checks every few seconds. After 15 seconds of consecutive failures it stops
-  routing traffic to the instance; after 60 seconds it restarts it. A broken deploy therefore
-  recovers by restarting the old code path only if the old version is still the one deployed.
+  routing traffic to the instance; after 60 seconds it restarts the instance. A restart reruns the
+  same deployed version, so it only helps when the failure was transient, such as a slow database
+  start. It does not fix a broken build. A new deploy that never passes `/health/ready` does not
+  replace the old version: the old one keeps serving, and the deploy is marked failed.
 
 ## Checking the client address (PA-7.5-04)
 
@@ -175,10 +185,18 @@ by the caller. The key that matters is the last hop Render adds.
 
 ## Rollback
 
+A rollback restores the **build only**. Render keeps the service's current configuration, so the
+environment variables in the dashboard stay as they are and are not rolled back with the image.
+If a bad deploy also changed a variable, put the old value back by hand.
+
 - Fastest: in the Render dashboard open the service, go to Deploys, pick a previous successful
-  deploy and redeploy it. The image and its environment are restored as they were.
-- Durable: revert the merge commit on `main` with `git revert`, and let CI and
-  `autoDeployTrigger: checksPass` deploy the revert. Never `git push --force` to rewrite `main`.
+  deploy and choose rollback. Render deploys that build with the current environment, and it
+  **turns auto-deploy off for the service**. Re-enable it in Settings, Auto-Deploy, once the fix
+  is on `main`. Until then, a merge to `main` will not deploy.
+- Durable: revert the merge commit on `main` with `git revert`, push the revert, and then check
+  that auto-deploy is on. If a rollback turned it off, turn it back on in Settings, Auto-Deploy;
+  only then will CI and `autoDeployTrigger: checksPass` deploy the revert. Never `git push
+--force` to rewrite `main`.
 - A migration never needs a down script for a rollback: the previous image ignores tables it does
   not know. Do not drop columns or tables in a deploy you might roll back.
 
