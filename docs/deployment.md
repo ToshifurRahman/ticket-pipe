@@ -140,9 +140,11 @@ check on that commit has passed.
 - Neon suspends compute after 5 minutes of inactivity and cannot be made to wait longer. The first
   database query after that is slow. Each project has 100 CU-hours a month; when they run out the
   compute is suspended until the next billing period.
-- A keep-awake pinger, if one is used, must call `/health/live`. It touches no database, so it
-  keeps the Render instance warm without spending Neon CU-hours. `/health/ready` queries
-  Postgres and is what Render's own health check calls.
+- A keep-awake pinger, if one is used, must call `/health/live`, which touches no database,
+  so the pinger itself adds no queries. It does not save Neon CU-hours: while Render stays
+  awake, Render's own `/health/ready` checks keep running and each one queries Postgres.
+  They run every few seconds, so Neon never reaches its 5-minute idle window and the compute
+  allowance is spent anyway. A keep-awake pinger trades Render spin-down for Neon compute.
 - Render sends health checks every few seconds. After 15 seconds of consecutive failures it stops
   routing traffic to the instance; after 60 seconds it restarts the instance. A restart reruns the
   same deployed version, so it only helps when the failure was transient, such as a slow database
