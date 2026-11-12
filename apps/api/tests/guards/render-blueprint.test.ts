@@ -36,7 +36,8 @@ function uncomment(line: string): string {
 /**
  * Just enough of YAML for this file: top-level `services:`, a `- ` service entry at two spaces,
  * its scalar fields at four, the `envVars:` list at six and each entry's fields at eight.
- * Anything outside that shape is reported by the assertions that follow, not guessed at.
+ * A top-level key other than `services:` throws, because Render would find no service; anything
+ * else outside that shape is reported by the assertions that follow, not guessed at.
  */
 function parse(text: string): Service[] {
   const services: Service[] = [];
@@ -52,6 +53,12 @@ function parse(text: string): Service[] {
 
     if (indent === 0) {
       inEnvVars = false;
+      const [key, ...rest] = body.split(':');
+      if (key.trim() !== 'services' || rest.join(':').trim() !== '') {
+        throw new Error(
+          `render.yaml: expected a single "services:" at the top level, found "${body}"`
+        );
+      }
       continue;
     }
     if (indent === 2 && body.startsWith('- ')) {
@@ -104,6 +111,20 @@ const services = parse(blueprint);
 const [web] = services;
 const field = (name: string) => web?.fields.get(name);
 const envNames = () => web?.envVars.map((entry) => entry.key) ?? [];
+
+// An unindented key other than `services:` leaves Render with no service to create, so the
+// blueprint looks valid while deploying nothing.
+const topLevelKeys = blueprint
+  .split('\n')
+  .map(uncomment)
+  .filter((line) => line.trim() !== '' && !line.startsWith(' '))
+  .map((line) => line.split(':')[0].trim());
+
+describe('render.yaml top level', () => {
+  it('has services: as its only top-level key, so Render can find the service', () => {
+    expect(topLevelKeys).toEqual(['services']);
+  });
+});
 
 describe('render.yaml services', () => {
   it('describes exactly one service', () => {
