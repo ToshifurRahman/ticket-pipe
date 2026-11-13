@@ -82,7 +82,7 @@ services:
   # Own database and queues, so the dev data is untouched. Driven by `bun run test:image`.
   app:
     profiles: [image]
-    image: ticket-pipe-app:local
+    image: relay-app:local
     build:
       context: .
       network: ${IMAGE_BUILD_NETWORK:-default}

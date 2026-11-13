@@ -31,7 +31,7 @@
       },
     },
     "apps/api": {
-      "name": "@ticket-pipe/api",
+      "name": "@relay/api",
       "version": "0.1.0",
       "dependencies": {
         "@aws-sdk/client-sns": "^3.1147.0",
@@ -59,7 +59,7 @@
       },
     },
     "apps/web": {
-      "name": "@ticket-pipe/web",
+      "name": "@relay/web",
       "version": "0.1.0",
       "dependencies": {
         "@fontsource-variable/public-sans": "5.3.0",
@@ -81,7 +81,7 @@
         "socket.io-client": "4.8.4",
         "sonner": "2.0.8",
         "tailwind-merge": "3.7.0",
-        "zod": "4.6.5",
+        "zod": "4.6.6",
       },
       "devDependencies": {
         "@tailwindcss/vite": "4.3.3",
@@ -455,6 +455,10 @@
 
     "@redis/time-series": ["@redis/time-series@6.3.0", "", { "peerDependencies": { "@redis/client": "^6.3.0" } }, "sha512-+fJOB8mN1z5WRakCJNh5lVdz1KqvHGSOistsKeitD24QsCtPwyRQXWC0iq6T/i/ubLE/YcguZqPm8F598MKk4A=="],
 
+    "@relay/api": ["@relay/api@workspace:apps/api"],
+
+    "@relay/web": ["@relay/web@workspace:apps/web"],
+
     "@rolldown/binding-android-arm-eabi": ["@rolldown/binding-android-arm-eabi@1.2.15", "", { "os": "android", "cpu": "arm" }, "sha512-aLcgK9gIJ3YRvrrtfSBbRa27F5WrpiTaPulnFpsHPxpUHgFlSgnU4854MHwoRGEBhfRJDWCS2WQ7lIjskE9Olw=="],
 
     "@rolldown/binding-android-arm64": ["@rolldown/binding-android-arm64@1.2.15", "", { "os": "android", "cpu": "arm64" }, "sha512-xD7DdZCrbThKuxNg7ooQmvp07ys4J/pnSEMTG3/OdOWl6daC67m/Q4fL78sRHMxTH/N4fGUbYhcPM0MF5WFHkg=="],
@@ -566,10 +570,6 @@
     "@testing-library/react": ["@testing-library/react@16.3.3", "", { "dependencies": { "@babel/runtime": "^7.12.5" }, "peerDependencies": { "@testing-library/dom": "^10.0.0", "@types/react": "^18.0.0 || ^19.0.0", "@types/react-dom": "^18.0.0 || ^19.0.0", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@types/react", "@types/react-dom"] }, "sha512-Uo193NgQbPMz6lrrhtRQQFcMC6Re/ELLFbbuVL30WDlZxlpZf9/lMHTAVxPRLw1q1iu9OJmR1c2BLiENRstdBg=="],
 
     "@testing-library/user-event": ["@testing-library/user-event@14.6.7", "", { "peerDependencies": { "@testing-library/dom": ">=7.21.4" } }, "sha512-MPCpX8bxe8zS+JmmTwLp8jd0dy1rAm60Te/SL8JrQM3qvQJcBOs1d7IefJMyZzqM3EWBrDn/LWDt1BCGu4ASfg=="],
-
-    "@ticket-pipe/api": ["@ticket-pipe/api@workspace:apps/api"],
-
-    "@ticket-pipe/web": ["@ticket-pipe/web@workspace:apps/web"],
 
     "@tootallnate/quickjs-emscripten": ["@tootallnate/quickjs-emscripten@0.23.0", "", {}, "sha512-C5Mc6rdnsaJDjO3UpGW/CQTHtCKaYlScZTly4JIu97Jxo/odCiH0ITnDXSJPTOrEKk/ycSZ0AOgTmkDtkOsvIA=="],
 

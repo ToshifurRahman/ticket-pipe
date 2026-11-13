@@ -1,8 +1,8 @@
 [![CI](https://github.com/ToshifurRahman/ticket-pipe/actions/workflows/ci.yml/badge.svg)](https://github.com/ToshifurRahman/ticket-pipe/actions/workflows/ci.yml)
 
-# Ticket-Pipeline
+# Relay
 
-A support-ticket pipeline. A customer submits a ticket, a background worker triages it with an LLM and drafts a reply, and the customer watches it happen live. Staff get an ops console with live updates, alerts and replay for failures.
+Relay is a support-ticket pipeline. A customer submits a ticket, a background worker triages it with an LLM and drafts a reply, and the customer watches it happen live. Staff get an ops console with live updates, alerts and replay for failures.
 
 Built with Bun, Hono, PostgreSQL, Redis, AWS SQS, Socket.io and React.
 
@@ -54,9 +54,9 @@ All model calls go through `apps/api/src/lib/llm-client.ts`.
 bun install
 cp .env.example .env     # fill in the values below
 docker compose up -d     # Postgres, Redis, LocalStack (SQS/SNS), Mailpit; creates the queues
-bun --filter @ticket-pipe/api migrate
-bun --filter @ticket-pipe/api dev              # API on http://localhost:3000
-bun --filter @ticket-pipe/api worker           # in a second terminal
+bun --filter @relay/api migrate
+bun --filter @relay/api dev              # API on http://localhost:3000
+bun --filter @relay/api worker           # in a second terminal
 ```
 
 In `.env`, set `PORTKEY_API_KEY`, `GOOGLE_API_KEY` (primary, Gemini) and `BACKUP_API_KEY` (Groq). To skip providers entirely, set `LLM_MODE=fake`. `.env.example` lists every variable. The API, the worker and each script validate them once at startup (`apps/api/src/lib/config.ts`): a missing or invalid variable stops the process at once and the message names it. AWS keys are required unless `SQS_ENDPOINT` is set (LocalStack).
@@ -86,7 +86,7 @@ curl http://localhost:3000/api/tickets/<ticketId>
 
 `POST /api/tickets` also verifies a Cloudflare Turnstile token. Add `"turnstileToken": "XXXX.DUMMY.TOKEN.XXXX"` (Cloudflare's always-pass test token, accepted by the test secret in `.env.example`) to the body, or the API answers 403.
 
-For the web UI, run `bun run build` once and open http://localhost:3000, or run `bun --filter @ticket-pipe/web dev` for the Vite dev server on :5173. Staff sign in at `/ops` with `OPS_TOKEN` (`dev-ops-token` locally).
+For the web UI, run `bun run build` once and open http://localhost:3000, or run `bun --filter @relay/web dev` for the Vite dev server on :5173. Staff sign in at `/ops` with `OPS_TOKEN` (`dev-ops-token` locally).
 
 ## Tests and checks
 
@@ -124,7 +124,7 @@ The `Dockerfile` builds the web app and runs the API and the worker together on 
 The image is built the same way everywhere (pinned `oven/bun:1.3.14`, frozen lockfile, non-root `bun` user, no `.env`, tests or dev dependencies) and has a `HEALTHCHECK` on `/health/live`. The web app reads three public values at build time, so pass them as build args: `VITE_TURNSTILE_SITE_KEY` (required: the build fails without it), `VITE_CF_ANALYTICS_TOKEN` and `VITE_SITE_URL`.
 
 ```bash
-docker build --build-arg VITE_TURNSTILE_SITE_KEY=<site key> -t ticket-pipe .
+docker build --build-arg VITE_TURNSTILE_SITE_KEY=<site key> -t relay .
 bun run test:image   # builds the image and runs it against the compose stack (no .env, no LLM call)
 ```
 

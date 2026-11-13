@@ -404,7 +404,7 @@
       }
     ],
     "dos": [
-      "take values from `tokens.css` variables; add a token in the JSON first, then run `bun --filter @ticket-pipe/web tokens`.",
+      "take values from `tokens.css` variables; add a token in the JSON first, then run `bun --filter @relay/web tokens`.",
       "keep every state change a hard step (90ms `steps(2)` or the stepped print).",
       "print labels in Archivo Narrow caps, numbers in Courier Prime, sentences in Public Sans.",
       "wrap new form surfaces in FormPanel so ruling and form colours come for free.",

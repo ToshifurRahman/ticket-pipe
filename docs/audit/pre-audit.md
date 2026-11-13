@@ -6,7 +6,7 @@ Probes run (all read-only, from the repo root):
 
 | Command                                     | Result                                                                            |
 | ------------------------------------------- | --------------------------------------------------------------------------------- |
-| `bun --filter @ticket-pipe/web build`       | Passes in 5 s. Main chunk 359.5 kB.                                               |
+| `bun --filter @relay/web build`             | Passes in 5 s. Main chunk 359.5 kB.                                               |
 | `docker build --network host -t pa-probe .` | Passes in 24 s. Image 449 MB, `User=bun`, `Healthcheck=null`, no tests or `.env`. |
 | `bun run lint`                              | Passes with zero warnings.                                                        |
 | `bun run typecheck`                         | Passes (API, web, root).                                                          |
@@ -116,7 +116,7 @@ ClickUp `z8py7adu77`, `backlog`. Comment on the task: paths change to `apps/*` a
 
 ### Already exists
 
-- `bun --filter @ticket-pipe/web build` runs `tsc -b && vite build` into `apps/web/dist` (probe: passes).
+- `bun --filter @relay/web build` runs `tsc -b && vite build` into `apps/web/dist` (probe: passes).
 - The API serves `apps/web/dist` through `apps/api/src/middleware/web-app.ts`, with precompressed files.
 - `apps/api/src/index.ts` starts Hono through `server.ts` and has SIGTERM/SIGINT shutdown for the server and socket.io/Redis.
 - `apps/api/src/worker.ts` is a separate entry point with its own SIGTERM/SIGINT handlers (`import.meta.main` block, line 496).
@@ -131,7 +131,7 @@ ClickUp `z8py7adu77`, `backlog`. Comment on the task: paths change to `apps/*` a
 ### Stale assumptions
 
 - Express: the app is Hono on `Bun.serve`.
-- `npm run build`, `npm start`: the repo uses Bun and workspaces (`bun --filter @ticket-pipe/<app> <script>`).
+- `npm run build`, `npm start`: the repo uses Bun and workspaces (`bun --filter @relay/<app> <script>`).
 - `tsc` into `dist/`: the runtime is Bun running `.ts` directly (`CMD ["bun", "src/index.ts"]`). `apps/api/tsconfig.json` emits next to sources unless `--noEmit`, so a `tsc` build step would need its own config and a runtime change.
 - `src/`, `web/`: now `apps/api/src`, `apps/web`.
 
@@ -168,7 +168,7 @@ ClickUp `z8py7adu78`, `backlog`. Comment on the task: the Dockerfile is already 
 
 ### Already exists
 
-- A multi-stage `Dockerfile`: a web build stage, then a runtime stage with `bun install --production --filter @ticket-pipe/api`.
+- A multi-stage `Dockerfile`: a web build stage, then a runtime stage with `bun install --production --filter @relay/api`.
 - Non-root user (`USER bun`; probe: `User=bun`).
 - `.dockerignore` excludes `.env`, `.git`, `e2e`, `apps/api/tests`, `node_modules` and `apps/web/dist`.
 - The runtime image holds only `migrations`, `node_modules`, `package.json`, `scripts` and `src` under `/app/apps/api` (probe: listed). No tests and no `.env`.
@@ -358,11 +358,11 @@ ClickUp `z8py7adu7c`, `backlog`. Comment: run `bun run check` from CI and add co
 
 - Separate "backend" and "`web/`" lint/typecheck jobs: one root `check` covers both.
 - Service containers are Postgres, Redis, LocalStack; the tests also need Mailpit, and the migrate and `setup` steps.
-- Root `bun run build` does not exist yet (PA-7.1-04); the web build is `bun --filter @ticket-pipe/web build`.
+- Root `bun run build` does not exist yet (PA-7.1-04); the web build is `bun --filter @relay/web build`.
 
 ### Scope changes
 
-- - Mailpit service, `bun --filter @ticket-pipe/api migrate` and `setup` steps.
+- - Mailpit service, `bun --filter @relay/api migrate` and `setup` steps.
 - - commitlint over the PR range.
 - - Decide about e2e, accessibility and Lighthouse (PA-7.7-03).
 - `docker build --network host` is a local trap; CI should use a plain `docker build`.
@@ -400,7 +400,7 @@ ClickUp `z8py7adu7d`, `backlog`. No comments.
 
 ### Stale assumptions
 
-- `scripts/setup-infra.ts`: it is `apps/api/scripts/setup-infra.ts`, run by `bun --filter @ticket-pipe/api setup`.
+- `scripts/setup-infra.ts`: it is `apps/api/scripts/setup-infra.ts`, run by `bun --filter @relay/api setup`.
 - The IAM list omits SNS publish, which the ops alerts use (`lib/sns.ts`).
 
 ### Scope changes
@@ -522,7 +522,7 @@ ClickUp `z8py7ae0rd`, `backlog`. Comments: renumbered from 7.12 on 2026-10-24; b
 
 ### Scope changes
 
-- - Decide what happens to the internal `ticket-pipe` names (workspace scope `@ticket-pipe/*`, database name, compose project): 23 tracked files mention `ticket-pipe`.
+- - Decide what happens to the internal `ticket-pipe` names (workspace scope `@relay/*`, database name, compose project): 23 tracked files mention `ticket-pipe`.
 - - Create the Render service under the final name, or accept a URL change.
 
 ### Current paths
@@ -534,7 +534,7 @@ ClickUp `z8py7ae0rd`, `backlog`. Comments: renumbered from 7.12 on 2026-10-24; b
 | ID         | Severity | Location                                        | Evidence                                                                                                                                    | Fix or accepted-risk reason                                                                  | Status |
 | ---------- | -------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------ |
 | PA-7.11-01 | Low      | `apps/web/src/config/brand.ts:2,15`; story text | Old path and old story number                                                                                                               | Fix comments in the 7.11 change                                                              | Open   |
-| PA-7.11-02 | Medium   | Repo-wide                                       | 23 files contain `ticket-pipe`, including the `@ticket-pipe/*` scope                                                                        | Rename the repo, README and Render only; keep workspace names as an accepted internal detail | Open   |
+| PA-7.11-02 | Medium   | Repo-wide                                       | 23 files contain `ticket-pipe`, including the `@relay/*` scope                                                                              | Rename the repo, README and Render only; keep workspace names as an accepted internal detail | Open   |
 | PA-7.11-03 | Medium   | Story order                                     | The Render URL follows the service name. `PUBLIC_SITE_URL`, `VITE_SITE_URL`, Turnstile's hostname list and the email links all depend on it | Name the Render service correctly when it is created in 7.8/7.9, or run 7.11 earlier         | Open   |
 | PA-7.11-04 | Low      | `README.md:1`                                   | Title "Ticket-Pipeline"                                                                                                                     | Change with the repo rename                                                                  | Open   |
 

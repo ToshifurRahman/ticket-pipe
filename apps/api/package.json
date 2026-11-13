@@ -1,5 +1,5 @@
 {
-  "name": "@ticket-pipe/api",
+  "name": "@relay/api",
   "version": "0.1.0",
   "private": true,
   "type": "module",

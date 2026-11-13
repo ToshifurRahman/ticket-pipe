@@ -17,7 +17,7 @@ COPY apps/web/ apps/web/
 # Without a key the web app silently falls back to Cloudflare's always-pass test key.
 RUN test -n "$VITE_TURNSTILE_SITE_KEY" \
   || { echo "VITE_TURNSTILE_SITE_KEY is required: docker build --build-arg VITE_TURNSTILE_SITE_KEY=..." >&2; exit 1; }
-RUN bun --filter @ticket-pipe/web build
+RUN bun --filter @relay/web build
 
 FROM oven/bun:1.3.14
 WORKDIR /app
@@ -25,7 +25,7 @@ ENV NODE_ENV=production
 COPY package.json bun.lock ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
-RUN bun install --frozen-lockfile --production --ignore-scripts --filter @ticket-pipe/api
+RUN bun install --frozen-lockfile --production --ignore-scripts --filter @relay/api
 COPY apps/api/src/ apps/api/src/
 COPY apps/api/scripts/ apps/api/scripts/
 COPY apps/api/migrations/ apps/api/migrations/

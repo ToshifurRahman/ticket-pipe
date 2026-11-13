@@ -8,16 +8,16 @@
 bun install
 cp .env.example .env
 docker compose up -d --wait   # Postgres, Redis, LocalStack, Mailpit
-bun --filter @ticket-pipe/api migrate
-bun --filter @ticket-pipe/api setup
+bun --filter @relay/api migrate
+bun --filter @relay/api setup
 ```
 
 Run the app:
 
 ```bash
-bun --filter @ticket-pipe/api dev      # API on :3000
-bun --filter @ticket-pipe/api worker   # second terminal
-bun --filter @ticket-pipe/web dev      # Vite on :5173
+bun --filter @relay/api dev      # API on :3000
+bun --filter @relay/api worker   # second terminal
+bun --filter @relay/web dev      # Vite on :5173
 ```
 
 For a production-style local run, `bun run build` then `bun --env-file=.env run start` (both services in one process). Use `start:api` or `start:worker` to run either alone.
@@ -30,19 +30,19 @@ Set `LLM_MODE=fake` in `.env` to work without an AI provider. See the [README](R
 
 Run these from the repo root.
 
-| Script                                    | Does                                                      |
-| ----------------------------------------- | --------------------------------------------------------- |
-| `bun run check`                           | Format check, lint, typecheck and tests. Run before a PR  |
-| `bun run build`                           | Type-check the API and build `apps/web/dist`              |
-| `bun run start`                           | API and worker together (reads the process environment)   |
-| `bun run start:api`                       | API only                                                  |
-| `bun run start:worker`                    | Worker only                                               |
-| `bun run format`                          | Prettier over the whole repo                              |
-| `bun run lint`                            | ESLint, zero warnings allowed                             |
-| `bun run typecheck`                       | `tsc` for the API, web and root                           |
-| `bun run test`                            | Every workspace's Vitest suite (integration needs Docker) |
-| `bun --filter @ticket-pipe/api test:unit` | API unit and guard tests only, no Docker                  |
-| `bun run test:e2e`                        | Playwright against the built app                          |
+| Script                              | Does                                                      |
+| ----------------------------------- | --------------------------------------------------------- |
+| `bun run check`                     | Format check, lint, typecheck and tests. Run before a PR  |
+| `bun run build`                     | Type-check the API and build `apps/web/dist`              |
+| `bun run start`                     | API and worker together (reads the process environment)   |
+| `bun run start:api`                 | API only                                                  |
+| `bun run start:worker`              | Worker only                                               |
+| `bun run format`                    | Prettier over the whole repo                              |
+| `bun run lint`                      | ESLint, zero warnings allowed                             |
+| `bun run typecheck`                 | `tsc` for the API, web and root                           |
+| `bun run test`                      | Every workspace's Vitest suite (integration needs Docker) |
+| `bun --filter @relay/api test:unit` | API unit and guard tests only, no Docker                  |
+| `bun run test:e2e`                  | Playwright against the built app                          |
 
 Never `bun test` (Vitest must run on Node), and never `tsc -p apps/api` without `--noEmit`: its tsconfig emits `.js` next to the sources.
 

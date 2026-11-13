@@ -71,7 +71,7 @@ components:
 
 # Design System: Relay
 
-The Relay Full Demo (https://claude.ai/artifact/KgujCr5HHmouNMgx9bHwzo) is the design authority. `apps/web/` copies its values. Every difference, and every decision kept on purpose, is listed in [docs/design-deviations.md](docs/design-deviations.md); that file also lists the story 6.18 finish-review fixes. Do not repeat or override it here. Source of truth for tokens: `web/tokens/colors.json` and `web/tokens/scale.json` (DTCG), compiled to `apps/web/src/styles/tokens.css` by `bun --filter @ticket-pipe/web tokens`.
+The Relay Full Demo (https://claude.ai/artifact/KgujCr5HHmouNMgx9bHwzo) is the design authority. `apps/web/` copies its values. Every difference, and every decision kept on purpose, is listed in [docs/design-deviations.md](docs/design-deviations.md); that file also lists the story 6.18 finish-review fixes. Do not repeat or override it here. Source of truth for tokens: `web/tokens/colors.json` and `web/tokens/scale.json` (DTCG), compiled to `apps/web/src/styles/tokens.css` by `bun --filter @relay/web tokens`.
 
 ## Overview
 
@@ -250,7 +250,7 @@ From PRODUCT.md: believable, not demonstrative.
 ## Do's and Don'ts
 
 ### Do:
-- **Do** take values from `tokens.css` variables; add a token in the JSON first, then run `bun --filter @ticket-pipe/web tokens`.
+- **Do** take values from `tokens.css` variables; add a token in the JSON first, then run `bun --filter @relay/web tokens`.
 - **Do** keep every state change a hard step (90ms `steps(2)` or the stepped print).
 - **Do** print labels in Archivo Narrow caps, numbers in Courier Prime, sentences in Public Sans.
 - **Do** wrap new form surfaces in FormPanel so ruling and form colours come for free.

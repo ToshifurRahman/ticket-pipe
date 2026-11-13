@@ -107,7 +107,7 @@ error text. Only `apps/api/src/services/ops-alerts.ts` may publish to SNS (`apps
 | `SNS_ENDPOINT`           | LocalStack URL for local runs. Leave unset in production to use AWS.                                                      |
 | `SNS_ALERT_MAX_PER_HOUR` | Hourly cap, default 20.                                                                                                   |
 
-To try it locally, `bun --filter @ticket-pipe/api setup` creates the `ticket-needs-attention` topic in LocalStack and prints its ARN.
+To try it locally, `bun --filter @relay/api setup` creates the `ticket-needs-attention` topic in LocalStack and prints its ARN.
 Set `SNS_TOPIC_ARN` to it. LocalStack doesn't send email, so subscribe a queue to the topic to see the alerts
 (as `apps/api/tests/integration/services/ops-alerts-localstack.test.ts` does). In production the topic, the email subscription (the recipient
 must click the confirmation link) and `sns:Publish` on that topic for the app's IAM user are set up by hand.
