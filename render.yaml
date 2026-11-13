@@ -1,0 +1,98 @@
+# Render blueprint for the production web service (story 7.9).
+# Every variable is named here and none carries a value: the dashboard holds the secrets.
+# apps/api/tests/guards/render-blueprint.test.ts keeps this file in step with the config schema.
+services:
+  - type: web
+    name: relay
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health/ready
+    autoDeployTrigger: checksPass
+    # The free plan has no pre-deploy command, so the migration runs in the start command.
+    # WORKDIR in the runtime stage is /app/apps/api; both paths are relative to it.
+    # `exec` hands PID 1 to bun, so Render's SIGTERM reaches the server's drain on a deploy.
+    dockerCommand: /bin/sh -c "bun scripts/migrate.ts && exec bun src/main.ts"
+    envVars:
+      - key: PORT
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_DIRECT_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: SQS_ENDPOINT
+        sync: false
+      - key: SQS_QUEUE_NAME
+        sync: false
+      - key: SQS_DLQ_NAME
+        sync: false
+      - key: WORKER_CONCURRENCY
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: PORTKEY_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: PRIMARY_GATEWAY
+        sync: false
+      - key: PRIMARY_MODEL
+        sync: false
+      - key: BACKUP_GATEWAY
+        sync: false
+      - key: BACKUP_API_KEY
+        sync: false
+      - key: BACKUP_MODEL
+        sync: false
+      - key: AI_TIMEOUT_MS
+        sync: false
+      - key: LLM_MODE
+        sync: false
+      - key: LLM_FAKE_DELAY_MS
+        sync: false
+      - key: OPS_TOKEN
+        sync: false
+      - key: SNS_ENDPOINT
+        sync: false
+      - key: SNS_TOPIC_ARN
+        sync: false
+      - key: SNS_ALERT_MAX_PER_HOUR
+        sync: false
+      - key: MAIL_DRIVER
+        sync: false
+      - key: SMTP_URL
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: MAIL_FROM_NAME
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_DAILY_CAP
+        sync: false
+      - key: PUBLIC_SITE_URL
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
+      - key: TICKET_IP_HOURLY_LIMIT
+        sync: false
+      - key: TICKET_DAILY_CAP
+        sync: false
+      # Build args: Render passes a Docker service's environment variables to the image build.
+      # The web bundle bakes them in, so they are set here and consumed by the Dockerfile.
+      - key: VITE_TURNSTILE_SITE_KEY
+        sync: false
+      - key: VITE_CF_ANALYTICS_TOKEN
+        sync: false
+      - key: VITE_SITE_URL
+        sync: false
