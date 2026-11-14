@@ -32,7 +32,7 @@ describe('web build args', () => {
 
   it('fails the build when the Turnstile key is empty, before building', () => {
     const guard = webStage.indexOf('test -n "$VITE_TURNSTILE_SITE_KEY"');
-    const build = webStage.indexOf('bun --filter @ticket-pipe/web build');
+    const build = webStage.indexOf('bun --filter @relay/web build');
     expect(guard).toBeGreaterThan(-1);
     expect(build).toBeGreaterThan(guard);
   });

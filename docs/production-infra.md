@@ -24,7 +24,7 @@ the direct endpoint for migrations and the pooled endpoint lacks the session-lev
 migration tools rely on. Run migrations before starting the app:
 
 ```bash
-bun --filter @ticket-pipe/api migrate
+bun --filter @relay/api migrate
 ```
 
 The app itself keeps reading `DATABASE_URL`; it never reads the direct URL.
@@ -82,7 +82,7 @@ commands drift apart, or if any action or resource contains a wildcard.
 Run once with `SQS_ENDPOINT` unset or empty and the setup identity's keys:
 
 ```bash
-SQS_ENDPOINT= SNS_ENDPOINT= bun --filter @ticket-pipe/api setup
+SQS_ENDPOINT= SNS_ENDPOINT= bun --filter @relay/api setup
 ```
 
 This creates the main queue, the DLQ with the redrive policy (`maxReceiveCount` 10), and the
@@ -132,7 +132,7 @@ Credentials can stay as configured; ElasticMQ ignores them. Nothing else in the 
 Run the API and worker with the production environment, then:
 
 ```bash
-bun --filter @ticket-pipe/api smoke:infra
+bun --filter @relay/api smoke:infra
 ```
 
 One line per check, `<name> ok` or `<name> WRONG`; exit code 0 only when every line is `ok`.

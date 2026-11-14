@@ -14,9 +14,10 @@ describe('bun workspace layout', () => {
     expect(json('package.json').workspaces).toEqual(['apps/*']);
   });
 
-  it('names the apps with the @ticket-pipe scope', () => {
-    expect(json('apps/api/package.json').name).toBe('@ticket-pipe/api');
-    expect(json('apps/web/package.json').name).toBe('@ticket-pipe/web');
+  it('keeps the root package name and gives the apps the Relay scope', () => {
+    expect(json('package.json').name).toBe('ticket-pipe');
+    expect(json('apps/api/package.json').name).toBe('@relay/api');
+    expect(json('apps/web/package.json').name).toBe('@relay/web');
   });
 
   it('keeps a single lockfile at the root', () => {
@@ -48,20 +49,24 @@ describe('bun workspace layout', () => {
   });
 });
 
+describe('product name', () => {
+  it('titles the README with the brand', () => {
+    expect(read('README.md')).toMatch(/^# Relay$/m);
+  });
+});
+
 describe('production commands', () => {
   const rootScripts = json('package.json').scripts ?? {};
   const apiScripts = json('apps/api/package.json').scripts ?? {};
 
   it('builds the web app and type-checks the API without emitting a dist/', () => {
-    expect(rootScripts.build).toBe(
-      'tsc --noEmit -p apps/api && bun --filter @ticket-pipe/web build'
-    );
+    expect(rootScripts.build).toBe('tsc --noEmit -p apps/api && bun --filter @relay/web build');
   });
 
   it('starts the combined entry point and each service from the root', () => {
-    expect(rootScripts.start).toBe('bun --filter @ticket-pipe/api start');
-    expect(rootScripts['start:api']).toBe('bun --filter @ticket-pipe/api start:api');
-    expect(rootScripts['start:worker']).toBe('bun --filter @ticket-pipe/api start:worker');
+    expect(rootScripts.start).toBe('bun --filter @relay/api start');
+    expect(rootScripts['start:api']).toBe('bun --filter @relay/api start:api');
+    expect(rootScripts['start:worker']).toBe('bun --filter @relay/api start:worker');
   });
 
   it('runs Bun directly against the TypeScript entry points', () => {

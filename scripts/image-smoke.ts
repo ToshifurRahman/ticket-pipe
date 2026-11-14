@@ -14,7 +14,7 @@ import pg from 'pg';
 // (`/bin/sh -c "bun scripts/migrate.ts && bun src/main.ts"`) against a fresh database, and
 // requires a row in schema_migrations plus a 200 from /health/ready.
 
-const IMAGE = 'ticket-pipe-app:local';
+const IMAGE = 'relay-app:local';
 const DB_NAME = 'ticket_pipe_image';
 const BASE = 'http://localhost:3200';
 const ADMIN_URL = 'postgresql://postgres:postgres@localhost:5433/postgres';
@@ -22,7 +22,7 @@ const network = process.env.IMAGE_BUILD_NETWORK;
 
 // The deploy command and the scratch database the 7.9 step uses, kept apart from the app's own.
 const DEPLOY_DB_NAME = 'ticket_pipe_image_deploy';
-const DEPLOY_CONTAINER = 'ticket-pipe-deploy-check';
+const DEPLOY_CONTAINER = 'relay-deploy-check';
 const DEPLOY_BASE = 'http://localhost:3201';
 
 function step(message: string) {

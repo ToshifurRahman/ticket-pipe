@@ -99,9 +99,9 @@ jobs:
       - name: Check the CI test split
         run: bun scripts/ci-test-list.ts
       - name: Migrate
-        run: bun --filter @ticket-pipe/api migrate
+        run: bun --filter @relay/api migrate
       - name: Create queues and topics
-        run: bun --filter @ticket-pipe/api setup
+        run: bun --filter @relay/api setup
       - name: Format check
         run: bun run format:check
       - name: Lint
@@ -109,14 +109,14 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
       - name: Unit tests
-        run: env NODE_ENV=test bun --filter @ticket-pipe/api test:unit --exclude tests/guards/format.test.ts
+        run: env NODE_ENV=test bun --filter @relay/api test:unit --exclude tests/guards/format.test.ts
       - name: Integration tests
-        run: env NODE_ENV=test bun --filter @ticket-pipe/api test:integration --exclude tests/integration/repositories/ai-interactions.test.ts
+        run: env NODE_ENV=test bun --filter @relay/api test:integration --exclude tests/integration/repositories/ai-interactions.test.ts
       - name: Serial tests
         working-directory: apps/api
         run: env NODE_ENV=test node ../../node_modules/vitest/vitest.mjs run tests/guards/format.test.ts tests/integration/repositories/ai-interactions.test.ts --no-file-parallelism --maxWorkers=1
       - name: Web tests
-        run: env NODE_ENV=test bun --filter @ticket-pipe/web test
+        run: env NODE_ENV=test bun --filter @relay/web test
 
   build:
     name: Web build
@@ -138,7 +138,7 @@ jobs:
       - name: Build the web app
         env:
           VITE_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
-        run: bun --filter @ticket-pipe/web build
+        run: bun --filter @relay/web build
 
   docker:
     name: Docker image
@@ -268,9 +268,9 @@ jobs:
           done
           exit 1
       - name: Migrate
-        run: bun --filter @ticket-pipe/api migrate
+        run: bun --filter @relay/api migrate
       - name: Create queues and topics
-        run: bun --filter @ticket-pipe/api setup
+        run: bun --filter @relay/api setup
       - name: Install the Playwright browser
         run: bunx playwright install --with-deps chromium
       - name: Run the end-to-end tests

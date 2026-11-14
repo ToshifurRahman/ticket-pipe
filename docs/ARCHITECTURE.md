@@ -5,7 +5,7 @@ How the repo is laid out, which way imports may go, where tests live, and how fi
 ## Folder map
 
 ```
-apps/    Bun workspaces: api (@ticket-pipe/api) and web (@ticket-pipe/web)
+apps/    Bun workspaces: api (@relay/api) and web (@relay/web)
 e2e/     Playwright tests against the built app
 scripts/ Lighthouse, screenshots, gate
 docs/    Feature docs and this file

@@ -1,11 +1,11 @@
 # Web app
 
-The UI is a React single-page app in `apps/web/` (Vite, TypeScript, Tailwind v4, shadcn/ui). It is the `@ticket-pipe/web` workspace; the API serves the built `apps/web/dist` on the same origin as the API, with deep links such as `/t/<reference>` falling back to `index.html`.
+The UI is a React single-page app in `apps/web/` (Vite, TypeScript, Tailwind v4, shadcn/ui). It is the `@relay/web` workspace; the API serves the built `apps/web/dist` on the same origin as the API, with deep links such as `/t/<reference>` falling back to `index.html`.
 
 ```bash
 # Development: API on :3000 plus the Vite dev server on :5173 (proxies /api and /socket.io)
-bun --filter @ticket-pipe/api dev
-bun --filter @ticket-pipe/web dev
+bun --filter @relay/api dev
+bun --filter @relay/web dev
 
 # Production-style: build once, then the API and worker run together on :3000
 bun run build
@@ -80,8 +80,8 @@ signs in, filters to a `needs_attention` ticket made with `[fake:invalid-draft]`
 The API and the worker both refuse to start with `LLM_MODE=fake` when `NODE_ENV=production`, and with any `LLM_MODE` other than `real` or `fake`.
 
 ```bash
-bun --filter @ticket-pipe/web test   # web unit tests (Vitest + Testing Library + MSW)
-bun run test:e2e    # Playwright against the built app; needs `docker compose up -d`, `bun --filter @ticket-pipe/api migrate`, `bun --filter @ticket-pipe/api setup`
+bun --filter @relay/web test   # web unit tests (Vitest + Testing Library + MSW)
+bun run test:e2e    # Playwright against the built app; needs `docker compose up -d`, `bun --filter @relay/api migrate`, `bun --filter @relay/api setup`
 ```
 
 `test:e2e` builds the web app and starts `e2e/stack.ts`, a fake-mode wrapper around the combined
